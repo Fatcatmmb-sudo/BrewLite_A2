@@ -2,10 +2,6 @@
 
 Phiên bản: 1.0 | Ngày: 28/10/2026 | Phụ trách: Khang | Truy vết: [A2-1.2.1 / Issue #2](https://github.com/phananhkhang/BrewLite_A2/issues/2).
 
-## 1. Căn cứ, cấu trúc và quy ước
-
-Nguồn chính: `Assignment2-BrewLite (1).pdf`, ver 1.0, mục 1.1, 3.2, 6.3 và 7.1-7.2 (trang PDF 3-4, 6-7; trang in 2-3, 5-6). Baseline kế thừa: `docs/tham_khao/BrewLite/docs/phan-tich-de-bai.md`, `docs/architecture/use-case-overview.md`, `order-state-machine.md`, `api-spec.md`, `docs/use-cases/UC-06-tao-don-hang.md`, `UC-08-thuc-hien-thanh-toan.md` và `apps/api/prisma/schema.prisma` bên trong thư mục tham khảo.
-
 SRS được chia theo trách nhiệm để review từng issue:
 
 | Thành phần | Tạo phẩm | Issue |
@@ -15,14 +11,12 @@ SRS được chia theo trách nhiệm để review từng issue:
 | NFR và cách đo | `docs/requirements/non-functional-requirements.md` | #3 |
 | Actor, boundary, UC và ánh xạ FR | `docs/requirements/use-case-overview.md`, nguồn/bản xuất trong `docs/diagrams/` | #4 |
 
-Các tệp thuộc issue khác được nêu bằng đường dẫn để không coi chúng đã tồn tại trước khi PR tương ứng được merge. Đây là đặc tả đích, **chưa phải kết quả triển khai hay test**. Mã `AT-FR-*` là ca kiểm chứng cần thực hiện ở task sau, không phải tên test đã có.
-
 - **Must**: bắt buộc để nghiệm thu MVP cuối A2; **Should**: cần có, có thể hoãn nếu có lý do và rủi ro được review; **Could**: mở rộng khi còn nguồn lực; **Won't**: chủ ý không làm trong MVP.
 - Giữ FR-01..10 và UC-01..10 theo baseline tham khảo để không đổi nghĩa khi truy vết. FR-11..15 tách phần ưu tiên bổ sung.
 - Role tài khoản chỉ gồm `CUSTOMER` và `BARISTA`. Khách chưa đăng nhập thực hiện phần public của actor Khách hàng. Mock Payment Gateway là actor tích hợp, không có JWT role.
 - Tiền là số nguyên VND; thời gian lưu UTC; API tương đối dưới `/api/v1`. SRS quy định kết quả nghiệp vụ, hợp đồng endpoint chi tiết sẽ được chốt khi thiết kế.
 
-## 2. Danh mục yêu cầu và ưu tiên
+## 1. Danh mục yêu cầu và ưu tiên
 
 | Mã | Yêu cầu | MoSCoW | Actor / UC | Căn cứ |
 |---|---|---|---|---|
@@ -42,7 +36,7 @@ Các tệp thuộc issue khác được nêu bằng đường dẫn để không
 | FR-14 | Cập nhật trạng thái realtime | Could | Khách hàng / mở rộng UC-09 | Mở rộng; MVP tải lại để xem trạng thái |
 | FR-15 | Thanh toán/hoàn tiền qua nhà cung cấp tiền thật | Won't | Ngoài MVP | MVP chỉ mô phỏng, không thu tiền thật |
 
-## 3. Tiêu chí chấp nhận có thể kiểm chứng
+## 2. Tiêu chí chấp nhận có thể kiểm chứng
 
 ### FR-01 - Menu
 
@@ -139,7 +133,7 @@ Các tệp thuộc issue khác được nêu bằng đường dẫn để không
 | FR-14 / Could | Nếu đưa vào release: chỉ chủ đơn nhận cập nhật, kết nối lại không mất trạng thái và vẫn tải lại được. Nếu hoãn: UI reload theo FR-08 vẫn phải hoạt động. |
 | FR-15 / Won't | Review code/cấu hình/demo xác nhận dùng mock, không có thông tin thẻ thật hoặc charge tiền thật; mọi tích hợp thật phải qua thay đổi phạm vi và AC mới. |
 
-## 4. Các quy tắc dùng chung và giới hạn
+## 3. Các quy tắc dùng chung và giới hạn
 
 1. Client hiển thị tạm tính; server là nguồn giá/tồn/quyền và kết quả thanh toán. Tự thêm `total`, `amount`, `userId` hoặc `role` vào request nghiệp vụ không thay đổi kết quả được server cho phép.
 2. Một đơn có thể có nhiều payment attempt; tối đa một payment SUCCEEDED và một EARN. Số đơn được tạo không thay thế kiểm chứng chống lặp payment; `POST /orders` không được mặc nhiên coi là idempotent.
