@@ -2,17 +2,13 @@
 
 Phiên bản: 1.0 | Ngày: 28/10/2026 | Phụ trách: Khang | Truy vết: [A2-1.2.2 / Issue #3](https://github.com/phananhkhang/BrewLite_A2/issues/3).
 
-## 1. Căn cứ và trạng thái
-
-Nguồn chính: `Assignment2-BrewLite (1).pdf`, ver 1.0, mục 1.1, 3.2, 5.1-5.2, 6.4 và 7.2-7.4 (trang PDF 3-7; trang in 2-6): mobile-first/PWA, hiệu năng, bảo mật, tính khả dụng, khả năng triển khai, CI/CD và production HTTPS. Baseline đo kế thừa từ `docs/tham_khao/BrewLite/docs/phan-tich-de-bai.md`, mục 5; đối chiếu tài liệu tham khảo `docs/architecture/security.md`, `order-state-machine.md`, `docs/testing/test-strategy.md` và `docs/deployment/docker-guide.md` bên trong BrewLite.
-
-Giữ nghĩa NFR-01..11 của baseline tham khảo; bổ sung NFR-12 cho hướng PWA của A2. FR liên quan được định nghĩa trong `docs/requirements/srs.md` (issue #2). Các tài liệu tham khảo mô tả hiện trạng cũ không chứng minh BrewLite_A2 đã có code hay vượt qua phép đo.
+Giữ nghĩa NFR-01..11 của baseline tham khảo; bổ sung NFR-12 cho hướng PWA của A2. FR liên quan được định nghĩa trong `docs/requirements/srs.md` (issue #2).
 
 **Tất cả NFR dưới đây đang ở trạng thái chưa đo.** Đề A2 yêu cầu các nhóm chất lượng và đầu ra, nhưng không quy định p95, số client, cửa sổ uptime, thời gian khởi động/khôi phục hoặc tỷ lệ điểm. Các con số dưới đây là mục tiêu nghiệm thu nhóm đề xuất từ baseline, không phải số đo đã đạt. Ngưỡng API <500 ms được kế thừa từ phân tích đề A1 trong tài liệu tham khảo; cách đo p95 là quy ước nhóm, không được quy cho đề A2.
 
-MoSCoW: **Must** bắt buộc nghiệm thu MVP cuối A2; **Should** có thể hoãn khi review chấp nhận lý do/rủi ro; **Could** mở rộng; **Won't** ngoài MVP. Toàn bộ NFR-01..12 dưới đây là Must vì bảo vệ luồng lõi hoặc đầu ra bắt buộc. Ưu tiên mở rộng được tách ở mục 5.
+MoSCoW: **Must** bắt buộc nghiệm thu MVP cuối A2; **Should** có thể hoãn khi review chấp nhận lý do/rủi ro; **Could** mở rộng; **Won't** ngoài MVP. Toàn bộ NFR-01..12 dưới đây là Must vì bảo vệ luồng lõi hoặc đầu ra bắt buộc. Ưu tiên mở rộng được tách ở mục 4.
 
-## 2. Môi trường và quy trình đo dùng chung
+## 1. Môi trường và quy trình đo dùng chung
 
 1. Dùng DB test riêng. Ghi commit, thời điểm bắt đầu/kết thúc UTC, CPU/RAM/OS, Node/PostgreSQL/Docker/browser/tool version, cấu hình và seed. Không chạy tải hoặc fault injection trên production/DB dùng chung.
 2. Dataset hiệu năng: 100 product, 300 variant, 30 topping, 1.000 order của các test user; stock/coupon đủ cho lượt đo. Warm-up 30 giây, đo 5 phút, 20 client đồng thời. Tách từng endpoint; không chọn lọc bỏ request chậm. Tách cold build, startup, steady-state và fault recovery.
@@ -20,11 +16,11 @@ MoSCoW: **Must** bắt buộc nghiệm thu MVP cuối A2; **Should** có thể h
 4. Mỗi NFR có evidence gồm lệnh/cấu hình, dataset, log thô đã che bí mật, số đo, ngưỡng và pass/fail. Lưu evidence ở `docs/testing/evidence/<commit>/<NFR-ID>/` khi thực thi; hiện chưa có bộ evidence này.
 5. Chỉ gán **đạt** khi đủ phép thử của NFR. Các trạng thái còn lại là **chưa đo**, **không đạt**, **chưa áp dụng** kèm lý do. Chưa có production URL có thể ghi chưa áp dụng ở bước sớm, nhưng không được dùng để hoàn tất yêu cầu production cuối A2.
 
-## 3. Danh mục NFR và phép kiểm chứng
+## 2. Danh mục NFR và phép kiểm chứng
 
 ### NFR-01 - Hiệu năng API (Must)
 
-**Mục tiêu:** p95 <500 ms và tỷ lệ 5xx/timeout <1% cho từng API thông thường `GET /products`, `GET /products/:id`, `GET /orders/me`, `POST /orders` hợp lệ, theo điều kiện mục 2. Giữ giá trị snapshot/tồn chính xác dưới tải; không gộp thời gian payment gateway vào bộ mẫu API thông thường.
+**Mục tiêu:** p95 <500 ms và tỷ lệ 5xx/timeout <1% cho từng API thông thường `GET /products`, `GET /products/:id`, `GET /orders/me`, `POST /orders` hợp lệ, theo điều kiện mục 1. Giữ giá trị snapshot/tồn chính xác dưới tải; không gộp thời gian payment gateway vào bộ mẫu API thông thường.
 
 **Kiểm chứng:** load test riêng từng route trên stack Next.js/NestJS/PostgreSQL đã warm-up; request Orders có JWT hợp lệ. Reset dữ liệu/stock giữa các lượt, không reset khi đang đo; ghi số mẫu, p50/p95/p99, 5xx, timeout và CPU/RAM. Payment được báo cáo latency riêng kèm độ trễ mock gateway; bỏ payment khỏi ngưỡng 500 ms không có nghĩa bỏ test payment. FR-01/02/06/08; ca dự kiến `AT-NFR-01`.
 
@@ -94,7 +90,7 @@ MoSCoW: **Must** bắt buộc nghiệm thu MVP cuối A2; **Should** có thể h
 
 **Kiểm chứng:** trên HTTPS, kiểm tra manifest/service worker/cache, thử mở lại vỏ ứng dụng sau lần tải online và chuyển offline ở menu/checkout/payment. Kiểm tra nút thử lại, giỏ và dữ liệu nhạy cảm sau logout/đổi user; online trở lại phải tra cứu kết quả order/payment từ server. Ghi browser/version và kết quả kiểm tra PWA; khả năng cài vào màn hình chính tùy browser được ghi riêng, không thay thế luồng nghiệp vụ. A2 mục 1.1; FR-04/05/07/08; `AT-NFR-12`. Offline đặt đơn/thanh toán ngoài MVP.
 
-## 4. Truy vết và mẫu evidence
+## 3. Truy vết và mẫu evidence
 
 | Nhóm bắt buộc của A2 | NFR bao phủ | Minh chứng tối thiểu dự kiến |
 |---|---|---|
@@ -106,7 +102,7 @@ MoSCoW: **Must** bắt buộc nghiệm thu MVP cuối A2; **Should** có thể h
 
 Mỗi bản ghi phải có `NFR-ID`, commit, môi trường, lệnh/test, dataset, thời gian UTC, ngưỡng, số đo thực tế, pass/fail, vị trí artifact và reviewer. Nối bản ghi với code/test thật trong `docs/traceability-matrix.md` khi các task triển khai thực hiện. Trạng thái **đặc tả hoàn tất** và **NFR đạt** là hai kết luận khác nhau.
 
-## 5. Ưu tiên mở rộng và giới hạn
+## 4. Ưu tiên mở rộng và giới hạn
 
 | MoSCoW | Nội dung | Cách xác nhận phạm vi |
 |---|---|---|
