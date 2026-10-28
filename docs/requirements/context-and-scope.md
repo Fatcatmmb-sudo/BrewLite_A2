@@ -2,20 +2,7 @@
 
 Phiên bản: 1.0 | Ngày: 28/10/2026 | Phụ trách: Khang | Truy vết: [A2-1.1 / Issue #1](https://github.com/phananhkhang/BrewLite_A2/issues/1).
 
-Đây là baseline yêu cầu để nhóm review và triển khai, chưa phải biên bản phỏng vấn hay chứng nhận sản phẩm đã nghiệm thu.
-
-## 1. Căn cứ và cách sử dụng
-
-| Nguồn | Phần sử dụng |
-|---|---|
-| `Assignment2-BrewLite (1).pdf`, ver 1.0, trang PDF 3-4 (trang in 2-3), mục 1.1, 3.1-3.2 | Luồng tối thiểu, stakeholder, phạm vi, SRS và công nghệ bắt buộc |
-| Cùng đề, trang PDF 6-8 (trang in 5-7), mục 6-9 | Hai Sprint, CI/CD, production HTTPS, kiểm thử, truy vết và bàn giao |
-| `docs/tham_khao/BrewLite/docs/phan-tich-de-bai.md`, mục 2-10 | Baseline nghiệp vụ kế thừa Assignment 1: tùy chọn món, tồn kho, coupon, loyalty và rủi ro |
-| `docs/tham_khao/BrewLite/docs/architecture/use-case-overview.md`, `order-state-machine.md`, `api-spec.md` và `apps/api/prisma/schema.prisma` | Actor, hai role, enum trạng thái và quy tắc nghiệp vụ tham chiếu |
-
-Các đường dẫn `docs/tham_khao/BrewLite` là tài liệu tham khảo local do người thực hiện cung cấp, không phải phụ thuộc cần tải để chạy BrewLite_A2. Tài liệu cũ có mô tả hiện trạng ở các ngày khác nhau; tài liệu này chốt **yêu cầu đích**, không sao chép các tuyên bố đã hoàn thành. Khi có khác biệt, ưu tiên đề Assignment 2; quyết định kế thừa hoặc bổ sung được ghi rõ bên dưới.
-
-## 2. Vấn đề nghiệp vụ và mục tiêu
+## 1. Vấn đề nghiệp vụ và mục tiêu
 
 Tại quầy đồ uống, việc ghi nhận món, size, topping và ghi chú bằng trao đổi thủ công có thể làm sai đơn; khách khó biết số tiền cuối cùng và tiến độ pha chế. Khi nhiều khách đặt cùng lúc, hệ thống cần tránh bán vượt tồn. Mạng chậm hoặc thao tác thanh toán lặp có thể tạo giao dịch, điểm thưởng hoặc lượt dùng coupon trùng.
 
@@ -23,7 +10,7 @@ BrewLite cung cấp luồng: **xem menu -> chọn tùy chọn -> giỏ hàng -> 
 
 Mục tiêu nghiệm thu là hoàn thành một đơn end-to-end với số tiền/tùy chọn đúng, không thu lặp khi gửi lại thanh toán, không lộ đơn của người khác; nhóm có thể tái tạo môi trường local và bàn giao bản production truy cập được. Tiêu chí chi tiết thuộc SRS, không suy ra rằng các mục tiêu đã đạt chỉ vì có tài liệu.
 
-## 3. Stakeholder và kỳ vọng
+## 2. Stakeholder và kỳ vọng
 
 | Mã | Stakeholder | Mục tiêu và kỳ vọng | Cách xác nhận |
 |---|---|---|---|
@@ -36,9 +23,9 @@ Mục tiêu nghiệm thu là hoàn thành một đơn end-to-end với số ti�
 
 Các kỳ vọng trên được phân tích từ đề và tài liệu tham khảo; cần xác nhận qua review/demo. Stakeholder không mặc nhiên là actor hay role: quản lý/giảng viên/nhóm phát triển không có tài khoản nghiệp vụ trong MVP; gateway là actor tích hợp, không phải role.
 
-## 4. Phạm vi sản phẩm
+## 3. Phạm vi sản phẩm
 
-### 4.1. Trong MVP (in-scope)
+### 3.1. Trong MVP (in-scope)
 
 MVP cuối Assignment 2 bao gồm cả hai Sprint. MVP Sprint 1 là phần chạy được để xem menu, không phải toàn bộ sản phẩm cuối kỳ.
 
@@ -55,7 +42,7 @@ MVP cuối Assignment 2 bao gồm cả hai Sprint. MVP Sprint 1 là phần chạ
 | IN-09 | Migration/seed, Docker Compose web/API/DB local, health/log, test unit/integration/E2E | A2 mục 7.2 |
 | IN-10 | CI chặn merge khi lint/test/build lỗi; CD, image phiên bản, production HTTPS, DB riêng, smoke/rollback và hướng dẫn bàn giao | A2 mục 6.4, 7.3-7.4 |
 
-### 4.2. Mở rộng và ngoài phạm vi (out-of-scope)
+### 3.2. Mở rộng và ngoài phạm vi (out-of-scope)
 
 | Mã | Nội dung | Quyết định và lý do |
 |---|---|---|
@@ -68,7 +55,7 @@ MVP cuối Assignment 2 bao gồm cả hai Sprint. MVP Sprint 1 là phần chạ
 
 Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số tài liệu A1 chỉ ghi là đề xuất. Nền tảng hosting/registry cụ thể sẽ được chọn và ghi ADR ở Task 3; không coi nhà cung cấp nào đã được chốt ở Task 1.
 
-## 5. Giả định
+## 4. Giả định
 
 | Mã | Giả định baseline | Tác động khi thay đổi |
 |---|---|---|
@@ -80,7 +67,7 @@ Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số
 | AS-06 | Reservation có hạn; thất bại xác định còn cho retry đến hạn; kết quả chưa xác định phải đối soát trước khi giải phóng tồn | Cần chốt timeout/TTL bằng cấu hình và thiết kế Task 2-3 |
 | AS-07 | Kế thừa luật hủy `PAID` trước khi nhận pha: hoàn tồn đúng một lần, giữ payment/coupon/điểm đã ghi, không hoàn tiền mock | Đây là lựa chọn của baseline A1 cần PO review; thay đổi phải cập nhật SRS/state machine/test trước code |
 
-## 6. Ràng buộc
+## 5. Ràng buộc
 
 | Mã | Ràng buộc | Căn cứ / cách kiểm chứng |
 |---|---|---|
@@ -91,7 +78,7 @@ Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số
 | CO-05 | Production web HTTPS, API/health truy cập được, DB không public trực tiếp, secret ngoài Git/log | A2 mục 7.4; kiểm tra deployment và secret scan |
 | CO-06 | Có migration/seed, Compose local, CI/CD, test và hướng dẫn clone/run/test/build/deploy/rollback | A2 mục 6-7; tái tạo từ checkout sạch |
 
-## 7. Rủi ro ban đầu
+## 6. Rủi ro ban đầu
 
 | Mã | Rủi ro / tác động | Khả năng / mức độ | Giảm thiểu và cách phát hiện | Phụ trách theo vai trò |
 |---|---|---|---|---|
@@ -102,7 +89,7 @@ Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số
 | RK-05 | Dịch vụ production ngủ/hết quota; deploy sai cấu hình hoặc migration gây mất dữ liệu | Trung bình / Cao | Chọn hosting sớm tại Task 3, health/smoke, backup/restore và rollback có diễn tập | Phụ trách Delivery |
 | RK-06 | Tài liệu cũ được hiểu nhầm là minh chứng code/test A2 đã chạy | Cao / Cao | Ghi nguồn/ngày/commit, tách yêu cầu khỏi kết quả đo; chỉ đánh dấu đạt khi có evidence | Phụ trách tài liệu, reviewer |
 
-## 8. Điều kiện chốt phạm vi
+## 7. Điều kiện chốt phạm vi
 
 Review xác nhận đủ sáu nhóm stakeholder; phân biệt MVP cuối kỳ với Sprint 1; FR/NFR/use case dùng cùng actor, enum và luật nghiệp vụ. Các giả định AS-01..07 được coi là baseline đề xuất, chưa phải kết quả stakeholder phê duyệt. Thay đổi phạm vi phải nêu lý do, FR/NFR/UC bị ảnh hưởng và cách kiểm chứng trong PR; cập nhật tài liệu trước nghiệm thu task kế tiếp.
 
