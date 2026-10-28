@@ -28,7 +28,7 @@ SRS được chia theo trách nhiệm để review từng issue:
 | FR-06 | Tạo đơn, tính giá và giữ tồn nguyên tử | Must | Khách hàng / UC-06 | A2 mục 7.1-7.2; quy tắc A1 |
 | FR-07 | Thanh toán Ví/Thẻ mock, chống lặp và thử lại | Must | Khách hàng, Gateway / UC-08 | A2 mục 4.2, 7.1-7.2 |
 | FR-08 | Xác nhận, chi tiết và lịch sử đơn của mình | Must | Khách hàng / UC-09 | A2 mục 7.1 |
-| FR-09 | Quản lý vòng đời, hủy đơn và tiến độ pha chế | Must | Khách hàng, Barista / UC-10 | A2 mục 3.2, 7.1; state machine A1 |
+| FR-09 | Quản lý vòng đời, hủy đơn và tiến độ pha chế | Must | Barista / UC-10; Khách hàng / nhánh hủy trong UC-06/08/09 | A2 mục 3.2, 7.1; state machine A1 |
 | FR-10 | Coupon và loyalty nhất quán | Must | Khách hàng / UC-07/08 | Kế thừa baseline A1, thuộc phạm vi đề xuất A2 |
 | FR-11 | Phân trang lịch sử đơn | Should | Khách hàng / UC-09 | Thiết kế nhóm, không phải ngưỡng do đề A2 quy định |
 | FR-12 | UI vận hành quầy đầy đủ | Could | Barista / mở rộng UC-10 | Mở rộng; API tiến độ thuộc FR-09 vẫn Must |
@@ -101,7 +101,7 @@ SRS được chia theo trách nhiệm để review từng issue:
 - **AT-FR-09.1:** Chỉ chấp nhận transition trong bảng dưới; mỗi transition hợp lệ ghi trạng thái trước/sau, thời gian và actor (user hoặc hệ thống). `PENDING -> READY`, chuyển khỏi trạng thái cuối hoặc chuyển lặp về chính trạng thái trả 409 `ORDER_INVALID_TRANSITION`, không đổi dữ liệu.
 - **AT-FR-09.2:** Chỉ BARISTA được cập nhật tiến độ pha chế. Chủ đơn được hủy theo điều kiện; user khác bị từ chối. Không hủy/expire khi payment còn xử lý chưa đối soát. Hủy/hết hạn hoàn tồn và giải phóng coupon chưa dùng đúng một lần.
 - **AT-FR-09.3:** Hai request `PAID -> CANCELLED` và `PAID -> PREPARING` đua nhau chỉ một request commit; request còn lại nhận 409, không có history/hoàn tồn kép. Hủy PAID giữ payment thành công/coupon/điểm theo baseline, không mô phỏng hoàn tiền.
-- Kiểm chứng: test bảng transition, HTTP RBAC/ownership và integration race/expiry với DB thật. UC-10; nhánh hủy do khách cũng thuộc UC-10, không tạo actor tài khoản cho job.
+- Kiểm chứng: test bảng transition, HTTP RBAC/ownership và integration race/expiry với DB thật. UC-10 thể hiện tiến độ pha chế do BARISTA thực hiện; quy tắc hủy của chủ đơn là nhánh thay thế trong vòng đời đặt/thanh toán/theo dõi đơn (UC-06/08/09), không thêm liên kết Khách hàng tới UC-10 trong sơ đồ tổng thể chuẩn. Job hết hạn không phải actor tài khoản.
 
 | Từ | Tới | Tác nhân khởi tạo / điều kiện |
 |---|---|---|
