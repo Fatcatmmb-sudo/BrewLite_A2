@@ -1,6 +1,6 @@
 # ADR-002: PostgreSQL, Prisma và migration có phiên bản
 
-- Ngày: 03/11/2026. Trạng thái: đề xuất A2, chờ review.
+- Ngày: 03/11/2026. Trạng thái: đề xuất A2.
 - Truy vết: [#12](https://github.com/akira-yami/BrewLite_A2/issues/12), [#13](https://github.com/akira-yami/BrewLite_A2/issues/13), [kiến trúc](../system-architecture.md); FR-06/07/09/10, NFR-04/05/06/11.
 
 ## Bối cảnh

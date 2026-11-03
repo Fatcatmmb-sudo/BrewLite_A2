@@ -1,6 +1,6 @@
 # ADR-001: Monorepo và modular monolith phân lớp
 
-- Ngày: 03/11/2026. Trạng thái: đề xuất A2, chờ review.
+- Ngày: 03/11/2026. Trạng thái: đề xuất A2.
 - Truy vết: [#12](https://github.com/akira-yami/BrewLite_A2/issues/12), [kiến trúc](../system-architecture.md); FR-01..10, NFR-06/11.
 
 ## Bối cảnh

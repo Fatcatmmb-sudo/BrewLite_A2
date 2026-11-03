@@ -2,7 +2,7 @@
 
 Phiên bản 1.0 · 03/11/2026 · Phụ trách: Khang · [A2-3.1.1 / #12](https://github.com/akira-yami/BrewLite_A2/issues/12).
 
-**Trạng thái: thiết kế đề xuất cho A2, chờ review.** Baseline `d600b26` chỉ có tài liệu yêu cầu và thư mục ứng dụng giữ chỗ; chưa có Next.js, NestJS, schema, migration hay dịch vụ chạy được. Các đường dẫn, module và API dưới đây là đích triển khai, không phải minh chứng runtime.
+**Trạng thái: thiết kế đề xuất cho A2.** Baseline `d600b26` chỉ có tài liệu yêu cầu và thư mục ứng dụng giữ chỗ; chưa có Next.js, NestJS, schema, migration hay dịch vụ chạy được. Các đường dẫn, module và API dưới đây là đích triển khai, không phải minh chứng runtime.
 
 ## 1. Căn cứ và phạm vi
 

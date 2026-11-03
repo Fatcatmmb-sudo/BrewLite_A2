@@ -1,6 +1,6 @@
 # ADR-003: JWT với RBAC và ownership
 
-- Ngày: 03/11/2026. Trạng thái: đề xuất A2, chờ review.
+- Ngày: 03/11/2026. Trạng thái: đề xuất A2.
 - Truy vết: [#12](https://github.com/akira-yami/BrewLite_A2/issues/12), [kiến trúc](../system-architecture.md); FR-05, NFR-02/03/10.
 
 ## Bối cảnh
