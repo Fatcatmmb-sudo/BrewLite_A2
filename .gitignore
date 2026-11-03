@@ -1,0 +1,29 @@
+/docs/tham_khao/
+
+# Dependencies / build output
+node_modules/
+.next/
+out/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Local environment / credentials; keep safe samples
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# Logs / test artifacts
+*.log
+playwright-report/
+test-results/
+.cache/
+
+# Editor / OS temporary files
+.DS_Store
+Thumbs.db
+*.swp
