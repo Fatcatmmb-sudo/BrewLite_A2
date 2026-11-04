@@ -1,0 +1,128 @@
+@startuml
+title BrewLite - Checkout chung UC-06 / UC-08
+hide footbox
+autonumber
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
+actor Customer as C
+boundary "Next.js UI" as UI
+control "NestJS API" as API
+database "Database\nPostgreSQL" as DB
+control "Payment Service\ntrong NestJS / Mock Gateway port" as Pay
+
+== UC-06 - Tạo đơn ==
+C -> UI: Xác nhận giỏ và coupon tùy chọn
+opt Chưa đăng nhập
+  UI --> C: Yêu cầu login UC-02, giữ giỏ
+  C -> UI: Login thành công, tiếp tục checkout
+end
+UI -> API: POST /api/v1/orders + Bearer JWT\nitems, couponCode? (không giá/userId/status)
+API -> API: Xác minh JWT / role CUSTOMER / validate DTO\nchuẩn hóa dòng, null khác 0, trim note
+break JWT sai/hết hạn, sai role hoặc payload sai
+  API --> UI: 401 / 403 / 400, không ghi dữ liệu
+  UI --> C: Báo lỗi / login lại, giữ giỏ
+end
+note over API,DB
+  Một transaction client xuyên orders/catalog/inventory/promotions.
+  API lifeline gộp Controller -> Service -> Repository/Prisma.
+  Retry chỉ toàn transaction với số lần giới hạn, không retry nghiệp vụ hết hàng.
+end note
+loop Attempt đầu hoặc retry conflict tạm thời, còn lượt và chưa có kết quả
+  API -> DB: BEGIN
+  alt Luồng thành công của attempt
+    API -> DB: Đọc catalog active, giá và version\nkhóa/kiểm tra coupon nếu có
+  DB --> API: Catalog/quote hoặc lỗi
+  API -> API: Tính subtotal - discount = total >= 0\ngộp quantity theo variant qua mọi dòng
+  API -> DB: INSERT Order(PENDING) + items/topping snapshot\nsau đó coupon RESERVED nếu có
+  loop Variant theo thứ tự ID ổn định
+    API -> DB: UPDATE stock -= qty, version += 1\nWHERE stock >= qty AND version = expected\nINSERT reservation ACTIVE khi update thành công
+    DB --> API: Row count / lỗi
+  end
+    API -> DB: INSERT history(NULL -> PENDING); COMMIT
+    DB --> API: Commit được xác nhận
+    API -> API: Lưu kết quả cuối, dừng loop
+  else Bất kỳ bước nào lỗi trước commit
+    ref over API,DB
+      Lỗi có thể xảy ra ở bất kỳ bước đọc/kiểm tra/ghi nào của attempt.
+      Dừng ngay phần còn lại; nhánh này thay thế luồng thành công.
+    end ref
+    API -> DB: ROLLBACK tất cả\norder/items/coupon/reservation/history/stock/version
+    DB --> API: Đã rollback
+    API -> API: Hết hàng: 409, không retry\nLỗi option/coupon: trả lỗi để sửa\nConflict tạm thời: đọc lại trong attempt mới, có giới hạn
+  else Không xác định được COMMIT đã thành công
+    API -> API: Dừng retry; log requestId/orderId để đối chiếu
+  end
+end
+break Tạo đơn không thành công hoặc kết quả chưa xác định
+  API --> UI: 409 hết hàng/conflict, lỗi validation/coupon/DB\nhoặc lỗi tạm thời chưa xác định kết quả
+  UI --> C: Giữ giỏ; sửa dữ liệu nếu lỗi xác định\nunknown: tra cứu đơn trước khi chủ động tạo lại
+end
+API --> UI: 201 Order PENDING + orderId, snapshot, total, expiresAt
+UI --> C: Tổng tiền server; chọn Ví/Thẻ, chưa báo paid
+
+== UC-08 - Thanh toán (cùng một checkout) ==
+C -> UI: Chọn E_WALLET hoặc CARD
+UI -> API: POST /api/v1/payments + JWT + Idempotency-Key\norderId, method; không amount
+API -> API: Validate JWT/DTO; kiểm tra ownership trước replay
+break Sai JWT/role/chủ đơn hoặc DTO
+  API --> UI: 401 / 403 / 400; không lộ attempt của khách khác
+end
+API -> DB: BEGIN; khóa order; đọc key/hash/attempt\nkiểm tra expiry/reservation/order và attempt khác
+DB --> API: Trạng thái và attempt nếu có
+alt Key tồn tại, hash khác
+  API -> DB: Kết thúc transaction, không ghi nghiệp vụ
+  API --> UI: 409 IDEMPOTENCY_KEY_REUSED
+else Key/hash đã hoàn tất
+  API -> DB: Kết thúc transaction
+  API --> UI: Replay kết quả đã lưu; không gọi charge
+else PROCESSING hoặc attempt khác đang xử lý
+  API -> DB: Kết thúc transaction
+  API --> UI: 409 PAYMENT_IN_PROGRESS, tra cứu/gửi lại cùng key
+else Đơn đã paid/hủy/hết hạn hoặc reservation không hợp lệ
+  API -> DB: Kết thúc transaction
+  API --> UI: Từ chối nghiệp vụ, không charge / không success thứ hai
+else Attempt mới được phép
+  opt Retry sau decline khi reservation còn hạn
+    API -> DB: PAYMENT_FAILED -> PENDING, không reserve tồn lần hai
+  end
+  API -> DB: INSERT Payment(PROCESSING, key unique, hash, amount từ order)\nCOMMIT; khóa order ngăn hai key cùng charge một đơn
+  DB --> API: Attempt đã lưu bền vững
+  API -> Pay: charge(attemptId, key, method, serverAmount)\nngoài transaction DB dài
+  Pay -> Pay: Mock lưu kết quả theo key bền vững\ncho phép lookup sau restart
+  alt Gateway success xác định
+    Pay --> API: Success / gateway reference
+    API -> DB: BEGIN; khóa order/attempt; finalize idempotent\nSUCCEEDED + PAID + consume reservation/coupon\nhistory + một EARN/balance; COMMIT
+    note over API,DB: Không trừ stock lần hai. Unique success/order và EARN/order.
+    DB --> API: Commit xác nhận
+    API --> UI: Kết quả server: SUCCEEDED / PAID
+  else Gateway decline xác định
+    Pay --> API: Declined
+    API -> DB: BEGIN; FAILED + PAYMENT_FAILED; COMMIT\ngiữ reservation/coupon đến hạn; không EARN
+    DB --> API: Commit xác nhận
+    API --> UI: FAILED; cho retry bằng key mới khi còn hạn
+  else Timeout hoặc gateway result / finalize DB chưa rõ
+    Pay --> API: Timeout/unknown nếu không nhận được kết quả gateway
+    API --> UI: 503 tạm thời nếu trả được; không khẳng định FAILED
+    note over API,Pay
+      Giữ PROCESSING/reservation, chặn cancel/expiry/charge key mới.
+      Recovery lookup cùng key rồi kiểm tra DB và finalize một lần.
+      Nếu DB đã commit, trả lại kết quả đã lưu; không giả rollback.
+    end note
+  end
+end
+UI --> C: Success: xác nhận UC-09, chỉ xóa phần giỏ đã mua\nDecline: retry hợp lệ; unknown/in-progress: giữ giỏ và đối soát
+opt Refresh / tra cứu
+  UI -> API: GET /api/v1/orders/:id + JWT
+  API -> DB: Đọc đơn sau kiểm tra chủ sở hữu
+  DB --> API: Snapshot và trạng thái hiện tại
+  API --> UI: Kết quả server, không create/pay mới
+  UI --> C: Xác nhận hoặc trạng thái đang kiểm tra
+end
+legend bottom
+  POST /orders chưa có idempotency: mất response không tự tạo lại.
+  Payment key/hash bền vững; ownership trước replay; gateway ngoài transaction dài.
+  Các code lỗi option/coupon/DB chi tiết là contract đích cần chốt khi code API.
+endlegend
+@enduml
