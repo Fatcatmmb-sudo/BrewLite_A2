@@ -7,7 +7,7 @@ Phiên bản 1.0 · 03/11/2026 · [A2-TV.1 / #41](https://github.com/akira-yami/
 ## Điều kiện chung
 
 - DB PostgreSQL test riêng, không chạy concurrency/fault injection trên production hoặc DB dùng chung. Reset fixture giữa lượt, không reset khi đang đo. Ghi commit, version, seed, command, UTC và log đã che bí mật.
-- Fixture tối thiểu: customer A/B, Barista; product/variant/topping active/inactive; variant stock 0 và 5; coupon hợp lệ/hết hạn/hạn mức 1; gateway mock điều khiển success/decline/timeout, có call counter và lookup bền vững theo key. Không có dữ liệu thẻ thật.
+- Fixture tối thiểu: customer A/B, Barista; product/variant/topping active/inactive; BOM và ingredient có tồn đủ 0 hoặc 5 ly, có ingredient dùng chung giữa món/topping; coupon hợp lệ/hết hạn/hạn mức 1; gateway mock điều khiển success/decline/timeout, có call counter và lookup bền vững theo key. Không có dữ liệu thẻ thật.
 - Unit cho hàm giá/normalization/state policy; HTTP test qua guard/validation thật; integration dùng PostgreSQL thật cho transaction/constraint/concurrency; browser E2E đi qua UI -> API -> DB, không stub API trong ca nghiệm thu end-to-end.
 - Endpoint/đường dẫn executable test chưa được chốt. Issue code/test trong matrix chịu trách nhiệm bổ sung file/case/evidence. Tách test UI fixture có chủ đích khỏi E2E thật và ghi rõ loại.
 
@@ -25,7 +25,7 @@ Phiên bản 1.0 · 03/11/2026 · [A2-TV.1 / #41](https://github.com/akira-yami/
 | Ca | Thao tác / dữ liệu | Kết quả mong đợi |
 |---|---|---|
 | 02-A / .1 | Chọn món; gọi API với ID active/inactive/không tồn tại/sai định dạng | Đúng tên/mô tả/ảnh/size/giá/topping; inactive/không có 404, ID sai 400; UI lỗi có quay về |
-| 02-B / .2 | Stock 0 hoặc không có variant mua được; thay stock sau khi UI đã tải | Không thêm option hết tồn; backend kiểm tra lại catalog/tồn khi tạo đơn, không tin cache client |
+| 02-B / .2 | Không đủ nguyên liệu/thiếu BOM/ingredient inactive; thay tồn sau khi UI đã tải | Không thêm option hết tồn; backend kiểm tra lại catalog/tồn khi tạo đơn, không tin cache client |
 
 <a id="tc-fr-03"></a>
 ## TC-FR-03 - Tùy chọn và giá (AT-FR-03.1/.2/.3)
@@ -62,8 +62,8 @@ Phiên bản 1.0 · 03/11/2026 · [A2-TV.1 / #41](https://github.com/akira-yami/
 |---|---|---|
 | 06-A / .1 | A tạo giỏ hợp lệ; thử áp userId/giá/total client | Mã đơn duy nhất, PENDING, expiry/reservation; chủ từ JWT, giá DB; field tự áp đặt không thay nghiệp vụ |
 | 06-B / .2 | Sau mua đổi giá/tên catalog; lựa chọn null so với 0, note; có discount | Snapshot không đổi; subtotal - discount = total >=0, giữ tùy chọn/note đúng |
-| 06-C / .3 | Nhiều dòng khác note cùng variant; thiếu stock; fault sau reserve/coupon trước commit | Gộp số tồn cần giữ theo variant; lỗi 409 khi hết hàng; rollback order/items/history/stock/reservation/coupon, không bản ghi dở dang |
-| 06-D / .4 | Stock=5, 20 HTTP request đồng thời, mỗi request quantity=1, không restock | Đúng 5 order thành công, 15 từ chối nghiệp vụ, stock=0, tổng ACTIVE reservation=5, không âm; chạy NFR-04 ít nhất 3 lượt độc lập |
+| 06-C / .3 | Nhiều dòng khác note cùng variant; thiếu stock; fault sau reserve/coupon trước commit | Cộng nhu cầu ingredient trên toàn giỏ gồm món/topping; snapshot lượng đã giữ theo reservation/ingredient; lỗi 409 khi hết hàng; rollback order/items/history/stock/reservation/coupon, không bản ghi dở dang |
+| 06-D / .4 | BOM một ly X=10, tồn X=50, không nút thắt khác; 20 HTTP request đồng thời quantity=1, không restock | Đúng 5 order thành công, 15 từ chối nghiệp vụ, tồn X=0, tổng quantity ACTIVE reservation=5, snapshot X tổng=50, không âm; chạy NFR-04 ít nhất 3 lượt độc lập |
 
 <a id="tc-fr-07"></a>
 ## TC-FR-07 - Payment (AT-FR-07.1/.2/.3/.4/.5)
@@ -150,7 +150,7 @@ HTTP pipeline thật với bộ input sai SRS/TC-FR-03/05/06/07: 100% trả 400 
 <a id="tc-nfr-04"></a>
 ### TC-NFR-04 -> AT-NFR-04
 
-TC-FR-06-C/D và TC-FR-09: stock=5/20 request ít nhất 3 lượt; fault sau reserve rollback; release/expiry/cancel race một lần. Lưu counts/status trước-sau; CHECK stock>=0 đơn lẻ không thay integration concurrency.
+TC-FR-06-C/D và TC-FR-09: nguyên liệu đủ 5 ly/20 request ít nhất 3 lượt; fault sau reserve rollback; release/expiry/cancel race một lần. Lưu counts/status trước-sau; CHECK stock>=0 đơn lẻ không thay integration concurrency.
 
 <a id="tc-nfr-05"></a>
 ### TC-NFR-05 -> AT-NFR-05
@@ -195,3 +195,5 @@ Trên HTTPS kiểm tra manifest/icon/start URL/scope/SW/cache; đã tải online
 ## Khi bổ sung executable test
 
 Giữ mã TC/AT trong tên case hoặc mô tả, link file/case thật từ matrix, rồi ghi command/result/run/evidence với commit và reviewer. Không đổi trạng thái thành Passed chỉ vì test file tồn tại. Nếu AC thay đổi, sửa SRS qua review trước và cập nhật matrix/test plan cùng PR; không hạ ngưỡng để hợp thức hóa kết quả.
+
+Bổ sung ca BOM: hai variant và topping cùng dùng ingredient X, tổng nhu cầu cả giỏ vượt X dù từng lựa chọn đủ; thiếu BOM/inactive ingredient; đổi công thức sau reserve rồi release vẫn hoàn đúng InventoryReservationItem. OrderItem.unitPrice là giá variant và topping snapshot riêng, không cộng topping hai lần. UC-06 chỉ kiểm tra tạo PENDING; test payment nằm nhóm UC-08 độc lập.

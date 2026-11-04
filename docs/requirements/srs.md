@@ -1,6 +1,6 @@
 # BrewLite - SRS rút gọn: yêu cầu chức năng
 
-Phiên bản: 1.0 | Ngày: 28/10/2026 | Phụ trách: Khang | Truy vết: [A2-1.2.1 / Issue #2](https://github.com/phananhkhang/BrewLite_A2/issues/2).
+Phiên bản: 1.1 | Ngày: 04/11/2026 | Phụ trách: Khang | Truy vết: [A2-1.2.1 / Issue #2](https://github.com/akira-yami/BrewLite_A2/issues/2).
 
 SRS được chia theo trách nhiệm để review từng issue:
 
@@ -47,7 +47,7 @@ SRS được chia theo trách nhiệm để review từng issue:
 ### FR-02 - Chi tiết
 
 - **AT-FR-02.1:** Chọn một sản phẩm từ menu hiển thị tên, mô tả, ảnh, size/giá và topping được phép; sản phẩm inactive/không tồn tại trả 404; ID sai định dạng trả 400. UI có trạng thái lỗi và đường quay lại menu.
-- **AT-FR-02.2:** Variant hết tồn hoặc sản phẩm không có variant mua được không cho thêm vào giỏ; không coi dữ liệu catalog cũ ở client là cam kết còn hàng.
+- **AT-FR-02.2:** Không thêm variant/topping không đủ nguyên liệu theo công thức, thiếu BOM hoặc có ingredient inactive. availableServings là giá trị tính, không phải cột tồn variant; tạo đơn kiểm tra lại nhu cầu nguyên liệu toàn giỏ, kể cả món/topping cùng dùng một ingredient.
 - Kiểm chứng: API fixture active/inactive/hết tồn; UI mở đúng sản phẩm và xử lý 400/404. UC-04.
 
 ### FR-03 - Tùy chọn món
@@ -76,8 +76,8 @@ SRS được chia theo trách nhiệm để review từng issue:
 
 - **AT-FR-06.1:** Khách đã đăng nhập gửi giỏ hợp lệ tạo mã đơn duy nhất, trạng thái `PENDING`, items/topping snapshot và mốc hết hạn giữ tồn. Chủ đơn lấy từ JWT; tên/giá lấy từ DB. Không nhận giá/tổng/userId do client áp đặt.
 - **AT-FR-06.2:** Snapshot giữ giá/tên món, size, topping, đường/đá (null khác 0) và note; đổi catalog sau đó không đổi đơn cũ. Tổng `subtotal - discountAmount = total >= 0`.
-- **AT-FR-06.3:** Gộp tồn cần giữ theo variant qua mọi dòng. Tạo order/items/reservations/history và giữ coupon (nếu có) cùng transaction; một lỗi sau giữ tồn phải rollback toàn bộ. Hết tồn trả 409 và không tạo bộ dữ liệu dở dang.
-- **AT-FR-06.4:** Stock 5, 20 request đồng thời mỗi request mua 1 cùng variant, không restock trong lượt: đúng 5 đơn được tạo, 15 bị từ chối nghiệp vụ, stock cuối 0 và tổng reservation ACTIVE là 5, không stock âm.
+- **AT-FR-06.3:** Quy đổi mọi dòng qua RecipeItem và ToppingRecipeItem, nhân quantity và cộng nhu cầu theo ingredientId trên toàn đơn. Cập nhật Ingredient.stockQuantity/version có điều kiện đủ tồn/version, tạo InventoryReservation theo order/variant và InventoryReservationItem snapshot lượng nguyên liệu thực tế đã giữ; order/items/coupon/history cùng transaction. Một lỗi rollback tất cả; thiếu nguyên liệu trả 409, không ghi dở dang.
+- **AT-FR-06.4:** Fixture một ly cần 10 đơn vị ingredient X, X.stockQuantity=50, không có topping/nguyên liệu khác là nút thắt, không restock; 20 request đồng thời mua 1 ly: mục tiêu đúng 5 order commit, 15 từ chối nghiệp vụ, tồn X cuối=0, tổng quantity reservation ACTIVE=5 và snapshot X tổng=50, không âm. Thêm ca nhiều variant/topping dùng chung X để kiểm tra cộng nhu cầu toàn đơn.
 - Kiểm chứng: integration với PostgreSQL thật, fault injection sau reserve, cập nhật catalog và ca concurrency. UC-06.
 
 ### FR-07 - Thanh toán
@@ -138,5 +138,13 @@ SRS được chia theo trách nhiệm để review từng issue:
 1. Client hiển thị tạm tính; server là nguồn giá/tồn/quyền và kết quả thanh toán. Tự thêm `total`, `amount`, `userId` hoặc `role` vào request nghiệp vụ không thay đổi kết quả được server cho phép.
 2. Một đơn có thể có nhiều payment attempt; tối đa một payment SUCCEEDED và một EARN. Số đơn được tạo không thay thế kiểm chứng chống lặp payment; `POST /orders` không được mặc nhiên coi là idempotent.
 3. Lỗi validate không ghi DB; lỗi nghiệp vụ không để dữ liệu dở dang. Frontend và backend đều validate, backend vẫn kiểm tra khi gọi API trực tiếp.
-4. Không đưa giao hàng, nhiều chi nhánh, quản trị nguyên liệu, đổi điểm hoặc hoàn tiền thật vào AC MVP. PWA/mobile, bảo mật, latency và deployment được đo trong NFR ở issue #3.
+4. Không đưa giao hàng, nhiều chi nhánh, UI quản trị kho/mua hàng/nhà cung cấp, đổi điểm hoặc hoàn tiền thật vào AC MVP. PWA/mobile, bảo mật, latency và deployment được đo trong NFR ở issue #3.
 5. Mọi AC trên là kế hoạch kiểm chứng. Khi triển khai, ma trận `docs/traceability-matrix.md` cần trỏ tới test/code thật và evidence có commit; không đánh dấu pass bằng việc chỉ đọc baseline tham khảo.
+
+## 4. Đồng bộ domain A1 và tên use case (04/11/2026)
+
+Nguồn code cố định: [A1 @7beb0cb](https://github.com/akira-yami/BrewLite_A1/tree/7beb0cb06a2a89bc53a119bcb8d905cf596f548b). ProductVariant không có stock/version; Ingredient có stockQuantity/version và đơn vị G/ML/PCS. Công thức món là RecipeItem, công thức topping là ToppingRecipeItem cho cả PREPACKAGED/PREPARED. availableServings tính từ BOM/tồn; không thay việc cộng nhu cầu chung nguyên liệu toàn giỏ. Đường/đá/note là snapshot; code tham chiếu không tự quy đổi BOM theo phần trăm đường/đá.
+
+Phân biệt đơn giá hiển thị với field lưu: OrderItem.unitPrice là giá variant; OrderItemTopping.unitPrice và quantity lưu riêng (runtime đặt quantity=1 mỗi phần topping/ly). lineTotal=(OrderItem.unitPrice + tổng topping.unitPrice x topping.quantity) x item.quantity. Không cộng topping hai lần khi dựng response.
+
+UC-06: Đặt hàng kết thúc ở PENDING + reservation/history, chưa có Payment hoặc EARN. UC-08: Thực hiện thanh toán là use case riêng, không include/extend với UC-06; UC-07: Áp dụng coupon extend UC-06. Tên UC đầy đủ theo bảng [use case tổng quát](use-case-overview.md), không đổi tên/actor sơ đồ gốc. Các sửa đổi FR-02/06 giữ mã AC để bảo toàn truy vết, đổi fixture từ tồn thành phẩm sang nguyên liệu tương đương.

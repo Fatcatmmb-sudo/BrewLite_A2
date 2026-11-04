@@ -1,148 +1,205 @@
 @startuml
 !pragma layout smetana
-title BrewLite - Domain model A2 (MVP, không phải schema đã triển khai)
+title BrewLite - Class domain theo schema A1 @7beb0cb
 hide circle
 skinparam defaultFontName Arial
 skinparam classAttributeIconSize 0
 skinparam shadowing false
-skinparam nodesep 35
-skinparam ranksep 45
-
-class User {
-  id: UUID
-  username: String {unique}
-  passwordHash: String
-  role: UserRole
-  loyaltyBalance: Integer
-  isActive: Boolean
-}
+skinparam nodesep 40
+skinparam ranksep 55
+package "Danh mục" {
 class Product {
-  id: UUID
+  id: String
+  sku: String {unique}
   name: String
-  description: String
-  imageUrl: String?
+  description: String?
+  imageUrl: String
   isActive: Boolean
 }
 class ProductVariant {
-  id: UUID
-  size: String
-  price: VND Integer
-  stock: Integer >= 0
-  version: Integer
+  id: String
+  productId: String
+  size: ProductSize
+  price: BigInt
   isActive: Boolean
 }
 class Topping {
-  id: UUID
+  id: String
+  code: String {unique}
   name: String
-  price: VND Integer
+  type: ToppingType
+  price: BigInt
   isActive: Boolean
 }
 class ProductTopping {
-  productId: UUID
-  toppingId: UUID
+  productId: String
+  toppingId: String
 }
-class Order {
-  id: UUID
-  orderNumber: String {unique}
-  status: OrderStatus
-  subtotal: VND Integer
-  discountAmount: VND Integer
-  total: VND Integer
-  couponCodeSnapshot: String?
-  reservationExpiresAt: UTC Timestamp
-  createdAt: UTC Timestamp
-  transition(nextStatus)
 }
-class OrderItem {
-  id: UUID
-  productNameSnapshot: String
-  sizeSnapshot: String
-  variantPriceSnapshot: VND Integer
-  unitPrice: VND Integer
-  quantity: Integer [1..20]
-  sugarLevel: Integer? [0..100]
-  iceLevel: Integer? [0..100]
-  note: String? [max 500]
-  lineTotal: VND Integer
+package "Công thức và kho" {
+class Ingredient {
+  id: String
+  code: String {unique}
+  name: String
+  unit: IngredientUnit
+  stockQuantity: Int
+  version: Int
+  isActive: Boolean
 }
-class OrderItemTopping {
-  id: UUID
-  nameSnapshot: String
-  priceSnapshot: VND Integer
+class RecipeItem {
+  productVariantId: String
+  ingredientId: String
+  quantity: Int
+}
+class ToppingRecipeItem {
+  toppingId: String
+  ingredientId: String
+  quantity: Int
 }
 class InventoryReservation {
-  id: UUID
-  quantity: Integer > 0
+  id: String
+  orderId: String
+  productVariantId: String
+  quantity: Int
   status: ReservationStatus
-  expiresAt: UTC Timestamp
-  consume()
-  release()
+  expiresAt: DateTime
+}
+class InventoryReservationItem {
+  id: String
+  reservationId: String
+  ingredientId: String
+  quantity: Int
+}
+}
+package "Đơn và tài khoản" {
+class User {
+  id: String
+  username: String {unique}
+  passwordHash: String
+  role: UserRole
+  loyaltyBalance: Int
+  isActive: Boolean
+}
+class Order {
+  id: String
+  orderNumber: String {unique}
+  userId: String
+  status: OrderStatus
+  subtotal: BigInt
+  discountAmount: BigInt
+  total: BigInt
+  couponCodeSnapshot: String?
+  reservationExpiresAt: DateTime
+}
+class OrderItem {
+  id: String
+  orderId: String
+  productVariantId: String
+  productNameSnapshot: String
+  variantNameSnapshot: String
+  unitPrice: BigInt
+  quantity: Int
+  sugarLevel: Int?
+  iceLevel: Int?
+  note: String?
+}
+class OrderItemTopping {
+  id: String
+  orderItemId: String
+  toppingId: String
+  toppingNameSnapshot: String
+  unitPrice: BigInt
+  quantity: Int
 }
 class OrderStatusHistory {
-  id: UUID
+  id: String
+  orderId: String
   fromStatus: OrderStatus?
   toStatus: OrderStatus
-  changedAt: UTC Timestamp
+  changedByUserId: String?
   reason: String?
 }
+}
+package "Thanh toán và ưu đãi" {
 class Payment {
-  id: UUID
+  id: String
+  orderId: String
   idempotencyKey: String {unique}
   requestHash: String
   method: PaymentMethod
   status: PaymentStatus
-  amount: VND Integer
-  gatewayReference: String?
-  createdAt: UTC Timestamp
+  amount: BigInt
+  gatewayTransactionId: String? {unique}
+  failureCode: String?
+  processedAt: DateTime?
 }
-class Promotion {
-  id: UUID
+class "Coupon\n(Promotion trong đề)" as Coupon {
+  id: String
   code: String {unique}
   discountType: DiscountType
-  discountValue: Integer
-  maxDiscount: VND Integer?
-  minSubtotal: VND Integer
-  totalUsageLimit: Integer?
-  perUserLimit: Integer?
-  startsAt: UTC Timestamp
-  endsAt: UTC Timestamp
+  discountValue: BigInt
+  maxDiscount: BigInt?
+  minOrderValue: BigInt
+  usageLimit: Int?
+  perUserLimit: Int
+  startsAt: DateTime
+  endsAt: DateTime
   isActive: Boolean
 }
-class PromotionRedemption {
-  id: UUID
-  status: RedemptionStatus
-  discountAmount: VND Integer
-  expiresAt: UTC Timestamp
+class CouponRedemption {
+  id: String
+  couponId: String
+  userId: String
+  orderId: String {unique}
+  discountAmount: BigInt
+  status: CouponRedemptionStatus
+  expiresAt: DateTime
+  consumedAt: DateTime?
+  releasedAt: DateTime?
 }
 class LoyaltyTransaction {
-  id: UUID
-  type: LoyaltyType
-  points: Integer
-  balanceAfter: Integer
-  createdAt: UTC Timestamp
+  id: String
+  userId: String
+  orderId: String?
+  type: LoyaltyTransactionType
+  points: Int
+  balanceAfter: Int
+  reason: String
 }
-
-User "1" -- "0..*" Order : chủ đơn
-Product "1" -- "0..*" ProductVariant : biến thể
+}
+Product "1" -- "0..*" ProductVariant
+ProductVariant "1" -- "0..*" RecipeItem
+Ingredient "1" -- "0..*" RecipeItem
+Topping "1" -- "0..*" ToppingRecipeItem
+Ingredient "1" -- "0..*" ToppingRecipeItem
 Product "1" -- "0..*" ProductTopping
-Topping "1" -- "0..*" ProductTopping : tùy chọn được phép
-Order "1" *-- "1..20" OrderItem : snapshot món
-ProductVariant "1" -- "0..*" OrderItem : nguồn catalog
-OrderItem "1" *-- "0..*" OrderItemTopping : snapshot topping
-Topping "1" -- "0..*" OrderItemTopping : nguồn catalog
-Order "1" -- "1..*" InventoryReservation
+Topping "1" -- "0..*" ProductTopping
+User "1" -- "0..*" Order
+Order "1" -- "0..*" OrderItem
+ProductVariant "1" -- "0..*" OrderItem
+OrderItem "1" -- "0..*" OrderItemTopping
+Topping "1" -- "0..*" OrderItemTopping
+Order "1" -- "0..*" Payment
+Order "1" -- "0..*" OrderStatusHistory
+User "0..1" -- "0..*" OrderStatusHistory
+Order "1" -- "0..*" InventoryReservation
 ProductVariant "1" -- "0..*" InventoryReservation
-Order "1" *-- "1..*" OrderStatusHistory
-User "0..1" -right- "0..*" OrderStatusHistory : actor (null = hệ thống)
-Order "1" -- "0..*" Payment : các lần thử
-Order "1" -- "0..1" PromotionRedemption
-Promotion "1" -- "0..*" PromotionRedemption
-Promotion "0..*" -- "0..*" Product : phạm vi sản phẩm
-Order "1" -- "0..1" LoyaltyTransaction
-
+InventoryReservation "1" -- "0..*" InventoryReservationItem
+Ingredient "1" -- "0..*" InventoryReservationItem
+Coupon "1" -- "0..*" CouponRedemption
+User "1" -- "0..*" CouponRedemption
+Order "1" -- "0..1" CouponRedemption
+User "1" -- "0..*" LoyaltyTransaction
+Order "0..1" -- "0..*" LoyaltyTransaction
+package "Enums (giữ nguyên schema A1)" {
 enum UserRole {
   CUSTOMER
   BARISTA
+}
+enum ProductSize {
+  S
+  M
+  L
 }
 enum OrderStatus {
   PENDING
@@ -153,47 +210,54 @@ enum OrderStatus {
   COMPLETED
   CANCELLED
 }
+enum PaymentMethod {
+  E_WALLET
+  CARD
+}
 enum PaymentStatus {
   PROCESSING
   SUCCEEDED
   FAILED
 }
-enum PaymentMethod {
-  E_WALLET
-  CARD
+enum IngredientUnit {
+  G
+  ML
+  PCS
+}
+enum ToppingType {
+  PREPACKAGED
+  PREPARED
 }
 enum ReservationStatus {
   ACTIVE
   CONSUMED
   RELEASED
+  EXPIRED
 }
-enum RedemptionStatus {
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+enum CouponRedemptionStatus {
   RESERVED
   CONSUMED
   RELEASED
+  EXPIRED
 }
-enum DiscountType {
-  FIXED_AMOUNT
-  PERCENTAGE
-}
-enum LoyaltyType {
+enum LoyaltyTransactionType {
   EARN
+  REDEEM
+  ADJUSTMENT
+  REVERSAL
 }
-User ..> UserRole
-Order ..> OrderStatus
-Payment ..> PaymentStatus
-Payment ..> PaymentMethod
-InventoryReservation ..> ReservationStatus
-PromotionRedemption ..> RedemptionStatus
-Promotion ..> DiscountType
-LoyaltyTransaction ..> LoyaltyType
-
+}
 legend bottom
-  Cardinality là invariant nghiệp vụ khi order đã commit; không là schema ORM hiện có.
-  Tiền nguyên VND, timestamp UTC. Promotion biểu diễn coupon trong MVP.
-  Payment: nhiều attempt, tối đa một SUCCEEDED và một PROCESSING/order.
-  Một reservation/order/variant; giữ tồn giảm stock, consume không giảm lần hai.
-  Expiry/hủy: RELEASED + lý do history, hoàn tồn/coupon một lần.
-  Một EARN/order; không có đổi điểm/refund trong MVP. Snapshot không đổi theo catalog.
+  Field/model/enum theo Prisma A1 commit 7beb0cb; bỏ timestamps thông thường để gọn.
+  ProductVariant không có stock/version; Ingredient giữ stockQuantity/version và đơn vị G/ML/PCS.
+  RecipeItem: BOM món; ToppingRecipeItem: BOM topping PREPACKAGED/PREPARED.
+  ReservationItem snapshot lượng đã giữ (gồm món/topping), hoàn theo snapshot khi BOM đổi.
+  Cardinality theo FK: OrderItem 0..* ở schema; nghiệp vụ order commit cần 1..20 dòng.
+  LoyaltyTransaction: orderId nullable, nhiều loại; EARN/order tối đa một bằng partial unique SQL.
+  Coupon là Promotion trong phạm vi đề, không thêm bảng Promotion song song.
 endlegend
 @enduml

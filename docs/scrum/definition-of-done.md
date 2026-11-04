@@ -21,7 +21,7 @@ Phiên bản 1.0 · 03/11/2026 · [A2-4.1 / #17](https://github.com/akira-yami/B
 - Lint/unit/build pass theo README/lockfile; CI/required checks theo #24. Test phù hợp business rule/rủi ro, không chỉ sao chép implementation.
 - HTTP DTO/JWT/RBAC/ownership được kiểm tra; không tin giá/amount/userId/role client; response/log không lộ secret/stack.
 - Migration từ DB rỗng và migrate/seed lặp an toàn; transaction quan trọng có PostgreSQL integration/rollback. Không sửa migration đã áp dụng hoặc reset DB chung.
-- State machine từ chối transition sai, phân xử hủy/expiry/nhận pha. Stock=5/20 request chỉ 5 đơn thành công, không âm. Payment same-key không charge/side effect kép, khác payload bị từ chối, khác key cùng đơn không success hai lần, timeout/restart được đối soát. Coupon/loyalty giữ/consume/EARN đúng một lần.
+- State machine từ chối transition sai, phân xử hủy/expiry/nhận pha. BOM X=10, tồn X=50/20 request chỉ 5 đơn thành công, không âm. Payment same-key không charge/side effect kép, khác payload bị từ chối, khác key cùng đơn không success hai lần, timeout/restart được đối soát. Coupon/loyalty giữ/consume/EARN đúng một lần.
 
 ## UI / luồng người dùng khi áp dụng
 

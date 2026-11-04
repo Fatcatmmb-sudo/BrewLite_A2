@@ -1,60 +1,48 @@
-# Class diagram domain BrewLite
+# Class diagram domain - Công thức và kho nguyên liệu
 
-Phiên bản 1.0 · 04/11/2026 · [A2-2.3 / #10](https://github.com/akira-yami/BrewLite_A2/issues/10).
+Phiên bản 1.1 · 04/11/2026 · [A2-2.3 / #10](https://github.com/akira-yami/BrewLite_A2/issues/10).
 
 [Nguồn PlantUML](../diagrams/class-domain.puml) · [SVG](../diagrams/class-domain.svg) · [PNG](../diagrams/class-domain.png).
 
-![Class diagram domain](../diagrams/class-domain.svg)
+![Class domain tương thích A1](../diagrams/class-domain.svg)
 
-## Phạm vi và quy ước
+## Nguồn và phạm vi
 
-Đây là mô hình domain đích A2 theo [SRS](../requirements/srs.md) và [kiến trúc](system-architecture.md). Baseline `00b7c69` chưa có schema/migration/runtime A2, nên cardinality trong hình là invariant nghiệp vụ, không khẳng định FK/index đã triển khai. Các kiểu VND Integer được lưu BIGINT theo ADR-002, serialize JSON trong miền số nguyên an toàn; UUID và thời gian UTC dùng chung toàn domain.
+Đối chiếu trực tiếp [BrewLite_A1 commit 7beb0cb06a2a89bc53a119bcb8d905cf596f548b](https://github.com/akira-yami/BrewLite_A1/tree/7beb0cb06a2a89bc53a119bcb8d905cf596f548b), cụ thể [Prisma schema](https://github.com/akira-yami/BrewLite_A1/blob/7beb0cb06a2a89bc53a119bcb8d905cf596f548b/apps/api/prisma/schema.prisma), OrdersService, InventoryService/Repository và order-item.mapper. Hình giữ tên model/field/enum/FK của schema; chỉ lược timestamps thông thường. Không gọi đây là schema đã được triển khai trong A2.
 
-`Promotion` là lớp khuyến mãi được đề yêu cầu; trong MVP chỉ thể hiện coupon một mã/đơn. Nó tương ứng khái niệm Coupon ở tài liệu tham khảo A1, không tự mở rộng thành chương trình giảm giá tự động/chồng mã. PromotionRedemption lưu việc giữ/consume lượt, khác bản thân quy tắc Promotion. SRS chưa chốt danh sách size cụ thể nên size là String hợp lệ từ catalog, không tự bắt S/M/L.
+`Coupon` chính là lớp Promotion theo nghĩa yêu cầu đề bài. Nhãn hình ghi rõ Coupon (Promotion trong đề); không tạo thêm model Promotion/PromotionRedemption khác code. `CouponRedemption` và `LoyaltyTransaction.userId` giữ nguyên quan hệ thật với User, không suy diễn qua Order để thay schema.
 
-## Quan hệ và invariant
+## Công thức, tồn và reservation
 
-| Nhóm | Cardinality / quy tắc nghiệp vụ |
-|---|---|
-| Catalog | Product có 0..* variant ở cấp lưu danh mục, nhưng chỉ mua khi có variant active/còn tồn. ProductTopping cho phép topping theo product. Topping không lặp trong một item |
-| Order/items | Một customer sở hữu nhiều order; một order commit có 1..20 item, quantity mỗi item 1..20. Item/topping là snapshot thuộc order; catalog vẫn được tham chiếu nhưng không cập nhật snapshot cũ |
-| Giá và tùy chọn | unitPrice = variantPriceSnapshot + tổng giá topping snapshot; lineTotal = unitPrice x quantity; subtotal = tổng lineTotal; total = subtotal - discountAmount >=0. Đường/đá/null/0/note không đổi giá; note trim tối đa 500 |
-| Inventory | Một order có một reservation cho mỗi variant đã tổng hợp, không phải mỗi dòng. Unique (order,variant) và conditional stock/version cần được triển khai; consume không trừ stock lần hai |
-| Payment | Một order nhiều attempt, tối đa một PROCESSING và một SUCCEEDED. Key unique và request hash bền vững, khóa order phân xử cả key khác nhau. Ownership trước replay; gateway gọi ngoài transaction dài |
-| Promotion | Order có 0..1 redemption, liên kết đúng order/promotion; user được xác định qua chủ order, không lưu thêm quan hệ trùng trong mô hình domain. Hạn mức đếm giữ lượt và lượt đã dùng theo luật nghiệp vụ. Phạm vi product là tập áp dụng, tập rỗng nghĩa toàn menu theo contract đích; phải validate khi tạo đơn |
-| Loyalty | MVP chỉ EARN sau success, 0..1 transaction cho mỗi order; ledger của user được truy qua các order của user; balance cập nhật cùng transaction với EARN. `floor(total/1000)` là tỷ lệ đề xuất ở SRS, cần xác nhận nghiệp vụ trước code |
-| History | Order có history ban đầu và mọi transition; changedBy user có thể null khi hệ thống expiry. fromStatus null chỉ lúc khởi tạo |
+- ProductVariant có size ProductSize S/M/L, giá và active; không có stock hoặc version. Ingredient có unit G/ML/PCS, stockQuantity, version, active. StockQuantity dùng đơn vị cơ sở nguyên, không gộp các ingredient/đơn vị khác nhau thành một số stock tổng.
+- RecipeItem có khóa (productVariantId, ingredientId), quantity cho một ly. ToppingRecipeItem có khóa (toppingId, ingredientId), quantity cho một phần topping. Topping.type PREPACKAGED/PREPARED phân biệt topping nhập sẵn/chế biến; cả hai vẫn tiêu hao Ingredient qua công thức.
+- Với mỗi item, nhu cầu ingredient = quantity ly x (BOM món + BOM từng topping được chọn); cộng nhu cầu ingredient qua mọi dòng/variant/topping trước khi giữ kho. Thiếu BOM/ingredient inactive không bán được. availableServings là giá trị tính từ min floor(stockQuantity/recipe.quantity), không là cột ProductVariant.stock; số hiển thị riêng lẻ không thay kiểm tra shared ingredient toàn đơn.
+- InventoryReservation unique (orderId, productVariantId) lưu số ly tổng của variant. InventoryReservationItem unique (reservationId, ingredientId) lưu lượng nguyên liệu thực tế đã giữ, gồm cả topping. Hoàn kho theo các item này, không đọc lại BOM mới.
+- UPDATE Ingredient có điều kiện version và đủ stockQuantity; giảm tồn/tăng version cùng transaction tạo order/reservation/history/coupon. Consume reservation không giảm tồn lần hai. Status giữ đủ ACTIVE/CONSUMED/RELEASED/EXPIRED và CouponRedemptionStatus tương ứng RESERVED/CONSUMED/RELEASED/EXPIRED.
 
-Composition trong hình thể hiện sở hữu vòng đời snapshot/history, **không** chỉ thị cascade delete dữ liệu giao dịch. Không xóa order/history khi xóa/vô hiệu catalog hoặc user. Chỉ catalog/transaction hợp lệ sau commit mới phải đạt cardinality; bản ghi đang tạo dở chỉ tồn tại trong transaction.
+## Snapshot, tiền, multiplicity và enum
 
-## Enum và vòng đời
+OrderItem.unitPrice là giá variant, không cộng topping vào trường này. OrderItemTopping có toppingNameSnapshot/unitPrice/quantity; runtime tạo quantity=1 cho mỗi topping mỗi ly. Mapper tính lineTotal = (item.unitPrice + tổng topping.unitPrice x topping.quantity) x item.quantity. Subtotal cộng lineTotal, total=subtotal-discountAmount >=0; tiền BigInt VND, response chuyển số nguyên an toàn. Đường/đá/note giữ snapshot; không suy code tham chiếu đã điều chỉnh lượng BOM theo phần trăm đường/đá.
 
-OrderStatus giữ đủ `PENDING`, `PAYMENT_FAILED`, `PAID`, `PREPARING`, `READY`, `COMPLETED`, `CANCELLED`. PaymentStatus là enum riêng `PROCESSING`, `SUCCEEDED`, `FAILED`; PaymentMethod chỉ `E_WALLET`, `CARD`. UserRole chỉ CUSTOMER/BARISTA; gateway không là role.
+Multiplicity trong hình theo schema: Order có 0..* items/payments/reservations/history; service phải bảo đảm order đã commit có 1..20 dòng và reservation phù hợp. CouponRedemption.orderId unique -> 0..1 redemption/order. LoyaltyTransaction.orderId nullable -> một entry có thể không có order; User có nhiều entry, Order có nhiều entry ở schema. Giữ đầy đủ EARN/REDEEM/ADJUSTMENT/REVERSAL; các loại mở rộng trong schema không tự thêm use case đổi điểm vào MVP. Partial unique EARN/order và SUCCEEDED payment/order nằm ở SQL migration, không suy ra từ FK cardinality.
 
-Reservation ACTIVE -> CONSUMED khi paid; ACTIVE -> RELEASED khi hủy/expiry đơn chưa paid. Redemption RESERVED -> CONSUMED hoặc RELEASED tương ứng. Expiry dùng RELEASED với reason trong history, chưa tạo enum EXPIRED mới ngoài contract A2. Hủy PAID trước PREPARING theo SRS giữ payment/coupon/điểm, chỉ hoàn tồn một lần trong transaction khóa order và chuyển PAID -> CANCELLED; reservation CONSUMED giữ dấu vết đã tiêu thụ, không gọi lại thao tác release ACTIVE. Order transition nguyên tử ngăn hai lần hoàn tồn và phân xử với nhận pha. Thanh toán chưa đối soát chặn cancel/expiry. Hai trạng thái cuối của order không chuyển tiếp.
+OrderStatus, PaymentStatus/Method và UserRole giữ nguyên schema. Không dùng Payment SUCCEEDED làm OrderStatus. Referential onDelete là Restrict cho dữ liệu giao dịch; hình dùng association, không dựng composition để ám chỉ cascade delete.
 
-Các ràng buộc unique/check/FK và state transition phải có migration/service/test thật; sơ đồ không chứng minh concurrency/idempotency đã đạt. Mô hình A2 chưa hỗ trợ redeem/adjust/reversal điểm, refund tiền thật hay role quản trị.
+## Truy vết Task 1–3
 
-## Truy vết FR và kiểm chứng
+Tên chuẩn: UC-06: Đặt hàng chỉ tạo PENDING/giữ nguyên liệu; UC-08: Thực hiện thanh toán độc lập mới tạo payment/consume/EARN. UC-07: Áp dụng coupon extend UC-06. Class diagram bao phủ toàn domain nên có Payment/Loyalty; sự có mặt của các lớp này không gộp UC-06 với UC-08.
 
-| FR | Lớp liên quan | Ca chấp nhận |
-|---|---|---|
-| FR-01/02/03 | Product/Variant/Topping/ProductTopping, OrderItem snapshots | Active/options, null khác 0, note/quantity biên, tính giá |
-| FR-05 | User, Order, Payment | JWT/role/ownership, không lộ password/hash hoặc replay khác chủ |
-| FR-06 | Order/Item/Reservation/Redemption/History | Snapshot/transaction rollback, stock=5/20 request, tổng variant |
-| FR-07 | Payment, Order, Reservation | Key/hash/replay/timeout/restart, một success/order |
-| FR-08/09 | Order/History/Reservation | Snapshot/history riêng chủ, transition sai, cancel/prepare/expiry race |
-| FR-10 | Promotion/Redemption/LoyaltyTransaction/User | Coupon limit=1 concurrent, total không âm, một EARN và balance nhất quán |
+[SRS](../requirements/srs.md), [scope](../requirements/context-and-scope.md), [NFR](../requirements/non-functional-requirements.md), [kiến trúc](system-architecture.md), [ADR-006](adr/006-a1-recipe-inventory.md) và [test plan](../testing/test-plan.md) được đồng bộ với BOM/Ingredient. [Báo cáo nhất quán](../consistency-review.md) ghi rõ phạm vi sửa và việc còn thiếu. UC-06 riêng trong PR #50, sequence UC-06 riêng trong PR #51; payment #6/#9 theo tài liệu độc lập.
 
-Đối chiếu [ADR-002](adr/002-postgresql-prisma.md), [ADR-004](adr/004-payment-inventory-consistency.md), [test plan TC-FR-03/05..10](../testing/test-plan.md). Tham khảo CD-01 A1 để nhận diện domain, nhưng không sao chép claim schema/commit/evidence của A1.
+Kiểm chứng khi triển khai: shared ingredient qua nhiều variant/topping, thiếu BOM/inactive ingredient, snapshot BOM giữ chỗ rồi đổi công thức, rollback sau giữ nguyên liệu, cạnh tranh số ly suy từ nguyên liệu, expiry/release đúng một lần. Các test chưa chạy trên A2; source/test A1 là căn cứ thiết kế, không chuyển thành evidence A2.
 
 ## Kết xuất
 
-Java + [PlantUML 1.2026.8](https://github.com/plantuml/plantuml/releases/tag/v1.2026.8), từ root:
+Java + PlantUML 1.2026.8 từ root repository:
 
 ```powershell
 java '-Djava.awt.headless=true' '-DPLANTUML_LIMIT_SIZE=16000' -jar C:/tools/plantuml-1.2026.8.jar -charset UTF-8 -tsvg docs/diagrams/class-domain.puml
 java '-Djava.awt.headless=true' '-DPLANTUML_LIMIT_SIZE=16000' -jar C:/tools/plantuml-1.2026.8.jar -charset UTF-8 -tpng docs/diagrams/class-domain.puml
 ```
 
-Commit nguồn và hai bản xuất; kiểm tra đủ bảy lớp bắt buộc, nhãn/multiplicity/enum và invariant với SRS trước nghiệm thu thiết kế.
+Kiểm tra toàn bộ model/enum/field/quan hệ được vẽ với schema cố định ở commit trên, rồi kiểm tra ảnh/multiplicity. Commit source và hai bản xuất cùng PR.

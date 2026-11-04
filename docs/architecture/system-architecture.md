@@ -1,6 +1,6 @@
 # Kiến trúc hệ thống BrewLite
 
-Phiên bản 1.0 · 03/11/2026 · Phụ trách: Khang · [A2-3.1.1 / #12](https://github.com/akira-yami/BrewLite_A2/issues/12).
+Phiên bản 1.1 · 04/11/2026 · Phụ trách: Khang · [A2-3.1.1 / #12](https://github.com/akira-yami/BrewLite_A2/issues/12).
 
 **Trạng thái: thiết kế đề xuất cho A2.** Baseline `d600b26` chỉ có tài liệu yêu cầu và thư mục ứng dụng giữ chỗ; chưa có Next.js, NestJS, schema, migration hay dịch vụ chạy được. Các đường dẫn, module và API dưới đây là đích triển khai, không phải minh chứng runtime.
 
@@ -47,7 +47,7 @@ Next.js Web/PWA ---- REST/JSON + Bearer JWT ----> NestJS API
 | `auth`, `users` | Đăng ký/login, JWT, role, hồ sơ; không tự quyết định điểm | FR-05; UC-01/02 |
 | `catalog` | Product, variant, topping, giá và trạng thái bán | FR-01/02/03; UC-03/04 |
 | `orders` | Order/items snapshot, state machine, ownership, history | FR-06/08/09; UC-06/09/10 |
-| `inventory` | Tổng hợp số lượng theo variant, reserve/consume/release/expiry đúng một lần | FR-06/09; UC-06/08 |
+| `inventory` | RecipeItem/ToppingRecipeItem, tổng nhu cầu ingredient, reserve/consume/release/expiry theo snapshot | FR-06/09; UC-06/08 |
 | `payments` | Attempt, request hash/key, serialize attempt theo order, gateway, đối soát | FR-07; UC-08 |
 | `promotions` | Quote, hạn mức coupon, reservation và consumption | FR-10; UC-07/08 |
 | `loyalty` | Ledger EARN duy nhất mỗi order, balance trong transaction | FR-10; hậu điều kiện UC-08 |
@@ -88,14 +88,16 @@ PostgreSQL + Prisma; migration versioned trong Git, bổ sung SQL cho CHECK/part
 
 Migration one-shot chạy trước API, fail thì không start release mới; không sửa migration đã áp dụng. Seed development/test phải lặp an toàn, không tự cấp tài khoản demo trên production. PostgreSQL có persistent volume/disk; restart không xóa volume. [ADR-002](adr/002-postgresql-prisma.md) ghi lựa chọn; thiết kế chi tiết thuộc [#13](https://github.com/akira-yami/BrewLite_A2/issues/13), triển khai migration/seed thuộc [#35](https://github.com/akira-yami/BrewLite_A2/issues/35).
 
-### 5.1. Tạo đơn
+### 5.1. UC-06: Đặt hàng
 
-1. JWT/ownership principal và DTO hợp lệ; server chuẩn hóa tối đa 20 dòng, quantity 1..20, tính giá từ catalog active.
-2. Transaction ngắn đọc/khóa coupon hợp lệ (nếu có), tạo Order `PENDING`, items/topping snapshot và thời hạn giữ tồn; chỉ insert reservation/redemption sau khi có orderId.
-3. Tổng hợp quantity theo variant qua mọi dòng; cập nhật có điều kiện `stock >= requested AND version = expected`, giảm stock và tăng version; xử lý theo thứ tự variant ID ổn định. Conflict còn hàng retry toàn transaction có giới hạn, hết hàng trả 409.
-4. Ghi reservation ACTIVE, coupon RESERVED và history cùng transaction. Bất kỳ lỗi nào rollback toàn bộ. Không coi `POST /orders` là idempotent chỉ vì payment có key.
+1. JWT/CUSTOMER và DTO hợp lệ; chuẩn hóa 1..20 dòng, quantity 1..20, đọc catalog/BOM/nguyên liệu cùng transaction Serializable.
+2. Đọc RecipeItem và ToppingRecipeItem của mọi topping, nhân số ly và cộng theo ingredientId toàn giỏ. Tồn/version ở Ingredient, không ở ProductVariant. Thiếu BOM/inactive ingredient không bán được; availableServings chỉ là thông tin tính toán.
+3. Tính giá server, khóa/quote coupon nếu có, tạo Order PENDING và items/topping snapshots. OrderItem.unitPrice là giá variant; topping snapshot riêng, lineTotal=(giá variant+topping) x quantity.
+4. Theo thứ tự ingredientId ổn định, UPDATE Ingredient SET stockQuantity-=need, version+=1 WHERE version=expected AND stockQuantity>=need. InventoryReservation mỗi order/variant lưu số ly; InventoryReservationItem lưu lượng ingredient thật đã giữ, gồm cả topping.
+5. Coupon RESERVED và history cùng transaction. Lỗi rollback toàn bộ stockQuantity/version/bản ghi; conflict retry toàn transaction có giới hạn, A1 hiện tối đa 3 attempt. TTL từ config. Không retry hết nguyên liệu hoặc giả COMMIT thất bại khi mất ACK.
+6. Trả 201 PENDING và kết thúc UC-06; chưa gọi gateway, không tạo payment/consume/EARN. POST /orders chưa idempotent, UI mất response cần tra cứu trước đặt lại.
 
-### 5.2. Thanh toán, retry và kết quả chưa rõ
+### 5.2. UC-08: Thực hiện thanh toán (use case độc lập)
 
 1. Xác thực và kiểm tra chủ đơn **trước replay**. Chuẩn hóa orderId/method, tính hash server-side; kiểm tra key/payload.
 2. Transaction ngắn khóa order và tạo duy nhất attempt `PROCESSING` theo key; không cho attempt đang xử lý thứ hai trên cùng order kể cả key khác. Order PAID không có success thứ hai. Unique constraint/key và khóa order phân xử request đồng thời.
@@ -108,7 +110,7 @@ Migration one-shot chạy trước API, fail thì không start release mới; kh
 
 Order: `PENDING`, `PAYMENT_FAILED`, `PAID`, `PREPARING`, `READY`, `COMPLETED`, `CANCELLED`. Payment: `PROCESSING`, `SUCCEEDED`, `FAILED`. Không dùng chung hai enum.
 
-Job expiry chạy trong API ở MVP, chỉ expire PENDING/PAYMENT_FAILED hết hạn khi không có payment chưa đối soát; khóa order và chuyển reservation ACTIVE sang RELEASED bằng điều kiện, hoàn stock/coupon một lần. Khi nhiều instance, mỗi lần xử lý vẫn phải dựa vào DB lock/transition, không dựa mutex trong process. PAID chỉ bị chủ đơn hủy trước PREPARING; theo baseline giữ payment/coupon/điểm và hoàn tồn một lần, **không hoàn tiền**. Luật này và tỷ lệ loyalty `floor(total/1000)` là đề xuất trong SRS cần PO review, không phải quyết định đã phê duyệt.
+Job expiry chạy trong API ở MVP, chỉ expire PENDING/PAYMENT_FAILED hết hạn khi không có payment chưa đối soát; khóa order và chuyển reservation ACTIVE sang EXPIRED và coupon RESERVED sang EXPIRED khi hết hạn; RELEASED cho hủy trước hạn; hoàn nguyên liệu theo InventoryReservationItem một lần. Khi nhiều instance, mỗi lần xử lý vẫn phải dựa vào DB lock/transition, không dựa mutex trong process. PAID chỉ bị chủ đơn hủy trước PREPARING; theo baseline giữ payment/coupon/điểm và hoàn tồn một lần, **không hoàn tiền**. Luật này và tỷ lệ loyalty `floor(total/1000)` là đề xuất trong SRS cần PO review, không phải quyết định đã phê duyệt.
 
 ## 6. Cấu hình, health và logging
 
@@ -137,7 +139,12 @@ Job expiry chạy trong API ở MVP, chỉ expire PENDING/PAYMENT_FAILED hết h
 | DB, ORM, migration và persistent data | [ADR-002](adr/002-postgresql-prisma.md) |
 | JWT, role và ownership | [ADR-003](adr/003-authentication.md) |
 | Reservation, payment idempotency/recovery | [ADR-004](adr/004-payment-inventory-consistency.md) |
+| Đồng bộ BOM/kho A1 và ranh giới UC | [ADR-006](adr/006-a1-recipe-inventory.md) |
 
 Các ADR đều là đề xuất cho A2, chưa ghi nhận review độc lập. Thay đổi quyết định phải bổ sung ADR thay thế và cập nhật FR/UC/sơ đồ/test bị ảnh hưởng.
 
-Khi triển khai: unit cho giá/state machine/coupon; HTTP cho DTO/JWT/role/ownership; PostgreSQL integration cho rollback, stock=5/20 request, coupon hạn mức, cùng key/khác key/timeout/restart; browser E2E menu tới confirmation/history, giỏ/offline; readiness, clean-checkout migrate/seed và persistence; đo NFR theo đúng dataset/ngưỡng trong SRS. Liên kết code/test/evidence thật tại [ma trận truy vết](../traceability-matrix.md) khi có; không đánh dấu NFR đạt dựa trên kiến trúc.
+Khi triển khai: unit cho giá/state machine/coupon; HTTP cho DTO/JWT/role/ownership; PostgreSQL integration cho rollback, BOM X=10, tồn X=50/20 request, coupon hạn mức, cùng key/khác key/timeout/restart; browser E2E menu tới confirmation/history, giỏ/offline; readiness, clean-checkout migrate/seed và persistence; đo NFR theo đúng dataset/ngưỡng trong SRS. Liên kết code/test/evidence thật tại [ma trận truy vết](../traceability-matrix.md) khi có; không đánh dấu NFR đạt dựa trên kiến trúc.
+
+## 9. Baseline công thức/kho và ranh giới UC
+
+Theo chỉ dẫn người dùng ngày 04/11/2026, A2 tương thích A1 @7beb0cb: kho Ingredient, RecipeItem/ToppingRecipeItem và snapshot InventoryReservationItem thay mô tả stock/version trên variant. [ADR-006](adr/006-a1-recipe-inventory.md) thay thế phần giả định kho cũ; [class domain](class-domain.md) giữ tên model/schema, Coupon là Promotion theo đề. Code A1 là căn cứ, chưa là runtime A2. UC-06: Đặt hàng và UC-08: Thực hiện thanh toán tách biệt; payment vẫn thuộc toàn kiến trúc hệ thống nhưng không nằm trong sequence UC-06. Railway được chọn tại PR #53, environment quan sát vẫn source A1.
