@@ -1,6 +1,6 @@
 # BrewLite - SRS rút gọn: yêu cầu phi chức năng
 
-Phiên bản: 1.0 | Ngày: 28/10/2026 | Phụ trách: Khang | Truy vết: [A2-1.2.2 / Issue #3](https://github.com/phananhkhang/BrewLite_A2/issues/3).
+Phiên bản: 1.1 | Ngày: 04/11/2026 | Phụ trách: Khang | Truy vết: [A2-1.2.2 / Issue #3](https://github.com/akira-yami/BrewLite_A2/issues/3).
 
 Giữ nghĩa NFR-01..11 của baseline tham khảo; bổ sung NFR-12 cho hướng PWA của A2. FR liên quan được định nghĩa trong `docs/requirements/srs.md` (issue #2).
 
@@ -11,7 +11,7 @@ MoSCoW: **Must** bắt buộc nghiệm thu MVP cuối A2; **Should** có thể h
 ## 1. Môi trường và quy trình đo dùng chung
 
 1. Dùng DB test riêng. Ghi commit, thời điểm bắt đầu/kết thúc UTC, CPU/RAM/OS, Node/PostgreSQL/Docker/browser/tool version, cấu hình và seed. Không chạy tải hoặc fault injection trên production/DB dùng chung.
-2. Dataset hiệu năng: 100 product, 300 variant, 30 topping, 1.000 order của các test user; stock/coupon đủ cho lượt đo. Warm-up 30 giây, đo 5 phút, 20 client đồng thời. Tách từng endpoint; không chọn lọc bỏ request chậm. Tách cold build, startup, steady-state và fault recovery.
+2. Dataset hiệu năng: 100 product, 300 variant, 30 topping, 1.000 order của các test user; nguyên liệu/coupon đủ cho lượt đo. Warm-up 30 giây, đo 5 phút, 20 client đồng thời. Tách từng endpoint; không chọn lọc bỏ request chậm. Tách cold build, startup, steady-state và fault recovery.
 3. Công cụ load tạo request liên tục theo 20 virtual user, ghi tổng mẫu/thời lượng thực tế; đo từ lúc gửi HTTP đến khi nhận đủ response. Báo cáo p50/p95/p99 và tỷ lệ lỗi. Request 4xx/409 nghiệp vụ được đếm riêng, không dùng để làm đẹp latency thành công; 5xx/timeout là lỗi hệ thống. Với phép đo kỳ vọng thành công, business rejection không dự kiến làm lượt đo không đạt điều kiện và phải điều tra/reset dataset.
 4. Mỗi NFR có evidence gồm lệnh/cấu hình, dataset, log thô đã che bí mật, số đo, ngưỡng và pass/fail. Lưu evidence ở `docs/testing/evidence/<commit>/<NFR-ID>/` khi thực thi; hiện chưa có bộ evidence này.
 5. Chỉ gán **đạt** khi đủ phép thử của NFR. Các trạng thái còn lại là **chưa đo**, **không đạt**, **chưa áp dụng** kèm lý do. Chưa có production URL có thể ghi chưa áp dụng ở bước sớm, nhưng không được dùng để hoàn tất yêu cầu production cuối A2.
@@ -22,7 +22,7 @@ MoSCoW: **Must** bắt buộc nghiệm thu MVP cuối A2; **Should** có thể h
 
 **Mục tiêu:** p95 <500 ms và tỷ lệ 5xx/timeout <1% cho từng API thông thường `GET /products`, `GET /products/:id`, `GET /orders/me`, `POST /orders` hợp lệ, theo điều kiện mục 1. Giữ giá trị snapshot/tồn chính xác dưới tải; không gộp thời gian payment gateway vào bộ mẫu API thông thường.
 
-**Kiểm chứng:** load test riêng từng route trên stack Next.js/NestJS/PostgreSQL đã warm-up; request Orders có JWT hợp lệ. Reset dữ liệu/stock giữa các lượt, không reset khi đang đo; ghi số mẫu, p50/p95/p99, 5xx, timeout và CPU/RAM. Payment được báo cáo latency riêng kèm độ trễ mock gateway; bỏ payment khỏi ngưỡng 500 ms không có nghĩa bỏ test payment. FR-01/02/06/08; ca dự kiến `AT-NFR-01`.
+**Kiểm chứng:** load test riêng từng route trên stack Next.js/NestJS/PostgreSQL đã warm-up; request Orders có JWT hợp lệ. Reset dữ liệu/nguyên liệu giữa các lượt, không reset khi đang đo; ghi số mẫu, p50/p95/p99, 5xx, timeout và CPU/RAM. Payment được báo cáo latency riêng kèm độ trễ mock gateway; bỏ payment khỏi ngưỡng 500 ms không có nghĩa bỏ test payment. FR-01/02/06/08; ca dự kiến `AT-NFR-01`.
 
 ### NFR-02 - Bảo vệ mật khẩu (Must)
 
@@ -38,9 +38,9 @@ MoSCoW: **Must** bắt buộc nghiệm thu MVP cuối A2; **Should** có thể h
 
 ### NFR-04 - Nhất quán tồn kho và rollback (Must)
 
-**Mục tiêu:** 0 stock âm, 0 reserve vượt tồn, không có order/reservation/coupon dở dang sau transaction thất bại. Với stock=5, 20 request hợp lệ đồng thời mua 1 cùng variant: đúng 5 order thành công, stock cuối=0, tổng ACTIVE reservation=5.
+**Mục tiêu:** 0 Ingredient.stockQuantity âm, 0 reserve vượt tồn, không có order/reservation/coupon dở dang sau transaction thất bại. Với BOM một ly cần X=10, X.stockQuantity=50, không có nút thắt khác: 20 request đồng thời mua 1 ly có mục tiêu 5 order commit, X cuối=0, tổng quantity ACTIVE reservation=5, snapshot X tổng=50. Thêm ca nhiều variant/topping dùng chung X.
 
-**Kiểm chứng:** integration trên PostgreSQL thật, stock reset giữa lượt; chạy tối thiểu 3 lượt. Tiêm lỗi sau reserve và assert rollback order/items/history/reservation/coupon; test hủy/expiry lặp chỉ hoàn tồn một lần và race hủy PAID/nhận pha chỉ một transition commit. Lưu số lượng bản ghi và trạng thái trước/sau từng lượt. FR-06/09/10; `AT-NFR-04`. CHECK/unique constraint đơn lẻ không thay thế phép thử đồng thời.
+**Kiểm chứng:** integration trên PostgreSQL thật, stockQuantity nguyên liệu reset giữa lượt; chạy tối thiểu 3 lượt. Tiêm lỗi sau reserve và assert rollback order/items/history/reservation/coupon; test hủy/expiry lặp chỉ hoàn tồn một lần và race hủy PAID/nhận pha chỉ một transition commit. Lưu số lượng bản ghi và trạng thái trước/sau từng lượt. FR-06/09/10; `AT-NFR-04`. CHECK stockQuantity/unique constraint đơn lẻ không thay thế phép thử đồng thời.
 
 ### NFR-05 - Payment idempotency và nhất quán (Must)
 
