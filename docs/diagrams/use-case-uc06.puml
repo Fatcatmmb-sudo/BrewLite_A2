@@ -1,0 +1,25 @@
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam defaultFontName Arial
+skinparam shadowing false
+title BrewLite - UC-06: Đặt hàng
+actor "Khách hàng" as Customer
+rectangle "HỆ THỐNG BREWLITE - Phạm vi UC-06" {
+  usecase "UC-06: Đặt hàng" as Order
+  usecase "UC-07: Áp dụng coupon" as Coupon
+  Coupon ..> Order : <<extend>>\n[có coupon]
+  note bottom of Order
+    Tiền điều kiện: CUSTOMER, JWT hợp lệ.
+    Giá server; giữ nguyên liệu theo công thức món/topping.
+    Kết quả: Order PENDING, chưa thanh toán.
+  end note
+}
+Customer -- Order
+Customer -- Coupon
+legend bottom
+  UC-02: Đăng nhập là tiền điều kiện khi chưa có phiên.
+  UC-08: Thực hiện thanh toán là use case độc lập sau UC-06.
+  Không có Mock Payment Gateway, Payment hoặc loyalty trong phạm vi này.
+endlegend
+@enduml
