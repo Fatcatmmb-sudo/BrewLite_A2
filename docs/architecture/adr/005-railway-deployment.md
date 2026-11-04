@@ -21,4 +21,4 @@ VPS tự quản cho phép kiểm soát mạng/registry nhưng tăng vận hành 
 
 ## Kiểm chứng và hệ quả
 
-Trước nghiệm thu: runtime A2/Node/env đồng bộ, CI pass/fail và gate thật; repo/branch/commit/image khớp deploy; HTTPS/health/smoke, persistence/restore/rollback và NFR có evidence. Hiện chỉ có snapshot cấu hình A1; không ghi A2 đã release hoặc NFR đã đạt. Không sao chép mô hình kho nguyên liệu A1 vào phạm vi tồn variant A2 nếu chưa đổi SRS.
+Trước nghiệm thu: runtime A2/Node/env đồng bộ, CI pass/fail và gate thật; repo/branch/commit/image khớp deploy; HTTPS/health/smoke, persistence/restore/rollback và NFR có evidence. Hiện chỉ có snapshot cấu hình A1; không ghi A2 đã release hoặc NFR đã đạt. Theo yêu cầu 04/11/2026, SRS/class/kiến trúc A2 được đồng bộ mô hình công thức/kho nguyên liệu A1 ở PR #52; snapshot production vẫn có source A1, chưa chứng minh deployment A2.
