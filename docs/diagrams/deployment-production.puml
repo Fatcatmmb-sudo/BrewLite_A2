@@ -1,0 +1,113 @@
+@startuml
+!pragma layout smetana
+' Source of truth for the deployment diagram. No Draw.io or custom renderer required.
+title BrewLite - Deployment of Components / Railway
+skinparam defaultFontName Arial
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam roundCorner 0
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam linetype polyline
+skinparam ArrowColor #222222
+skinparam ArrowFontSize 12
+skinparam NodeBackgroundColor #FCF0DF
+skinparam NodeBorderColor #222222
+skinparam ArtifactBackgroundColor #FCF0DF
+skinparam ArtifactBorderColor #222222
+skinparam FrameBackgroundColor white
+skinparam FrameBorderColor #222222
+skinparam NoteBackgroundColor #F7F4F7
+skinparam NoteBorderColor #222222
+skinparam stereotypeFontSize 12
+top to bottom direction
+
+frame "dd Deployment of Components" {
+  node "<u>:Customer Workstation</u>" as Client <<device>> {
+    node "<u>:Browser / PWA</u>" as Browser <<executionEnvironment>> {
+      artifact "<u>:BrewLite Web Client</u>" as ClientApp
+    }
+  }
+
+  frame "PRODUCTION | Railway / aware-clarity / sfo" as Production {
+    node "<u>:Railway HTTPS Edge</u>" as Edge <<executionEnvironment>> {
+      artifact "<u>:TLS Termination</u>\nHTTPS :443" as TLS
+    }
+
+    node "<u>:Web Service</u>" as Web <<executionEnvironment>> {
+      node "<u>:Node.js / Next.js</u>" as Next <<executionEnvironment>> {
+        artifact "<u>:server.js + .next/static</u>\nNext.js standalone / :3000" as NextApp
+      }
+    }
+
+    node "<u>:API Service</u>" as API <<executionEnvironment>> {
+      node "<u>:Node.js / NestJS</u>" as Nest <<executionEnvironment>> {
+        artifact "<u>:dist/main.js</u>\nREST /api/v1 / :3001" as NestApp
+        artifact "<u>:Mock Payment Adapter</u>" as Mock
+        artifact "<u>:Prisma Migrations</u>\npre-deploy: npm run prisma:deploy" as Migrations
+        NestApp -[hidden]right- Mock
+        NestApp -[hidden]down- Migrations
+      }
+    }
+
+    node "<u>:Database Service</u>" as Database <<executionEnvironment>> {
+      node "<u>:PostgreSQL 18</u>" as PostgreSQL <<executionEnvironment>> {
+        artifact "<u>:BrewLite Schema</u>\nPostgreSQL / TCP :5432" as Schema
+        artifact "<u>:postgres-volume</u>\n500 MB / /var/lib/postgresql/data" as Volume
+        Schema -[hidden]down- Volume
+      }
+    }
+
+    node "<u>:Railway Operations</u>" as Ops <<executionEnvironment>> {
+      artifact "<u>:Service Variables / Secrets</u>\nDATABASE_URL / JWT_* / WEB_ORIGIN" as Secrets
+      artifact "<u>:Health Checks / Runtime Logs</u>\n/health / /api/v1/health / 180 s" as Health
+      Secrets -[hidden]down- Health
+    }
+
+    Edge -down- Web : HTTP\ntarget :3000
+    Edge -down- API : HTTP\ntarget :3001
+    API -down- Database : PostgreSQL\nTCP :5432
+    Web .. Ops
+    API .. Ops
+
+    note bottom of Database
+      Private DB network; no public TCP proxy.
+      Mock payment runs inside API, not a separate service.
+      One replica per service; persistent volume on Postgres.
+    end note
+  }
+
+  frame "LOCAL" as Local {
+    node "<u>:Developer Workstation</u>" as Developer <<device>> {
+      artifact "<u>:Source Code / .env</u>\nNo production secrets in Git" as LocalCode
+    }
+  }
+
+  frame "CI / BUILD" as CI {
+    node "<u>:GitHub Actions</u>" as Actions <<executionEnvironment>> {
+      artifact "<u>:Quality Gate [A2 target]</u>\nInstall / Lint / Unit / Build" as Gate
+    }
+    node "<u>:Railway Build / Deploy</u>" as Builder <<executionEnvironment>> {
+      artifact "<u>:Dockerfile.railway</u>\nPlatform-managed app images" as AppImage
+    }
+    Actions .down. Builder : A2 quality gate\n(target)
+  }
+
+  node "<u>:Container Registry - GHCR</u>" as Registry <<executionEnvironment>> {
+    artifact "<u>:postgres-ssl:18</u>\nrailwayapp-templates" as PgImage
+  }
+
+  Client -down- Edge : HTTPS\n:443
+  Developer -down- Actions : Git push
+  Builder .. API
+  Registry -- Database : pull DB image
+}
+
+legend bottom
+  Production source: BrewLite_A1 / snapshot 04 Nov 2026.
+  Solid line: communication path or DB image distribution.
+  Dashed line: operations dependency or A2 CI/CD build/deploy target (not verified live).
+  Browser calls API through the HTTPS edge; Next.js is not an API reverse proxy.
+endlegend
+@enduml
