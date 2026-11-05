@@ -1,8 +1,8 @@
 # Deployment production BrewLite - Railway
 
-Phiên bản 1.0 · 04/11/2026 · [A2-3.2 / #16](https://github.com/akira-yami/BrewLite_A2/issues/16). Nền tảng Railway theo xác nhận của người dùng; [ADR-005](architecture/adr/005-railway-deployment.md) ghi quyết định và phần cần chuyển sang A2.
+Phiên bản 1.2 · 05/11/2026 · [A2-3.2 / #16](https://github.com/akira-yami/BrewLite_A2/issues/16). Nền tảng Railway theo xác nhận của người dùng; [ADR-005](architecture/adr/005-railway-deployment.md) ghi quyết định và phần cần chuyển sang A2.
 
-[Nguồn PlantUML](diagrams/deployment-production.puml) · [SVG](diagrams/deployment-production.svg) · [PNG](diagrams/deployment-production.png) · [Snapshot cấu hình không chứa secret](deployment/railway-snapshot.json).
+[Nguồn Draw.io chỉnh sửa được](diagrams/deployment-production.drawio) · [SVG](diagrams/deployment-production.svg) · [PNG](diagrams/deployment-production.png) · [Snapshot cấu hình không chứa secret](deployment/railway-snapshot.json).
 
 ![Deployment Railway](diagrams/deployment-production.svg)
 
@@ -61,13 +61,21 @@ Các đường dẫn A1 `main` là nguồn tham khảo đọc ngày 04/11/2026, 
 4. Test persistence sau restart có giữ volume, backup/restore vào DB test và rollback app tương thích schema. Giữ evidence có command/UTC/commit/expected/actual, không log secret.
 5. Cập nhật snapshot và nguồn/bản xuất cùng PR. Issue #16 chỉ đủ tiêu chí cuối A2 khi mapping service -> source A2 và topology deploy thực tế đã được xác minh.
 
-## 6. Render
+## 6. Chỉnh sửa và xuất hình theo template UML
 
-Java + [PlantUML 1.2026.8](https://github.com/plantuml/plantuml/releases/tag/v1.2026.8), từ root repo:
+Nguồn chính là [deployment-production.drawio](diagrams/deployment-production.drawio), mở trực tiếp trong diagrams.net. Bố cục theo template người dùng: khung `dd Deployment of Components`, node 3D màu kem, stereotype device/executionEnvironment, instance gạch chân, runtime lồng node và artifact có biểu tượng tài liệu. Khung production/LOCAL/CI tách biệt, đường kết nối trực giao và nhãn giao thức/cổng rõ ràng.
+
+Hình không thêm máy vật lý hoặc CDN chưa có trong inventory Railway: các service được biểu diễn bằng executionEnvironment. Browser/PWA là device bên ngoài; Web/API có runtime Node.js; PostgreSQL có schema/volume; mock payment trong API. Operations gom tên biến/probe/log cho gọn, không coi đây là một container ứng dụng riêng.
+
+Quy ước: đường liền là communication path hoặc phân phối image DB theo cấu hình snapshot; đường nét đứt là phụ thuộc vận hành (env/probe/log) hoặc luồng A2 CI/CD đích. Chi tiết live/staged, nguồn A1/A2 và giới hạn xác minh giữ ở các mục trên. Đây là lần cải thiện hình từ snapshot 04/11, không phải đọc lại trạng thái Railway ngày 05/11.
+
+Mở Draw.io để chỉnh vị trí, label hoặc waypoint; lưu source và cập nhật cả SVG/PNG. Bộ render cục bộ dùng chung geometry/text/waypoint trong XML để tái tạo bản xuất đã kiểm tra:
 
 ```powershell
-java '-Djava.awt.headless=true' '-DPLANTUML_LIMIT_SIZE=16000' -jar C:/tools/plantuml-1.2026.8.jar -charset UTF-8 -tsvg docs/diagrams/deployment-production.puml
-java '-Djava.awt.headless=true' '-DPLANTUML_LIMIT_SIZE=16000' -jar C:/tools/plantuml-1.2026.8.jar -charset UTF-8 -tpng docs/diagrams/deployment-production.puml
+python -m pip install Pillow
+python scripts/render-deployment.py
 ```
 
-Kiểm tra nhãn/ports/boundary local/CI/production, registry, volume, secret, health/log và source mapping. Hình là tài liệu snapshot, không làm thay đổi cấu hình Railway.
+Script hỗ trợ đúng các kiểu shape của sơ đồ này và dùng font Arial trong Windows Fonts. Khi thay kiểu shape, cập nhật renderer tương ứng hoặc dùng Export của Draw.io và kiểm tra trực quan lại. Không chạy script đè lên một bản xuất đã chỉnh thủ công. PNG kích thước 1740 × 1220; SVG giữ vector để zoom/in rõ. Nguồn PlantUML cũ được thay bằng Draw.io để chỉ giữ một bản nguồn chuẩn cho bố cục template.
+
+Kiểm tra trước commit: XML/SVG đọc được, nhãn không tràn khung, các node/artifact không chồng, ảnh PNG mở được, nguồn/export cùng kích thước và link local tồn tại. Hình là tài liệu deployment; việc sửa source và export không thay cấu hình Railway.
