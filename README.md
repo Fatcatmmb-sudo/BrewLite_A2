@@ -30,6 +30,8 @@ Hiện chỉ cần Git và trình đọc Markdown. Nhóm sẽ chốt Node/packag
 | [.env.example](.env.example) | Biến local đề xuất, chỉ có placeholder |
 | `docker-compose.yml` | Chờ cấu hình Web/API/PostgreSQL tại #36 |
 
+Cấu trúc bên trong Web/API, Prisma, kiểm thử và minh chứng đã được tạo bằng các thư mục giữ chỗ. Xem [cây thư mục và quy ước đặt mã nguồn](docs/repository-structure.md).
+
 ## Cấu hình
 
 `.env.example` là mẫu phối hợp, **chưa có chương trình đọc các biến này**. Khi có runtime, tạo `.env` từ mẫu, thay mọi placeholder và theo README ứng dụng. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service khi #36 chốt Compose.
