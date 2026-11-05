@@ -2,7 +2,7 @@
 
 Phiên bản 1.3 · 05/11/2026 · [A2-3.2 / #16](https://github.com/akira-yami/BrewLite_A2/issues/16). Nền tảng Railway theo xác nhận của người dùng; [ADR-005](architecture/adr/005-railway-deployment.md) ghi quyết định và phần cần chuyển sang A2.
 
-[Nguồn PlantUML](diagrams/deployment-production.puml) · [SVG](diagrams/deployment-production.svg) · [PNG](diagrams/deployment-production.png) · [Snapshot cấu hình không chứa secret](deployment/railway-snapshot.json).
+[Nguồn PlantUML](diagrams/deployment-production.puml) · [SVG](diagrams/deployment-production.svg) · [PNG](diagrams/deployment-production.png).
 
 ![Deployment Railway](diagrams/deployment-production.svg)
 
