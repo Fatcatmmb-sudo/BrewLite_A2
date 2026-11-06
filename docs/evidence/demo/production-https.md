@@ -128,3 +128,16 @@ File thêm trong PR này: [`apps/web/Dockerfile.railway`](../../apps/web/Dockerf
 - Deployment diagram: `docs/diagrams/deployment-production.svg`
 - `.env.example`: `/.env.example`
 - Dockerfile web: `apps/web/Dockerfile.railway`, `apps/web/Dockerfile`
+
+## PR integration validation - 2026-11-06
+
+Rebased by merging current main (runtime and PR CI). Both Dockerfiles use the
+apps/web build context, Node 24, standalone output, non-root runtime and the
+canonical NEXT_PUBLIC_API_BASE_URL build argument. NEXT_PUBLIC_API_URL remains
+a compatible fallback. Local env files and dependencies are excluded from the
+Docker context. /health is now a real App Router route.ts.
+
+This maintenance task does not deploy or change Railway services/secrets. The
+production observations above are historical; no new live DB/TLS verification
+is claimed. Docker Desktop's Linux engine is unavailable locally, so Docker
+image execution is not claimed. CI tests and Next.js build are checked separately.
