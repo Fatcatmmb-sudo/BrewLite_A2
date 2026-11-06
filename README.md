@@ -8,7 +8,7 @@ Repository chính: [akira-yami/BrewLite_A2](https://github.com/akira-yami/BrewLi
 
 Đây là khung repository và hồ sơ A2, đã có SRS/FR/NFR và use-case tổng quát. `apps/web`, `apps/api` chưa có package/runtime; `docker-compose.yml`, `docs/deployment.md` đang giữ chỗ. **Chưa có lệnh install/dev/test/build/deploy chạy ứng dụng**; khung này chưa phải MVP chạy được.
 
-Runtime catalog/menu thuộc #21/#22, test #23, CI #24; checkout/delivery thuộc Sprint 2. [#12](https://github.com/akira-yami/BrewLite_A2/issues/12) sở hữu kiến trúc/ADR, [#16](https://github.com/akira-yami/BrewLite_A2/issues/16) deployment thực tế. Cập nhật README bằng lệnh đã kiểm tra từ checkout sạch khi các phần đó tích hợp.
+Catalog đã có source/schema trên `main` nhưng chưa có manifest/lockfile hoặc runtime hoàn chỉnh. Runtime catalog/menu thuộc #21/#22, test #23; [CI #24](docs/ci-pull-request.md) có workflow và runner kiểm thử, sẽ fail rõ ràng khi thiếu runtime. Checkout/delivery thuộc Sprint 2. [#12](https://github.com/akira-yami/BrewLite_A2/issues/12) sở hữu kiến trúc/ADR, [#16](https://github.com/akira-yami/BrewLite_A2/issues/16) deployment thực tế. Cập nhật README bằng lệnh đã kiểm tra từ checkout sạch khi các phần đó tích hợp.
 
 ## Clone và đọc hồ sơ
 
@@ -26,7 +26,7 @@ Hiện chỉ cần Git và trình đọc Markdown. Nhóm sẽ chốt Node/packag
 | [apps/api](apps/api/README.md) | Ranh giới NestJS/API/DB và việc còn lại |
 | [docs](docs/README.md) | Yêu cầu, sơ đồ, kiến trúc và Scrum |
 | `tests/` | Chỗ cho test xuyên ứng dụng; chưa có test executable |
-| `.github/workflows/` | Chỗ cho CI/CD; chưa có workflow executable |
+| `.github/workflows/` | [PR CI](docs/ci-pull-request.md): Install → Lint → Unit Test → Build và required gate |
 | [.env.example](.env.example) | Biến local đề xuất, chỉ có placeholder |
 | `docker-compose.yml` | Chờ cấu hình Web/API/PostgreSQL tại #36 |
 

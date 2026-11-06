@@ -35,4 +35,4 @@ Evidence ghi commit, môi trường, lệnh/bước kiểm tra, expected/actual,
 - Code: lint/unit/build, integration/E2E phù hợp theo README runtime. Tồn/payment cần PostgreSQL concurrency/rollback/idempotency.
 - Env mẫu chỉ placeholder; không commit JWT/dump/dữ liệu thẻ, không cache secret/response payment trong PWA.
 
-CI/required checks thuộc [#24](https://github.com/akira-yami/BrewLite_A2/issues/24). Chưa có workflow/branch protection đã xác minh; quy ước này không phải evidence CI chặn merge.
+CI/required checks thuộc [#24](https://github.com/akira-yami/BrewLite_A2/issues/24). [Workflow và contract](docs/ci-pull-request.md) yêu cầu check `PR quality gate`; xem [evidence](docs/evidence/ci/A2-4.4.md) cho trạng thái branch protection và kết quả thật. Thiếu runtime/manifest/lockfile sẽ fail, không được bỏ qua check để merge code lỗi.
