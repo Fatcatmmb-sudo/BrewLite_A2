@@ -7,7 +7,7 @@ Token workflow chỉ có `contents: read`; không cần secret hay DB production
 
 ## Contract ứng dụng
 
-Node **22**, npm đi kèm Node. Hai ứng dụng độc lập `apps/api`, `apps/web` phải có
+Node **24**, npm đi kèm Node (cùng `.nvmrc` và `engines` của hai app). Hai ứng dụng độc lập `apps/api`, `apps/web` có
 `package.json`, `package-lock.json` được commit và scripts không rỗng:
 
 | Bước | Lệnh cho mỗi app | Điều kiện |
@@ -51,11 +51,15 @@ trên và áp dụng cho cả admin; không cho force push/xóa nhánh. Cấu h�
 là trạng thái ngoài Git, không tự được bật chỉ nhờ file YAML. Xem
 [GitHub: required status checks](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches#require-status-checks-before-merging).
 
-## Giới hạn nghiệm thu
+## Runtime và giới hạn nghiệm thu
 
-Baseline `aea87f5` có mã catalog nhưng chưa có package/lock/runtime hoàn chỉnh.
-Quality job phải **fail tại validate** cho đến khi runtime API/Web được tích hợp.
-Không thêm script rỗng hoặc fixture vào app để đổi required check thành xanh.
-Issue #24 chỉ hoàn tất khi có thêm run pass toàn pipeline ứng dụng thật và
-review độc lập. Xem [evidence](evidence/ci/A2-4.4.md) để phân biệt kiểm thử runner,
-run ứng dụng và trạng thái branch protection đã xác minh.
+Baseline `aea87f5` thiếu runtime nên run ban đầu fail tại validate. PR #63 bổ sung
+manifest/lockfile và runtime tối thiểu: NestJS CatalogModule, PrismaService và
+Next.js menu. API dùng Oxlint, Vitest, TypeScript; Web dùng ESLint, Node test
+runner và Next.js production build. `npm ci` của API tự sinh Prisma Client từ
+schema; không cần DATABASE_URL hoặc DB chạy để install/lint/unit/build.
+
+Unit API mock repository; unit Web mock fetch. Build/unit pass chưa chứng minh
+PostgreSQL/migration, browser E2E, auth/cart/payment/PWA hoặc production. Các phần
+đó thuộc issue riêng. Xem [evidence](evidence/ci/A2-4.4.md) cho run pass/fail,
+required check và giới hạn đã xác minh; review độc lập vẫn cần trước merge.
