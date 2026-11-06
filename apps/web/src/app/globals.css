@@ -1,13 +1,34 @@
-:root { color-scheme: light; font-family: Arial, sans-serif; color: #28241f; background: #faf7f1; }
-* { box-sizing: border-box; }
-body { margin: 0; }
-main { max-width: 1080px; margin: 0 auto; padding: 32px 20px; }
-header { margin-bottom: 32px; }
-.brand { font-size: 14px; letter-spacing: 3px; color: #6b4933; font-weight: bold; }
-h1 { font-size: clamp(28px, 5vw, 42px); }
-.menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 20px; padding: 0; list-style: none; }
-.menu li { padding: 24px; border: 1px solid #ded4c8; border-radius: 12px; background: white; overflow-wrap: anywhere; }
-h2 { font-size: 20px; }
-p { line-height: 1.6; }
-button { padding: 12px 24px; border: 0; border-radius: 6px; color: white; background: #6b4933; cursor: pointer; }
-button:focus-visible { outline: 3px solid #236ca8; outline-offset: 3px; }
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #F7F3ED;
+  --color-foreground: #1E1915;
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-serif: Georgia, serif;
+}
+
+:root {
+  --background: #F7F3ED;
+  --foreground: #1E1915;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Áp dụng font có chân (Serif) sang trọng cho tất cả tiêu đề */
+h1, h2, h3, .font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Hiệu ứng băng chuyền cho thẻ HeroBanner nếu cần dùng */
+@keyframes smoothMarquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
