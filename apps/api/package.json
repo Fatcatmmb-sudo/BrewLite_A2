@@ -39,6 +39,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test:integration": "vitest run --config vitest.config.integration.ts"
   }
 }
