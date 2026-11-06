@@ -48,7 +48,7 @@ export class CatalogService {
         basePrice: minPrice,
         variants: p.variants.map((v) => ({
           id: v.id,
-          size: v.size as any,
+          size: v.size,
           price: Number(v.price), // Ép kiểu BigInt -> number cho JSON
           available: canPrepare(v.recipeItems),
         })),
@@ -84,7 +84,7 @@ export class CatalogService {
       basePrice: minPrice,
       variants: p.variants.map((v) => ({
         id: v.id,
-        size: v.size as any,
+        size: v.size,
         price: Number(v.price),
         available: canPrepare(v.recipeItems),
       })),
