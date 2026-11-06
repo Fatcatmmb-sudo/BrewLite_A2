@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="462px" preserveAspectRatio="none" style="width:1053px;height:462px;" version="1.1" viewBox="0 0 1053 462" width="1053px" zoomAndPan="magnify"><defs/><g><text fill="#000000" font-family="Arial" font-size="18" font-weight="bold" lengthAdjust="spacing" textLength="356" x="342" y="16.8838">BrewLite — UC-08: Thực hiện thanh toán</text><!--MD5=[fb578980b8bcc0895ac5e32e80de90d6]
+cluster HỆ THỐNG BREWLITE — Phạm vi UC-08--><rect fill="#FFFFFF" height="296" style="stroke:#000000;stroke-width:1.5;" width="825" x="222" y="27.6982"/><text fill="#000000" font-family="Arial" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="270" x="499.5" y="42.8301">HỆ THỐNG BREWLITE — Phạm vi UC-08</text><ellipse cx="831.6102" cy="283.8389" fill="#F8F9FA" rx="83.6102" ry="24.1407" style="stroke:#000000;stroke-width:1.5;"/><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="102" x="780.6102" y="279.0841">UC-08: Thực hiện</text><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="61" x="801.1102" y="294.0328">thanh toán</text><ellipse cx="343.5305" cy="168.9093" fill="#F8F9FA" rx="105.5305" ry="34.711" style="stroke:#000000;stroke-width:1.5;"/><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="67" x="310.0305" y="156.68">&lt;&lt;replay&gt;&gt;</text><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="92" x="297.5305" y="171.6288">Tra cứu kết quả</text><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="133" x="277.0305" y="186.5775">cùng Idempotency-Key</text><ellipse cx="343.6604" cy="272.9093" fill="#F8F9FA" rx="78.6604" ry="34.711" style="stroke:#000000;stroke-width:1.5;"/><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="80" x="303.6604" y="260.68">&lt;&lt;recovery&gt;&gt;</text><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="95" x="296.1604" y="275.6288">Đối soát kết quả</text><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="83" x="302.1604" y="290.5775">chưa xác định</text><path d="M632,62.6982 L632,224.4854 A0,0 0 0 0 632,224.4854 L827.5,224.4854 L831.5,259.6382 L835.5,224.4854 L1031,224.4854 A0,0 0 0 0 1031,224.4854 L1031,72.6982 L1021,62.6982 L632,62.6982 A0,0 0 0 0 632,62.6982 " fill="#E9ECEF" style="stroke:#ADB5BD;stroke-width:1.0;"/><path d="M1021,62.6982 L1021,72.6982 L1031,72.6982 L1021,62.6982 " fill="#E9ECEF" style="stroke:#ADB5BD;stroke-width:1.0;"/><text fill="#000000" font-family="Arial" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="81" x="638" y="78.9541">Tiền điều kiện:</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="182" x="722" y="78.9541">CUSTOMER + JWT hợp lệ; đơn ở</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="298" x="638" y="92.7529">PENDING/PAYMENT_FAILED, thuộc chủ đơn, còn hạn,</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="266" x="638" y="106.5518">không có attempt PROCESSING chưa giải quyết.</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="213" x="638" y="120.3506">Idempotency-Key bắt buộc trên header.</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="378" x="638" y="134.1494">──────────────────────────────────────────</text><text fill="#000000" font-family="Arial" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="139" x="638" y="147.9482">Hậu điều kiện (success):</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="338" x="644" y="161.7471">PAID + SUCCEEDED + CONSUMED + EARN — cùng commit.</text><text fill="#000000" font-family="Arial" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="131" x="638" y="175.5459">Hậu điều kiện (decline):</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="247" x="644" y="189.3447">PAYMENT_FAILED + FAILED; tồn giữ để retry.</text><text fill="#000000" font-family="Arial" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="94" x="638" y="203.1436">Kết quả chưa rõ:</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="233" x="644" y="216.9424">Giữ PROCESSING; đối soát qua Recovery.</text><!--MD5=[ae78ca0dd1f49bdd788e5556d70823ac]
+entity Customer--><ellipse cx="50" cy="100.1982" fill="#F8F9FA" rx="8" ry="8" style="stroke:#000000;stroke-width:1.5;"/><path d="M50,108.1982 L50,135.1982 M37,116.1982 L63,116.1982 M50,135.1982 L37,150.1982 M50,135.1982 L63,150.1982 " fill="none" style="stroke:#000000;stroke-width:1.5;"/><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="69" x="9.5" y="164.8921">Khách hàng</text><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="81" x="9.5" y="179.8408">(CUSTOMER)</text><!--MD5=[49cbbb1648246ecd0e2d56eda0c19f08]
+entity Gateway--><ellipse cx="50" cy="258.1982" fill="#F8F9FA" rx="8" ry="8" style="stroke:#000000;stroke-width:1.5;"/><path d="M50,266.1982 L50,293.1982 M37,274.1982 L63,274.1982 M50,293.1982 L37,308.1982 M50,293.1982 L63,308.1982 " fill="none" style="stroke:#000000;stroke-width:1.5;"/><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="88" x="6" y="322.8921">Mock Payment</text><text fill="#000000" font-family="Arial" font-size="13" lengthAdjust="spacing" textLength="51" x="6" y="337.8408">Gateway</text><!--MD5=[e0220e7d2a3619ae491eb8f72fca9ea7]
+link Replay to Pay--><path d="M439.23,183.2882 C488.66,192.4882 549.6,206.3482 602,225.6982 C616.17,230.9382 617.8,236.5282 632,241.6982 C670.17,255.5982 714.23,265.4982 751.13,272.1882 " fill="none" id="Replay-to-Pay" style="stroke:#000000;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#000000" points="756.06,273.0682,747.8939,267.5623,751.1364,272.1977,746.501,275.4401,756.06,273.0682" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="50" x="515.5" y="175.9541">«extend»</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="88" x="496.5" y="189.7529">[key đã hoàn tất]</text><!--MD5=[c4b45bd1a5f131b46706f6544d898cee]
+link Recovery to Pay--><path d="M422.05,274.4582 C509.5,276.4382 651.4,279.6482 742.82,281.7182 " fill="none" id="Recovery-to-Pay" style="stroke:#000000;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/><polygon fill="#000000" points="747.95,281.8382,739.0438,277.6336,742.9513,281.724,738.8609,285.6315,747.95,281.8382" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="50" x="515.5" y="245.9541">«extend»</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="88" x="496.5" y="259.7529">[kết quả chưa rõ</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="121" x="480" y="273.5518">→ finalize idempotent]</text><!--MD5=[72e43c5a313e25203a02b1ddc658ee31]
+link Customer to Pay--><path d="M90.67,128.9082 C101.45,126.9882 113.15,125.0882 124,123.6982 C267.32,105.4182 305.65,98.7182 449,116.6982 C518.63,125.4382 550.29,108.2582 602,155.6982 C631.83,183.0682 601.62,214.9582 632,241.6982 C663.46,269.3982 708.57,280.4182 747.83,284.2882 " fill="none" id="Customer-Pay" style="stroke:#000000;stroke-width:1.0;"/><!--MD5=[cecfd55345f7e69b9a6f777ad779df15]
+link Customer to Replay--><path d="M90.62,141.0482 C129.69,145.3382 190.99,152.0682 243.33,157.8182 " fill="none" id="Customer-Replay" style="stroke:#000000;stroke-width:1.0;"/><!--MD5=[7c87c288d6784220e0cd54cd7cc5616d]
+link Gateway to Pay--><path d="M94.26,310.0882 C126.74,320.7782 172.54,334.0882 214,339.6982 C415.02,366.9382 654.75,323.5682 766.84,298.9082 " fill="none" id="Gateway-Pay" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="38" x="324.5" y="336.9541">charge</text><!--MD5=[0905afa0c07c6216ac6e42e8f137ef04]
+link Gateway to Recovery--><path d="M94.01,291.4582 C139.15,288.0482 211.03,282.6282 265.89,278.4882 " fill="none" id="Gateway-Recovery" style="stroke:#000000;stroke-width:1.0;"/><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="80" x="125" y="266.9541">lookup kết quả</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="45" x="142.5" y="280.7529">theo key</text><rect fill="#F8F9FA" height="65.1953" rx="5" ry="5" style="stroke:#ADB5BD;stroke-width:1.0;" width="438" x="300.5" y="380.9382"/><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="308" x="306.5" y="397.1941">UC-06: Đặt hàng là tiền điều kiện tạo orderId cho UC-08.</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="396" x="306.5" y="410.9929">UC-08 và UC-06 là hai use case độc lập, không include/extend lẫn nhau.</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="426" x="306.5" y="424.7918">Loyalty EARN là hậu điều kiện backend, không phải use case riêng trong MVP.</text><text fill="#000000" font-family="Arial" font-size="12" lengthAdjust="spacing" textLength="402" x="306.5" y="438.5906">UC-09: Xem xác nhận và lịch sử là bước người dùng tiếp theo sau UC-08.</text><!--MD5=[06fad58926f2e142dcddcf2be5f25ab6]
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+
+' ── Actor ─────────────────────────────────────────────────────────────
+skinparam actor {
+  BackgroundColor #F8F9FA
+  BorderColor     #000000
+  FontColor       #000000
+  FontSize        13
+}
+
+' ── Use-case ellipse ──────────────────────────────────────────────────
+skinparam usecase {
+  BackgroundColor #F8F9FA
+  BorderColor     #000000
+  FontColor       #000000
+  FontSize        13
+  BorderThickness 1.5
+}
+
+' ── Rectangle / system boundary ───────────────────────────────────────
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor     #000000
+  FontColor       #000000
+  FontStyle       bold
+  BorderThickness 1.5
+}
+
+' ── Arrow / connector ─────────────────────────────────────────────────
+skinparam arrow {
+  Color     #000000
+  FontColor #000000
+  FontSize  12
+}
+
+' ── Note ──────────────────────────────────────────────────────────────
+skinparam note {
+  BackgroundColor #E9ECEF
+  BorderColor     #ADB5BD
+  FontColor       #000000
+  FontSize        12
+}
+
+' ── Legend ────────────────────────────────────────────────────────────
+skinparam legend {
+  BackgroundColor #F8F9FA
+  BorderColor     #ADB5BD
+  FontColor       #000000
+  FontSize        12
+}
+
+title <b>BrewLite — UC-08: Thực hiện thanh toán</b>
+
+actor "Khách hàng\n(CUSTOMER)" as Customer
+actor "Mock Payment\nGateway"   as Gateway
+
+rectangle "HỆ THỐNG BREWLITE — Phạm vi UC-08" {
+
+  usecase "UC-08: Thực hiện\nthanh toán" as Pay
+
+  usecase "<<replay>>\nTra cứu kết quả\ncùng Idempotency-Key" as Replay
+
+  usecase "<<recovery>>\nĐối soát kết quả\nchưa xác định" as Recovery
+
+  Replay  ..> Pay : <<extend>>\n[key đã hoàn tất]
+  Recovery ..> Pay : <<extend>>\n[kết quả chưa rõ\n→ finalize idempotent]
+
+  note bottom of Pay
+    <b>Tiền điều kiện:</b> CUSTOMER + JWT hợp lệ; đơn ở
+    PENDING/PAYMENT_FAILED, thuộc chủ đơn, còn hạn,
+    không có attempt PROCESSING chưa giải quyết.
+    Idempotency-Key bắt buộc trên header.
+    ──────────────────────────────────────────
+    <b>Hậu điều kiện (success):</b>
+      PAID + SUCCEEDED + CONSUMED + EARN — cùng commit.
+    <b>Hậu điều kiện (decline):</b>
+      PAYMENT_FAILED + FAILED; tồn giữ để retry.
+    <b>Kết quả chưa rõ:</b>
+      Giữ PROCESSING; đối soát qua Recovery.
+  end note
+
+}
+
+Customer - - Pay
+Customer - - Replay
+Gateway  - - Pay      : charge
+Gateway  - - Recovery : lookup kết quả\ntheo key
+
+legend bottom
+  UC-06: Đặt hàng là tiền điều kiện tạo orderId cho UC-08.
+  UC-08 và UC-06 là hai use case độc lập, không include/extend lẫn nhau.
+  Loyalty EARN là hậu điều kiện backend, không phải use case riêng trong MVP.
+  UC-09: Xem xác nhận và lịch sử là bước người dùng tiếp theo sau UC-08.
+endlegend
+@enduml
+
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+
+skinparam actor {
+  BackgroundColor #F8F9FA
+  BorderColor     #000000
+  FontColor       #000000
+  FontSize        13
+}
+
+skinparam usecase {
+  BackgroundColor #F8F9FA
+  BorderColor     #000000
+  FontColor       #000000
+  FontSize        13
+  BorderThickness 1.5
+}
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor     #000000
+  FontColor       #000000
+  FontStyle       bold
+  BorderThickness 1.5
+}
+
+skinparam arrow {
+  Color     #000000
+  FontColor #000000
+  FontSize  12
+}
+
+skinparam note {
+  BackgroundColor #E9ECEF
+  BorderColor     #ADB5BD
+  FontColor       #000000
+  FontSize        12
+}
+
+skinparam legend {
+  BackgroundColor #F8F9FA
+  BorderColor     #ADB5BD
+  FontColor       #000000
+  FontSize        12
+}
+
+title <b>BrewLite — UC-08: Thực hiện thanh toán</b>
+
+actor "Khách hàng\n(CUSTOMER)" as Customer
+actor "Mock Payment\nGateway"   as Gateway
+
+rectangle "HỆ THỐNG BREWLITE — Phạm vi UC-08" {
+
+  usecase "UC-08: Thực hiện\nthanh toán" as Pay
+
+  usecase "<<replay>>\nTra cứu kết quả\ncùng Idempotency-Key" as Replay
+
+  usecase "<<recovery>>\nĐối soát kết quả\nchưa xác định" as Recovery
+
+  Replay  ..> Pay : <<extend>>\n[key đã hoàn tất]
+  Recovery ..> Pay : <<extend>>\n[kết quả chưa rõ\n→ finalize idempotent]
+
+  note bottom of Pay
+    <b>Tiền điều kiện:</b> CUSTOMER + JWT hợp lệ; đơn ở
+    PENDING/PAYMENT_FAILED, thuộc chủ đơn, còn hạn,
+    không có attempt PROCESSING chưa giải quyết.
+    Idempotency-Key bắt buộc trên header.
+    ──────────────────────────────────────────
+    <b>Hậu điều kiện (success):</b>
+      PAID + SUCCEEDED + CONSUMED + EARN — cùng commit.
+    <b>Hậu điều kiện (decline):</b>
+      PAYMENT_FAILED + FAILED; tồn giữ để retry.
+    <b>Kết quả chưa rõ:</b>
+      Giữ PROCESSING; đối soát qua Recovery.
+  end note
+
+}
+
+Customer - - Pay
+Customer - - Replay
+Gateway  - - Pay      : charge
+Gateway  - - Recovery : lookup kết quả\ntheo key
+
+legend bottom
+  UC-06: Đặt hàng là tiền điều kiện tạo orderId cho UC-08.
+  UC-08 và UC-06 là hai use case độc lập, không include/extend lẫn nhau.
+  Loyalty EARN là hậu điều kiện backend, không phải use case riêng trong MVP.
+  UC-09: Xem xác nhận và lịch sử là bước người dùng tiếp theo sau UC-08.
+endlegend
+@enduml
+
+PlantUML version 1.2021.00(Sun Jan 10 17:25:05 GMT+07:00 2021)
+(MIT source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>
