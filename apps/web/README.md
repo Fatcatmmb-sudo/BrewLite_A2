@@ -1,9 +1,38 @@
-# apps/web - Next.js/PWA
+# BrewLite Web - Next.js
 
-Hiện **chưa có package.json, dependency hoặc runtime**, chưa có lệnh dev/test/build.
+Requires Node **24.x** and npm. Run in `apps/web`:
 
-Đã tạo khung thư mục giữ chỗ: `src/app` cho route/layout, `src/features` cho catalog/cart/auth/checkout/orders, `src/lib` cho API client, `src/stores` cho giỏ client; `src/components`, `src/types`, `public` và `tests` cho phần dùng chung, tài nguyên và UI test. Xem [cấu trúc chi tiết](../../docs/repository-structure.md). Web gọi REST/JSON `/api/v1`, không truy cập DB hoặc tự quyết định giá/payment. API base public dự kiến `NEXT_PUBLIC_API_BASE_URL`; không đưa secret vào biến public.
+```powershell
+npm ci
+npm run lint
+npm test
+npm run build
+npm start
+```
 
-[Menu #22](https://github.com/akira-yami/BrewLite_A2/issues/22), [detail #25](https://github.com/akira-yami/BrewLite_A2/issues/25), [cart/checkout/history #26](https://github.com/akira-yami/BrewLite_A2/issues/26), [PWA/API boundary #14](https://github.com/akira-yami/BrewLite_A2/issues/14) sẽ bổ sung runtime/version/lockfile và lệnh đã kiểm tra. UI có loading/empty/error, giữ giỏ khi lỗi/reload, mobile-first; offline không tự đặt/thanh toán.
+For development: `npm run dev`, then open http://localhost:3000.
+For a separate type check: `npm run typecheck` (build also checks TypeScript).
 
-Xem [SRS](../../docs/requirements/srs.md), [NFR](../../docs/requirements/non-functional-requirements.md), [backlog](../../docs/scrum/product-backlog.md), [quy ước PR](../../CONTRIBUTING.md). Khi có app, ghi lệnh install/dev/lint/test/build và env thực sự nạp từ đâu.
+The minimal menu fetches `GET /api/v1/products`, displays name/description/price,
+and handles loading, empty, failure and retry. The default API base is
+`http://localhost:3001/api/v1`. Set `NEXT_PUBLIC_API_BASE_URL` in
+`apps/web/.env.local` **before building** to change it. Public variables are
+embedded into the client bundle; never put secrets there.
+
+Build does not fetch the API or remote fonts, and needs no running database.
+Unit tests cover API envelopes, invalid products, VND formatting, empty menus,
+HTTP/network errors and abort signal forwarding. Browser E2E is not covered.
+
+The integration includes menu, persistent cart, login/register, checkout and
+order history UI. Auth/order/payment API endpoints must be implemented on the
+backend before the full flow can be accepted. They are not provided by the
+catalog-only backend on main. PWA remains separate (#14).
+
+NEXT_PUBLIC_API_BASE_URL is canonical; NEXT_PUBLIC_API_URL is accepted for
+compatibility. / redirects to /menu; /health returns a liveness JSON response.
+React Query and auth session providers wrap the application. Tailwind is built
+locally, and system fonts keep production builds independent of Google Fonts.
+The Playwright suite requiring the real backend remains separate from unit CI.
+
+Do not commit `.next`, `node_modules` or `.env.local`.
+See [PR CI](../../docs/ci-pull-request.md).
