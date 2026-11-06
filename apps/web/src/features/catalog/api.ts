@@ -2,7 +2,7 @@
 import type { Product } from './types';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 /**
  * Lấy danh sách sản phẩm từ API.
@@ -10,8 +10,9 @@ const API_BASE_URL =
  */
 export async function fetchMenuProducts(
   fetchImpl: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<Product[]> {
-  const response = await fetchImpl(`${API_BASE_URL}/products`);
+  const response = await fetchImpl(`${API_BASE_URL.replace(/\/$/, '')}/products`, { signal });
 
   if (!response.ok) {
     throw new Error(
@@ -21,5 +22,8 @@ export async function fetchMenuProducts(
 
   const json = await response.json();
 
+  if (!json || !Array.isArray(json.data)) {
+    throw new Error('Invalid catalog response: expected a product array.');
+  }
   return json.data;
 }

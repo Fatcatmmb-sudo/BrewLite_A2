@@ -6,7 +6,7 @@ import type {
     PaymentResponse
 } from '@/types/checkout.contract';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export class CheckoutApiError extends Error {
     constructor(message: string, readonly status: number, readonly code?: string) {

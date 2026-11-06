@@ -8,7 +8,7 @@ import { fetchMenuProducts } from '../api';
 export function useMenuProducts() {
   return useQuery<Product[], Error>({
     queryKey: ['catalog', 'products'],
-    queryFn: () => fetchMenuProducts(),
+    queryFn: ({ signal }) => fetchMenuProducts(fetch, signal),
     staleTime: 1000 * 60 * 3,
   });
 }

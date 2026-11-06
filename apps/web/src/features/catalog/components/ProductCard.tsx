@@ -8,14 +8,14 @@ interface ProductCardProps {
   product: Product;
   onPreview: (product: Product) => void;
   onCustomize: (product: Product) => void;
-  
+
 }
 
 export const ProductCard = ({
   product,
   onPreview,
   onCustomize,
-  
+
 }: ProductCardProps) => {
   const canQuickAdd = product.variants.some((variant) => variant.available);
   // Ảnh không tải được (chưa có file, sai tên): hiện chữ cái đầu thay vì ảnh vỡ.
@@ -61,7 +61,7 @@ export const ProductCard = ({
             {Number(product.basePrice).toLocaleString('vi-VN')} đ
           </span>
           <div className="flex items-center gap-2">
-            
+
             <button
               type="button"
               onClick={() => onCustomize(product)}
