@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   ConflictException,
   NotFoundException,
@@ -40,7 +40,7 @@ export class OrdersService {
         const isRetryable = err instanceof Error && (
           err.message.includes('could not serialize') ||
           err.message.includes('deadlock') ||
-          (err as Record<string, unknown>)['code'] === 'P2034'
+          (err as unknown as Record<string, unknown>)['code'] === 'P2034'
         );
         if (isRetryable && attempt < MAX_RETRY - 1) continue;
         throw err;

@@ -1,10 +1,10 @@
-﻿import { IsString, MinLength, MaxLength, Matches } from 'class-validator';
+import { IsString, MinLength, MaxLength, Matches } from 'class-validator';
 
 export class RegisterDto {
   @IsString()
   @MinLength(3)
   @MaxLength(50)
-  @Matches(/^[a-zA-Z0-9_.\-]+$/, { message: 'username may only contain letters, digits, _, . and -' })
+  @Matches(/^[a-zA-Z0-9_.-]+$/, { message: 'username may only contain letters, digits, _, . and -' })
   username!: string;
 
   @IsString()

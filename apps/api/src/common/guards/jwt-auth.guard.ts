@@ -1,12 +1,12 @@
-﻿import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { jwt } from '../utils/jwt.js';
 import type { RequestWithUser } from '../decorators/current-user.decorator.js';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const authHeader: string | undefined = (request as unknown as Record<string, unknown>)['headers']?.['authorization'] as string | undefined;
+    const request = context.switchToHttp().getRequest<RequestWithUser & { headers: Record<string, string | string[] | undefined> }>();
+    const authHeader: string | undefined = request.headers['authorization'] as string | undefined;
     if (!authHeader?.startsWith('Bearer ')) {
       throw new UnauthorizedException('JWT token missing');
     }

@@ -1,4 +1,4 @@
-﻿import { OrderStatus } from '../../../generated/prisma/client.js';
+import { OrderStatus } from '../../generated/prisma/client.js';
 
 /** Allowed state transitions per the SRS FR-09 */
 const TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {

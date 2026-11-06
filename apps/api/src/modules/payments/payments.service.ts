@@ -1,4 +1,4 @@
-﻿import { createHash } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import {
   Injectable,
   ConflictException,
@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import type { PaymentMethod } from '../../generated/prisma/client.js';
-import { chargeOnce, lookupResult } from './mock-gateway.js';
+import { chargeOnce } from './mock-gateway.js';
 
 const LOYALTY_RATE = (total: bigint) => Math.floor(Number(total) / 1000);
 

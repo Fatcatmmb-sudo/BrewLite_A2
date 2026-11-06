@@ -1,0 +1,45 @@
+﻿@startuml
+!pragma layout smetana
+left to right direction
+skinparam defaultFontName Arial
+skinparam shadowing false
+title BrewLite - UC-08: Thực hiện thanh toán
+
+actor "Khách hàng\n(CUSTOMER)" as Customer
+actor "Mock Payment\nGateway" as Gateway
+
+rectangle "HỆ THỐNG BREWLITE - Phạm vi UC-08" {
+
+  usecase "UC-08: Thực hiện\nthanh toán" as Pay
+
+  usecase "<<replay>>\nTranh cứu kết quả\ncùng Idempotency-Key" as Replay
+
+  usecase "<<recovery>>\nĐối soát kết quả\nchưa xác định" as Recovery
+
+  Replay ..> Pay : <<extend>>\n[key đã hoàn tất]
+
+  note bottom of Pay
+    Tiền điều kiện: CUSTOMER + JWT; đơn PENDING/PAYMENT_FAILED,
+    thuộc chủ đơn, còn hạn, không có attempt PROCESSING chưa giải quyết.
+    Idempotency-Key bắt buộc trên header.
+    Hậu điều kiện (success): PAID + SUCCEEDED + CONSUMED + EARN cùng commit.
+    Hậu điều kiện (decline): PAYMENT_FAILED + FAILED; tồn giữ để retry.
+    Kết quả chưa rõ: giữ PROCESSING; đối soát qua Recovery.
+  end note
+
+}
+
+Customer -- Pay
+Customer -- Replay
+Gateway -- Pay : charge
+Gateway -- Recovery : lookup kết quả\ntheo key
+
+Recovery ..> Pay : <<extend>>\n[kết quả chưa rõ\n→ finalize idempotent]
+
+legend bottom
+  UC-06: Đặt hàng là tiền điều kiện tạo orderId cho UC-08.
+  UC-08 và UC-06 là hai use case độc lập, không include/extend lẫn nhau.
+  Loyalty EARN là hậu điều kiện backend, không phải use case riêng trong MVP.
+  UC-09: Xem xác nhận và lịch sử là bước người dùng tiếp theo sau UC-08.
+endlegend
+@enduml

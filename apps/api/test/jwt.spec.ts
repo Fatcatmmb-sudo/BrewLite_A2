@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { jwt } from '../src/common/utils/jwt.js';
 
 const SECRET = 'unit-test-secret-abc123';
