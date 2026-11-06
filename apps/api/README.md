@@ -38,3 +38,12 @@ Rebuild after source changes before starting again.
 
 Only CatalogModule is enabled. Auth/order/payment/health/deployment remain
 separate issues. See [PR CI](../../docs/ci-pull-request.md).
+
+## Catalog test suites
+
+`npm test` discovers unit tests in both `src/**/*.spec.ts` and `test/**/*.spec.ts`.
+`npm run test:integration` explicitly runs `test/**/*.integration-spec.ts`. It
+requires `SMOKE_DATABASE_URL` pointing to a disposable database whose name starts
+with `brewlite_foundation_smoke`. The seed suite writes test fixtures and refuses
+other database names. Never use production or a shared DB. The integration suite
+is not part of unit CI and has not been executed in this maintenance task.
