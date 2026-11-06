@@ -84,7 +84,6 @@ export default function MenuPage() {
     menuSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-
   const scrollToMenu = () => {
     menuSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -347,7 +346,7 @@ export default function MenuPage() {
                     setEditingCartItem(null);
                     setPreviewingProduct(item);
                   }}
-                  
+
                 />
               ))}
             </div>
