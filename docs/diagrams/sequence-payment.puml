@@ -4,150 +4,264 @@ autonumber
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam maxMessageSize 260
-title BrewLite - UC-08: Thực hiện thanh toán (sequence)
+skinparam backgroundColor #FFFFFF
 
-actor "Khách hàng" as C
-boundary "Next.js UI" as UI
-control "NestJS API\nPaymentsController" as API
-control "PaymentsService" as PaySvc
-control "PaymentGateway\n(Mock Adapter)" as GW
-database "PostgreSQL" as DB
+' ── Sequence lifeline boxes ───────────────────────────────────────────
+skinparam participant {
+  BackgroundColor #F8F9FA
+  BorderColor     #000000
+  FontColor       #000000
+  FontSize        13
+}
+
+skinparam actor {
+  BackgroundColor #F8F9FA
+  BorderColor     #000000
+  FontColor       #000000
+  FontSize        13
+}
+
+' ── Arrow / message ───────────────────────────────────────────────────
+skinparam sequence {
+  ArrowColor               #000000
+  ArrowFontColor           #000000
+  ArrowFontSize            12
+  LifeLineBorderColor      #ADB5BD
+  LifeLineBackgroundColor  #FFFFFF
+  DividerBackgroundColor   #DEE2E6
+  DividerBorderColor       #ADB5BD
+  DividerFontColor         #000000
+  DividerFontSize          12
+  GroupBackgroundColor     #F8F9FA
+  GroupBorderColor         #ADB5BD
+  GroupHeaderFontColor     #000000
+  GroupHeaderFontSize      12
+  GroupBodyBackgroundColor #FFFFFF
+  BoxBackgroundColor       #F8F9FA
+  BoxBorderColor           #ADB5BD
+  BoxFontColor             #000000
+  ReferenceBackgroundColor #F8F9FA
+  ReferenceBorderColor     #ADB5BD
+  ReferenceFontColor       #000000
+}
+
+' ── Note ──────────────────────────────────────────────────────────────
+skinparam note {
+  BackgroundColor #E9ECEF
+  BorderColor     #ADB5BD
+  FontColor       #000000
+  FontSize        12
+}
+
+' ── Alt/opt/break group colors (override PlantUML red default) ─────────
+skinparam SequenceGroupBackgroundColor     #F8F9FA
+skinparam SequenceGroupBorderColor         #ADB5BD
+skinparam SequenceGroupBodyBackgroundColor #FFFFFF
+skinparam SequenceGroupHeaderFontColor     #000000
+skinparam SequenceGroupHeaderBackgroundColor #DEE2E6
+
+' ── PlantUML style block (overrides legacy hardcoded colors) ───────────
+<style>
+  .group {
+    BackgroundColor #F8F9FA
+    BorderColor     #ADB5BD
+    FontColor       #000000
+    HeaderBackgroundColor #DEE2E6
+  }
+  note {
+    BackgroundColor #E9ECEF
+    BorderColor     #ADB5BD
+    FontColor       #000000
+  }
+</style>
+
+' ── Legend ────────────────────────────────────────────────────────────
+skinparam legend {
+  BackgroundColor #F8F9FA
+  BorderColor     #ADB5BD
+  FontColor       #000000
+  FontSize        12
+}
+
+title <b>BrewLite — UC-08: Thực hiện thanh toán (sequence)</b>
+
+actor "Khách hàng"                        as C
+boundary "Next.js UI"                     as UI
+control "NestJS API\nPaymentsController"  as API
+control "PaymentsService"                 as PaySvc
+control "PaymentGateway\n(Mock Adapter)"  as GW
+database "PostgreSQL"                     as DB
 
 C -> UI: Chọn phương thức E_WALLET / CARD\nvà nhấn Thanh toán
-UI -> UI: Sinh Idempotency-Key mới; khóa nút; hiển thị tạm tính từ đơn server
+UI -> UI: Sinh Idempotency-Key mới; khóa nút;\nhiển thị tạm tính từ đơn server
 
-UI -> API: POST /api/v1/payments + Bearer JWT\nHeader: Idempotency-Key\nBody: {orderId, method}; không gửi amount/userId
-API -> API: JWT / role CUSTOMER / ValidationPipe\nchuẩn hóa orderId/method; tính requestHash = hash(orderId+method)
+UI -> API: POST /api/v1/payments + Bearer JWT\nHeader: Idempotency-Key\nBody: {orderId, method} — không gửi amount/userId
+API -> API: Validate JWT / role CUSTOMER / ValidationPipe\nChuẩn hóa orderId/method; tính requestHash = hash(orderId+method)
 
 break JWT sai/hết hạn hoặc role không phải CUSTOMER
-  API --> UI: 401 / 403; không ghi DB
-  UI --> C: Báo lỗi, giữ giỏ
+  API --> UI: 401 / 403 — không ghi DB
+  UI --> C: Báo lỗi xác thực; giữ giỏ
 end
 
 break DTO sai: thiếu Idempotency-Key, method không hợp lệ, orderId không phải UUID
-  API --> UI: 400; không ghi DB
-  UI --> C: Báo lỗi validation, giữ giỏ
+  API --> UI: 400 — không ghi DB
+  UI --> C: Báo lỗi validation; giữ giỏ
 end
 
 API -> PaySvc: initiatePayment(principal.id, key, requestHash, orderId, method)
 
-note over PaySvc: Ownership check trước mọi tra cứu idempotency
-PaySvc -> DB: SELECT order WHERE id=orderId
+note over PaySvc
+  <b>Bước 1 — Ownership check</b>
+  Bắt buộc TRƯỚC mọi tra cứu idempotency
+  để chặn replay của người khác.
+end note
+
+PaySvc -> DB: SELECT order WHERE id = orderId
 DB --> PaySvc: Order hoặc null
 
 break Order không tồn tại hoặc không thuộc principal.id
   PaySvc --> API: 403 FORBIDDEN
-  API --> UI: 403; không lộ nội dung đơn
+  API --> UI: 403 — không lộ nội dung đơn người khác
 end
 
-note over PaySvc: Kiểm tra idempotency
-PaySvc -> DB: SELECT payment WHERE idempotencyKey=key
+note over PaySvc
+  <b>Bước 2 — Idempotency check</b>
+end note
+
+PaySvc -> DB: SELECT payment WHERE idempotencyKey = key
 DB --> PaySvc: Attempt hiện tại hoặc null
 
-alt Key đã tồn tại và attempt đã hoàn tất (SUCCEEDED hoặc FAILED)
-  PaySvc --> API: Kết quả đã lưu (replay)
-  API --> UI: 200 với snapshot kết quả attempt đã có
-  UI --> C: Hiển thị kết quả đã xác nhận (không charge mới)
-else Key đã tồn tại với orderId/method khác (hash không khớp)
+alt Key đã tồn tại — attempt đã hoàn tất (SUCCEEDED hoặc FAILED)
+  PaySvc --> API: Kết quả đã lưu (replay path)
+  API --> UI: 200 snapshot kết quả attempt đã có
+  UI --> C: Hiển thị kết quả đã xác nhận\n(không charge mới)
+else Key đã tồn tại với orderId/method khác — hash không khớp
   PaySvc --> API: 409 IDEMPOTENCY_KEY_REUSED
-  API --> UI: 409; client phải dùng key mới nếu muốn thay đổi
+  API --> UI: 409 — client dùng key mới nếu muốn thay đổi
 end
 
-note over PaySvc: Chưa có key — tạo attempt mới
-PaySvc -> DB: BEGIN tx ngắn\nSELECT FOR UPDATE order; kiểm tra status PENDING/PAYMENT_FAILED\nkiểm tra không có attempt PROCESSING khác trên order này\nkiểm tra reservation chưa hết hạn
+note over PaySvc
+  <b>Bước 3 — Tạo attempt mới (key chưa tồn tại)</b>
+end note
 
-break Order không ở trạng thái PENDING/PAYMENT_FAILED
+PaySvc -> DB: BEGIN tx ngắn\nSELECT FOR UPDATE order\nKiểm tra: status PENDING/PAYMENT_FAILED,\nkhông có PROCESSING khác, reservation chưa hết hạn
+
+break Order không ở trạng thái PENDING / PAYMENT_FAILED
   PaySvc -> DB: ROLLBACK
   PaySvc --> API: 409 ORDER_NOT_PAYABLE
-  API --> UI: 409; đơn đã thanh toán hoặc không hợp lệ
+  API --> UI: 409 — đơn đã thanh toán hoặc không hợp lệ
 end
 
 break Đơn đã hết hạn reservation
   PaySvc -> DB: ROLLBACK
   PaySvc --> API: 409 ORDER_EXPIRED
-  API --> UI: 409; đề nghị đặt lại
+  API --> UI: 409 — đề nghị đặt lại đơn
 end
 
 break Đã có attempt PROCESSING chưa đối soát trên cùng order
   PaySvc -> DB: ROLLBACK
   PaySvc --> API: 409 PAYMENT_IN_PROGRESS
-  API --> UI: 409; client giữ giỏ, tra cứu lại cùng key
+  API --> UI: 409 — giữ giỏ; tra cứu lại cùng key
 end
 
-PaySvc -> DB: INSERT Payment(PROCESSING, key, requestHash, orderId, amount=order.total, method)\nCOMMIT
-DB --> PaySvc: Attempt PROCESSING đã ghi (unique key constraint bảo vệ race)
+PaySvc -> DB: INSERT Payment(PROCESSING, key, requestHash,\norderId, amount=order.total, method)\nCOMMIT
+DB --> PaySvc: Attempt PROCESSING đã ghi\n(unique key constraint bảo vệ race condition)
 
-note over PaySvc,GW: Gọi gateway NGOÀI transaction DB
+note over PaySvc, GW
+  <b>Bước 4 — Gọi gateway NGOÀI transaction DB</b>
+  Không giữ lock dài trong khi chờ phản hồi gateway.
+end note
+
 PaySvc -> GW: charge(key, amount, method)
 
-alt Luồng 1: Gateway trả success
+' ════════════════════════════════════════════════════════════════════════
+alt <b>Luồng 1 — Gateway trả success</b>
 
   GW --> PaySvc: {status: "success", gatewayTxId}
 
   PaySvc -> DB: BEGIN tx finalize\nSELECT FOR UPDATE order + attempt
-  PaySvc -> DB: UPDATE Payment SET status=SUCCEEDED, gatewayTxId, processedAt
-  PaySvc -> DB: UPDATE Order SET status=PAID
-  PaySvc -> DB: INSERT OrderStatusHistory(from=PENDING/PAYMENT_FAILED, to=PAID)
-  PaySvc -> DB: UPDATE InventoryReservation SET status=CONSUMED\nUPDATE InventoryReservationItem (không đổi lượng)
+  PaySvc -> DB: UPDATE Payment → SUCCEEDED\n         (gatewayTxId, processedAt)
+  PaySvc -> DB: UPDATE Order  → PAID
+  PaySvc -> DB: INSERT OrderStatusHistory\n         (PENDING/PAYMENT_FAILED → PAID)
+  PaySvc -> DB: UPDATE InventoryReservation → CONSUMED\n         (InventoryReservationItem không đổi lượng)
+
   opt Có CouponRedemption RESERVED cho đơn này
-    PaySvc -> DB: UPDATE CouponRedemption SET status=CONSUMED, consumedAt
+    PaySvc -> DB: UPDATE CouponRedemption → CONSUMED\n             (consumedAt)
   end
-  PaySvc -> DB: INSERT LoyaltyTransaction(EARN, points=floor(total/1000))\nUPDATE User SET loyaltyBalance += points\n-- Hàng rào: unique(orderId) cho EARN và unique(orderId) cho SUCCEEDED
+
+  PaySvc -> DB: INSERT LoyaltyTransaction(EARN,\n         points = floor(total / 1000))\nUPDATE User.loyaltyBalance += points\n── hàng rào: unique(orderId) EARN và SUCCEEDED ──
+
   PaySvc -> DB: COMMIT
   DB --> PaySvc: Commit xác nhận
 
-  PaySvc --> API: Snapshot payment SUCCEEDED + order PAID
-  API --> UI: 201 Created: {paymentStatus: SUCCEEDED, orderStatus: PAID, orderId, total, earnedPoints}
-  UI --> C: Xóa phần giỏ đã checkout; chuyển màn xác nhận (UC-09)
+  PaySvc --> API: Snapshot SUCCEEDED + PAID
+  API --> UI: 201 Created\n{paymentStatus: SUCCEEDED, orderStatus: PAID,\norderId, total, earnedPoints}
+  UI --> C: Xóa phần giỏ đã checkout\nChuyển màn xác nhận (UC-09)
 
-else Luồng 2: Gateway từ chối xác định (decline)
+' ────────────────────────────────────────────────────────────────────────
+else <b>Luồng 2 — Gateway từ chối xác định (decline)</b>
 
   GW --> PaySvc: {status: "declined", failureCode}
 
   PaySvc -> DB: BEGIN tx finalize\nSELECT FOR UPDATE order + attempt
-  PaySvc -> DB: UPDATE Payment SET status=FAILED, failureCode, processedAt
-  PaySvc -> DB: UPDATE Order SET status=PAYMENT_FAILED
-  PaySvc -> DB: INSERT OrderStatusHistory(from=PENDING/PAYMENT_FAILED, to=PAYMENT_FAILED)
+  PaySvc -> DB: UPDATE Payment → FAILED (failureCode, processedAt)
+  PaySvc -> DB: UPDATE Order  → PAYMENT_FAILED
+  PaySvc -> DB: INSERT OrderStatusHistory (→ PAYMENT_FAILED)
   PaySvc -> DB: COMMIT
-  note over PaySvc: Không consume reservation, không EARN; tồn giữ để retry
+
+  note over PaySvc
+    Không consume reservation, không EARN.
+    Tồn kho giữ nguyên; khách có thể retry bằng key mới.
+  end note
 
   PaySvc --> API: Payment FAILED
-  API --> UI: 200 PAYMENT_FAILED; giữ đơn để thử lại bằng key mới
-  UI --> C: Thông báo thanh toán thất bại; hiển thị nút Thử lại\n(client sinh key mới, đơn sẽ về PENDING trước attempt tiếp theo)
+  API --> UI: 200 PAYMENT_FAILED\nGiữ đơn để thử lại bằng key mới
+  UI --> C: Thông báo thanh toán thất bại\nHiển thị nút Thử lại\n(client sinh key mới → đơn về PENDING trước attempt tiếp)
 
-else Luồng 3: Gateway timeout / lỗi chưa xác định kết quả
+' ────────────────────────────────────────────────────────────────────────
+else <b>Luồng 3 — Gateway timeout / kết quả chưa xác định</b>
 
   GW --> PaySvc: Timeout / lỗi mạng / kết quả không đọc được
 
-  note over PaySvc: Giữ nguyên attempt PROCESSING; không đoán FAILED; không hoàn tồn
+  note over PaySvc
+    Giữ attempt PROCESSING.
+    Không đoán FAILED, không hoàn tồn kho.
+  end note
+
   PaySvc -> GW: lookup(key)
+
   alt Mock đã lưu kết quả bền vững — lookup thành công
     GW --> PaySvc: Kết quả thực tế (success hoặc declined)
-    note over PaySvc: Finalize theo kết quả thực tế — xem Luồng 1 hoặc 2
-  else Lookup cũng chưa có kết quả (gateway chưa xử lý xong)
+    note over PaySvc: Finalize theo kết quả — xem Luồng 1 hoặc 2
+  else Lookup cũng chưa có kết quả
     PaySvc --> API: Kết quả chưa xác định
-    API --> UI: 503 tạm thời; Retry-After header
-    UI --> C: Báo đang kiểm tra; không xóa giỏ; không charge mới;\ncho tra cứu lại cùng key sau một khoảng thời gian
+    API --> UI: 503 tạm thời + Retry-After header
+    UI --> C: Báo đang kiểm tra; không xóa giỏ;\nkhông charge mới; tra cứu lại cùng key sau
   end
 
-else Luồng 4: DB lỗi khi finalize (sau khi gateway đã thành công)
+' ────────────────────────────────────────────────────────────────────────
+else <b>Luồng 4 — DB lỗi khi finalize</b>
 
-  PaySvc -> DB: BEGIN tx finalize — lỗi (timeout/deadlock/constraint)
-  DB --> PaySvc: Lỗi DB
+  PaySvc -> DB: BEGIN tx finalize → lỗi DB\n(timeout / deadlock / constraint)
+  DB --> PaySvc: Lỗi
 
-  note over PaySvc: Attempt vẫn PROCESSING; không có side-effect kép
+  note over PaySvc
+    Attempt vẫn PROCESSING; không có side-effect kép.
+    Recovery job sẽ lookup và finalize đúng một lần.
+  end note
+
   PaySvc --> API: Lỗi finalize tạm thời
-  API --> UI: 503 tạm thời\nRetry-After header
-  UI --> C: Giữ giỏ, báo đang kiểm tra;\nrecovery job sẽ lookup và finalize sau
+  API --> UI: 503 tạm thời + Retry-After header
+  UI --> C: Giữ giỏ; báo đang kiểm tra;\nrecovery sẽ xử lý sau
 
 end
 
 legend bottom
-  Ownership check bắt buộc TRƯỚC tra cứu idempotency để chặn replay của người khác.
+  Ownership check bắt buộc TRƯỚC idempotency check để chặn replay của người khác.
   Gateway gọi NGOÀI transaction DB — không giữ lock dài trong khi chờ gateway.
   Mock adapter lưu kết quả bền vững theo key; lookup sau restart vẫn trả đúng.
   Partial unique: uq_one_successful_payment_per_order và uq_earn_per_order bảo vệ ở DB.
   Không charge key mới, không hoàn tồn khi attempt PROCESSING chưa đối soát.
-  floor(total VND / 1000) = điểm EARN; tỷ lệ này cần PO review trước code production.
+  floor(total VND / 1000) = điểm EARN; tỷ lệ cần PO review trước code production.
 endlegend
 @enduml
