@@ -2,17 +2,15 @@
 
 Phiên bản 1.1 · 07/11/2026 · [A2-1.3.2 / #6](https://github.com/akira-yami/BrewLite_A2/issues/6) · [A2-2.2.2 / #9](https://github.com/akira-yami/BrewLite_A2/issues/9).
 
-[Nguồn PlantUML use-case](../diagrams/use-case-uc08.puml) · [SVG](../diagrams/use-case-uc08.svg) · [PNG](../diagrams/use-case-uc08.png) · [Chỉnh sửa trực tuyến (draw.io)](https://app.diagrams.net/#G1iec3HEIGhhwMGesnvXXwvqJSkOI5Z0jw#%7B%22pageId%22%3A%22GQHZdUctXlZdyJI08YLY%22%7D)
+[Nguồn PlantUML use-case](../diagrams/use-case-uc08.puml) · [SVG](../diagrams/use-case-uc08.svg) · [PNG](../diagrams/use-case-uc08.png) · [Chỉnh sửa sơ đồ trực tuyến (draw.io)](https://app.diagrams.net/#G1iec3HEIGhhwMGesnvXXwvqJSkOI5Z0jw#%7B%22pageId%22%3A%22GQHZdUctXlZdyJI08YLY%22%7D)
 
 ![UC-08: Thực hiện thanh toán](../diagrams/use-case-uc08.png)
 
 **Sequence UC-08 riêng** (payment only):
-[Nguồn PlantUML](../diagrams/sequence-payment.puml) · [SVG](../diagrams/sequence-payment.svg) · [PNG](../diagrams/sequence-payment.png) · [Xem sơ đồ trực tuyến (draw.io)](https://app.diagrams.net/#G1iec3HEIGhhwMGesnvXXwvqJSkOI5Z0jw#%7B%22pageId%22%3A%22wp84j0caUSDRGD1WpoII%22%7D)
+[Nguồn PlantUML](../diagrams/sequence-payment.puml) · [SVG](../diagrams/sequence-payment.svg) · [PNG](../diagrams/sequence-payment.png) · [Chỉnh sửa sơ đồ trực tuyến (draw.io)](https://app.diagrams.net/#G1iec3HEIGhhwMGesnvXXwvqJSkOI5Z0jw#%7B%22pageId%22%3A%22wp84j0caUSDRGD1WpoII%22%7D)
 
 **Sequence Checkout thống nhất** (UC-06 Đặt hàng → UC-08 Thanh toán → UC-09 Xác nhận):
-[Nguồn PlantUML](../diagrams/sequence-checkout.puml) · [SVG](../diagrams/sequence-checkout.svg) · [PNG](../diagrams/sequence-checkout.png)
-
-![Sequence Checkout thống nhất — UC-06 → UC-08 → UC-09](../diagrams/sequence-checkout.png)
+[Nguồn PlantUML](../diagrams/sequence-checkout.puml) · [SVG](../diagrams/sequence-checkout.svg) · [PNG](../diagrams/sequence-checkout.png) · [Chỉnh sửa sơ đồ trực tuyến (draw.io)](https://app.diagrams.net/#G1iec3HEIGhhwMGesnvXXwvqJSkOI5Z0jw#%7B%22pageId%22%3A%22wp84j0caUSDRGD1WpoII%22%7D)
 
 ## 1. Phạm vi và tác nhân
 
