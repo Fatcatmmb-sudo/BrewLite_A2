@@ -23,7 +23,16 @@ Build does not fetch the API or remote fonts, and needs no running database.
 Unit tests cover API envelopes, invalid products, VND formatting, empty menus,
 HTTP/network errors and abort signal forwarding. Browser E2E is not covered.
 
-Cart/auth/checkout, advanced menu and PWA remain separate PRs/issues
-(#22/#26/#14). This minimal runtime does not implement those features.
+The integration includes menu, persistent cart, login/register, checkout and
+order history UI. Auth/order/payment API endpoints must be implemented on the
+backend before the full flow can be accepted. They are not provided by the
+catalog-only backend on main. PWA remains separate (#14).
+
+NEXT_PUBLIC_API_BASE_URL is canonical; NEXT_PUBLIC_API_URL is accepted for
+compatibility. / redirects to /menu; /health returns a liveness JSON response.
+React Query and auth session providers wrap the application. Tailwind is built
+locally, and system fonts keep production builds independent of Google Fonts.
+The Playwright suite requiring the real backend remains separate from unit CI.
+
 Do not commit `.next`, `node_modules` or `.env.local`.
 See [PR CI](../../docs/ci-pull-request.md).
