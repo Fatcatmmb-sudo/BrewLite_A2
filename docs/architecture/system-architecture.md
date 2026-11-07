@@ -80,7 +80,7 @@ PWA cache chỉ phục vụ vỏ/static asset và offline fallback. Không cache
 | `POST /orders/:id/cancel`, `PATCH /orders/:id/status` | Chủ đơn hủy; Barista cập nhật pha chế | Ownership/RBAC, state machine, phân xử race với payment/expiry |
 | `GET /health` | Readiness | Kiểm tra DB có timeout, 200/503, không lộ config |
 
-Tên route là contract đề xuất để phối hợp, chưa có OpenAPI/runtime. Contract triển khai phải được review trước [#21](https://github.com/akira-yami/BrewLite_A2/issues/21), [#27](https://github.com/akira-yami/BrewLite_A2/issues/27), [#28](https://github.com/akira-yami/BrewLite_A2/issues/28), [#29](https://github.com/akira-yami/BrewLite_A2/issues/29).
+Route catalog/auth/health đã có runtime nền; order/payment và OpenAPI contract vẫn cần review/triển khai theo [#21](https://github.com/akira-yami/BrewLite_A2/issues/21), [#27](https://github.com/akira-yami/BrewLite_A2/issues/27), [#28](https://github.com/akira-yami/BrewLite_A2/issues/28), [#29](https://github.com/akira-yami/BrewLite_A2/issues/29).
 
 ## 5. Dữ liệu, migration và tính nhất quán
 

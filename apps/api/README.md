@@ -32,12 +32,22 @@ these commands have not been verified against PostgreSQL in this CI task.
 The existing schema/seed still need their separate acceptance under #35.
 
 Routes: `GET /api/v1/products`, `GET /api/v1/products/:id`. Invalid UUIDs
-return 400; a missing product returns 404. Startup requires a database because
-Prisma connects during module initialization. Missing DATABASE_URL fails clearly.
-Rebuild after source changes before starting again.
+return 400; a missing product returns 404. Startup requires a valid DATABASE_URL,
+but PostgreSQL connection is lazy so the API can start while the database is
+unavailable and report 503 from readiness. Rebuild after source changes before
+starting again.
 
-Only CatalogModule is enabled. Auth/order/payment/health/deployment remain
-separate issues. See [PR CI](../../docs/ci-pull-request.md).
+Catalog, auth and readiness modules are enabled. Auth provides register/login/me,
+bcrypt password hashing, short-lived HS256 JWTs with issuer/audience checks, and
+role claims. Public registration always creates `CUSTOMER`; validation rejects
+extra properties. `GET /api/v1/health` probes PostgreSQL and returns 200 or a
+generic 503. Each response includes `X-Request-Id`; request logs are JSON and do
+not include request bodies, headers, credentials, or database URLs. Startup
+validates required environment variables and exits with a redacted error record.
+
+Orders and payment services are present in the repository but are not wired into
+the running API yet. Ownership checks, refresh-token/session UX and production
+readiness evidence remain open. See [PR CI](../../docs/ci-pull-request.md).
 
 ## Catalog test suites
 

@@ -6,7 +6,7 @@ Repository chính: [akira-yami/BrewLite_A2](https://github.com/akira-yami/BrewLi
 
 ## Trạng thái hiện tại
 
-Đã có runtime tối thiểu cho NestJS API catalog và Next.js menu, cùng manifest/lockfile và lệnh lint/unit/build. Đây chưa phải MVP đầy đủ: auth/cart/checkout/payment/PWA và deployment còn thuộc các issue riêng; `docker-compose.yml` vẫn giữ chỗ. Xem hướng dẫn [API](apps/api/README.md) và [Web](apps/web/README.md).
+Đã có runtime tối thiểu cho NestJS API catalog/auth/readiness và Next.js menu, cùng manifest/lockfile và lệnh lint/unit/build. Checkout/payment end-to-end, PWA hoàn chỉnh và local Compose vẫn còn thiếu. Xem hướng dẫn [API](apps/api/README.md) và [Web](apps/web/README.md).
 
 Runtime tối thiểu được bổ sung trong [PR CI #63](https://github.com/akira-yami/BrewLite_A2/pull/63); menu nâng cao thuộc #22, test nghiệm thu #23. [CI #24](docs/ci-pull-request.md) kiểm tra cả hai ứng dụng bằng lệnh thật và chặn merge khi lỗi. Checkout/delivery thuộc Sprint 2. [#12](https://github.com/akira-yami/BrewLite_A2/issues/12) sở hữu kiến trúc/ADR, [#16](https://github.com/akira-yami/BrewLite_A2/issues/16) deployment thực tế.
 
@@ -34,7 +34,7 @@ Cấu trúc bên trong Web/API, Prisma, kiểm thử và minh chứng đã đư�
 
 ## Cấu hình
 
-API đọc `apps/api/.env`; Web đọc `apps/web/.env.local`. Tạo từ mẫu gốc, thay mọi placeholder theo README ứng dụng. Các biến auth/payment trong mẫu chưa được runtime catalog sử dụng. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service khi #36 chốt Compose.
+API đọc `apps/api/.env`; Web đọc `apps/web/.env.local`. Tạo từ mẫu gốc, thay mọi placeholder theo README ứng dụng. API fail-fast với cấu hình sai/thiếu và chỉ chấp nhận `PAYMENT_PROVIDER=mock`. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service khi #36 chốt Compose.
 
 Không dùng mẫu trên production; CI/hosting cấp secret từ secret store. Chưa có production URL/registry/deploy đã xác minh. Chỉ ghi migrate/seed/start/test/build/rollback hoạt động khi có code và evidence từ checkout sạch.
 
