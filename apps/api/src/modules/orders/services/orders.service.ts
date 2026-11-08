@@ -10,8 +10,7 @@ import { orderMoney } from '../../../common/utils/order-money.js';
 import {
   type RecipeLine,
 } from '../../../common/utils/recipe-capacity.js';
-import { loadAppConfig, type AppConfig } from '../../../config/app-config.js';
-import { APP_CONFIG } from '../../../config/app-config.module.js';
+import type { AppConfig } from '../../../config/app-config.js';
 import { PrismaService } from '../../../database/prisma.service.js';
 import { OrderStatus, Prisma } from '../../../generated/prisma/client.js';
 import { CatalogService } from '../../catalog/services/catalog.service.js';
@@ -55,7 +54,8 @@ export class OrdersService {
     private readonly catalog: CatalogService,
     private readonly inventory: InventoryService,
     private readonly users: UsersService,
-    @Inject(APP_CONFIG) private readonly config: AppConfig = loadAppConfig(),
+    @Inject('APP_CONFIG')
+    private readonly config: Pick<AppConfig, 'orderReservationTtlMinutes'> = { orderReservationTtlMinutes: 15 },
   ) {}
 
   // =====================================================================
@@ -440,7 +440,10 @@ export class OrdersService {
   private normalizeItems(items: CreateOrderItemDto[]): CreateOrderItemDto[] {
     const grouped = new Map<string, CreateOrderItemDto>();
     for (const item of items) {
-      const toppingIds = (item.toppingIds ?? [])
+      if (item.toppingIds && item.toppings) {
+        throw new BadRequestException('Use only one toppings field');
+      }
+      const toppingIds = (item.toppingIds ?? item.toppings?.map(({ toppingId }) => toppingId) ?? [])
         .map((id) => id.toLowerCase())
         .sort();
       if (new Set(toppingIds).size !== toppingIds.length) {

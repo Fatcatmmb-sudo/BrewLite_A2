@@ -111,7 +111,7 @@ describe('OrdersService- Cổng thanh toán (Unit Test - TDD)', () => {
         prismaMock as PrismaService,
         new InventoryRepository({} as never),
       ),
-      new UsersService(),
+      new UsersService(prismaMock),
     );
 
     // Dữ liệu sản phẩm mặc định cho các bài test
@@ -880,7 +880,8 @@ describe('OrdersService- Cổng thanh toán (Unit Test - TDD)', () => {
             prismaMock as PrismaService,
             new InventoryRepository({} as never),
           ),
-          new UsersService(),
+          new UsersService(prismaMock),
+          { orderReservationTtlMinutes: 25 },
         );
         await configuredService.createOrder('u-1', dtoWithCoupon as any);
 

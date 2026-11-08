@@ -16,6 +16,11 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+export class OrderItemToppingDto {
+  @IsUUID()
+  toppingId!: string;
+}
+
 export class CreateOrderItemDto {
   @IsUUID()
   productVariantId: string;
@@ -30,6 +35,12 @@ export class CreateOrderItemDto {
   @ArrayUnique()
   @IsUUID(undefined, { each: true })
   toppingIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemToppingDto)
+  toppings?: OrderItemToppingDto[];
 
   // Percent of the standard recipe. Omitted/null uses the standard recipe;
   // zero explicitly means no sugar/ice and must never be replaced by a default.

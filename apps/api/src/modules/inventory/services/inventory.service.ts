@@ -32,7 +32,7 @@ export class InventoryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly repository: InventoryRepository,
-    private readonly users: UsersService = new UsersService(),
+    private readonly users: UsersService = new UsersService(prisma),
   ) {}
 
   async listIngredients(userId: string, query: StaffInventoryQueryDto) {

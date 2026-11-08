@@ -29,9 +29,13 @@ export class PaymentsService {
     const requestHash = buildRequestHash(orderId, method);
 
     // ---- Phase 1: idempotency check & attempt serialisation ----
-    const existing = await this.prisma.payment.findUnique({ where: { idempotencyKey } });
+    const existing = await this.prisma.payment.findUnique({
+      where: { idempotencyKey },
+      include: { order: { select: { userId: true } } },
+    });
 
     if (existing) {
+      if (existing.order.userId !== userId) throw new ForbiddenException('Access denied');
       // Same key — check hash matches (same request)
       if (existing.requestHash !== requestHash) {
         throw new ConflictException('IDEMPOTENCY_KEY_REUSED');

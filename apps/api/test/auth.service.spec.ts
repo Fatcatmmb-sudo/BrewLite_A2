@@ -3,18 +3,11 @@ import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../src/modules/auth/auth.service.js';
 import type { UsersService } from '../src/modules/users/users.service.js';
 
-// Mock bcryptjs định nghĩa bên trong callback để tránh lỗi hoisting của Vitest
-vi.mock('bcryptjs', () => {
-  const mockBcrypt = {
-    hash: async (_pw: string, _r: number) => '$2b$10$mockhash',
-    compare: async (pw: string, hash: string) => hash === '$2b$10$mockhash' && pw === 'correct-password',
-  };
-
-  return {
-    default: mockBcrypt,
-    ...mockBcrypt,
-  };
-});
+// Mock bcryptjs to avoid slow real hashing in unit tests
+vi.mock('bcryptjs', () => ({
+  hash: async (_pw: string, _r: number) => '$2b$10$mockhash',
+  compare: async (pw: string, hash: string) => hash === '$2b$10$mockhash' && pw === 'correct-password',
+}));
 
 const baseUser = {
   id: 'user-uuid',
@@ -23,21 +16,26 @@ const baseUser = {
   role: 'CUSTOMER' as const,
   loyaltyBalance: 0,
   isActive: true,
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
 };
 
 function makeService() {
   const users = {
-    findByUsername: vi.fn<Parameters<UsersService['findByUsername']>, ReturnType<UsersService['findByUsername']>>(),
-    findById: vi.fn<Parameters<UsersService['findById']>, ReturnType<UsersService['findById']>>(),
-    create: vi.fn<Parameters<UsersService['create']>, ReturnType<UsersService['create']>>(),
+    findByUsername: vi.fn<UsersService['findByUsername']>(),
+    findById: vi.fn<UsersService['findById']>(),
+    create: vi.fn<UsersService['create']>(),
   };
-  const auth = new AuthService(users as unknown as any);
+  const auth = new AuthService(users as unknown as UsersService, {
+    jwtSecret: 'unit-test-secret-abc12345678901234567890', jwtIssuer: 'brewlite-api', jwtAudience: 'brewlite-web',
+    jwtExpiresInSeconds: 900, bcryptRounds: 10,
+  } as never);
   return { auth, users };
 }
 
 beforeEach(() => {
   process.env.JWT_SECRET = 'test-secret-not-real';
-  process.env.JWT_EXPIRES_IN = '900s';
+  process.env.JWT_EXPIRES_IN = '900';
 });
 
 describe('AuthService.register', () => {
@@ -61,7 +59,7 @@ describe('AuthService.register', () => {
 
   it('rejects duplicate usernames with 409', async () => {
     const { auth, users } = makeService();
-    users.findByUsername.mockResolvedValue(baseUser as any);
+    users.findByUsername.mockResolvedValue(baseUser);
     await expect(auth.register('testuser', 'pw')).rejects.toBeInstanceOf(ConflictException);
   });
 });
@@ -69,7 +67,7 @@ describe('AuthService.register', () => {
 describe('AuthService.login', () => {
   it('returns an accessToken for valid credentials', async () => {
     const { auth, users } = makeService();
-    users.findByUsername.mockResolvedValue(baseUser as any);
+    users.findByUsername.mockResolvedValue(baseUser);
     const result = await auth.login('testuser', 'correct-password');
     expect(result).toHaveProperty('accessToken');
     expect(typeof result.accessToken).toBe('string');
@@ -78,7 +76,7 @@ describe('AuthService.login', () => {
 
   it('rejects wrong password with same 401 as unknown user (no enumeration)', async () => {
     const { auth, users } = makeService();
-    users.findByUsername.mockResolvedValue(baseUser as any);
+    users.findByUsername.mockResolvedValue(baseUser);
     await expect(auth.login('testuser', 'wrong-password')).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
@@ -90,7 +88,7 @@ describe('AuthService.login', () => {
 
   it('rejects inactive accounts', async () => {
     const { auth, users } = makeService();
-    users.findByUsername.mockResolvedValue({ ...baseUser, isActive: false } as any);
+    users.findByUsername.mockResolvedValue({ ...baseUser, isActive: false });
     await expect(auth.login('testuser', 'correct-password')).rejects.toBeInstanceOf(UnauthorizedException);
   });
 });
@@ -98,7 +96,7 @@ describe('AuthService.login', () => {
 describe('AuthService.getMe', () => {
   it('returns profile without sensitive fields', async () => {
     const { auth, users } = makeService();
-    users.findById.mockResolvedValue({ id: 'u1', username: 'alice', role: 'CUSTOMER', loyaltyBalance: 42, isActive: true } as any);
+    users.findById.mockResolvedValue({ id: 'u1', username: 'alice', role: 'CUSTOMER', loyaltyBalance: 42, isActive: true });
     const profile = await auth.getMe('u1');
     expect(profile).toMatchObject({ id: 'u1', username: 'alice', role: 'CUSTOMER', loyaltyBalance: 42 });
     expect(profile).not.toHaveProperty('passwordHash');

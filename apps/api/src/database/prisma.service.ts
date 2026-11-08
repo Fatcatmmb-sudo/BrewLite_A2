@@ -1,30 +1,15 @@
-
 import 'dotenv/config';
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleDestroy {
   constructor() {
     const connectionString = process.env.DATABASE_URL;
-
-    if (!connectionString) {
-      throw new Error('Thiếu biến môi trường DATABASE_URL trong file .env');
-    }
-
-    const adapter = new PrismaPg({ connectionString });
-    super({ adapter });
+    if (!connectionString) throw new Error('DATABASE_URL is required to start the API');
+    super({ adapter: new PrismaPg({ connectionString }) });
   }
 
-  async onModuleInit() {
-    await this.$connect();
-  }
-
-  async onModuleDestroy() {
-    await this.$disconnect();
-  }
+  async onModuleDestroy() { await this.$disconnect(); }
 }

@@ -32,12 +32,48 @@ these commands have not been verified against PostgreSQL in this CI task.
 The existing schema/seed still need their separate acceptance under #35.
 
 Routes: `GET /api/v1/products`, `GET /api/v1/products/:id`. Invalid UUIDs
-return 400; a missing product returns 404. Startup requires a database because
-Prisma connects during module initialization. Missing DATABASE_URL fails clearly.
-Rebuild after source changes before starting again.
+return 400; a missing product returns 404. Startup requires a valid DATABASE_URL,
+but PostgreSQL connection is lazy so the API can start while the database is
+unavailable and report 503 from readiness. Rebuild after source changes before
+starting again.
 
-Only CatalogModule is enabled. Auth/order/payment/health/deployment remain
-separate issues. See [PR CI](../../docs/ci-pull-request.md).
+Catalog, auth and readiness modules are enabled. Auth provides register/login/me,
+bcrypt password hashing, short-lived HS256 JWTs with issuer/audience checks, and
+role claims. Public registration always creates `CUSTOMER`; validation rejects
+extra properties. `GET /api/v1/health` probes PostgreSQL and returns 200 or a
+generic 503. Each response includes `X-Request-Id`; request logs are JSON and do
+not include request bodies, headers, credentials, or database URLs. Startup
+validates required environment variables and exits with a redacted error record.
+
+Orders and payment services are present in the repository but are not wired into
+the running API yet. Ownership checks, refresh-token/session UX and production
+readiness evidence remain open. See [PR CI](../../docs/ci-pull-request.md).
+
+## Migration và rollback
+
+Tất cả migration là **forward-only** — không dùng `prisma migrate revert` hoặc xóa
+migration đã apply. Để rollback schema, tạo migration mới đảo ngược thay đổi.
+
+```powershell
+# Xem trạng thái migration hiện tại (cần DATABASE_URL)
+npm run db:status
+
+# Apply migration lên DB target (production/staging)
+npm run db:migrate
+# hoặc alias dùng trong Railway pre-deploy:
+npm run prisma:deploy
+
+# Kiểm tra API sau deploy/rollback
+node scripts/smoke.mjs http://localhost:3001
+# hoặc với production URL:
+node scripts/smoke.mjs https://api-production-1be6.up.railway.app
+```
+
+**Railway pre-deploy command:** `npm run prisma:deploy` — chạy tự động trước khi
+Railway start container mới. Migration fail → deploy dừng, traffic giữ revision cũ.
+
+Hướng dẫn đầy đủ về backup/restore, rollback app revision và evidence NFR-11:
+[docs/evidence/cd/rollback-guide.md](../../docs/evidence/cd/rollback-guide.md)
 
 ## Catalog test suites
 

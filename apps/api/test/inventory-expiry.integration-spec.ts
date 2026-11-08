@@ -221,7 +221,7 @@ expect(expiredCouponRedemption.releasedAt).not.toBeNull();
 
     // Chạy lại job: reservation đã EXPIRED nên không được hoàn nguyên liệu lần nữa.
     await expiryJob.handleExpiredOrders();
-    
+
 
 
     const stockAfterSecondRun = await prisma.ingredient.findUniqueOrThrow({
