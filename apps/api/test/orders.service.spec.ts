@@ -22,7 +22,7 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from '../src/modules/orders/orders.service.js';
 import type { PrismaService } from '../src/database/prisma.service.js';
-import type { Prisma } from '../src/generated/prisma/client.js';
+import type { OrderStatus } from '../src/generated/prisma/client.js';
 
 // ─────────────────────────────────────────────────
 // Fixtures
@@ -38,7 +38,7 @@ const ING_ID_2 = 'ing-0002-0000-0000-000000000002';
 const PENDING_ORDER = {
   id: ORDER_ID,
   userId: USER_A,
-  status: 'PENDING' as const,
+  status: 'PENDING' as OrderStatus,
   subtotal: 50000n,
   discountAmount: 0n,
   total: 50000n,
@@ -981,9 +981,9 @@ describe('OrdersService — edge cases', () => {
     mocks.$transaction
       .mockRejectedValueOnce(deadlockErr)
       .mockRejectedValueOnce(deadlockErr)
-      .mockImplementationOnce(async (fn: (tx: Prisma.TransactionClient) => unknown) => {
+      .mockImplementationOnce(async (fn) => {
         // Setup happy path for 3rd attempt
-        const tx = mocks.txClient as unknown as Prisma.TransactionClient;
+        const tx = mocks.txClient;
         mocks.txClient.productVariant.findFirst.mockResolvedValue(ACTIVE_VARIANT);
         mocks.txClient.$executeRaw.mockResolvedValue(1);
         mocks.txClient.order.create.mockResolvedValue({
