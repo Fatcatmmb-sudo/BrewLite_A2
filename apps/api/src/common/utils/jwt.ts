@@ -30,9 +30,9 @@ function verify(token: string, secret: string, issuer: string, audience: string)
   const decodedHeader = JSON.parse(Buffer.from(header, 'base64url').toString('utf8')) as { alg?: string; typ?: string };
   if (decodedHeader.alg !== 'HS256' || decodedHeader.typ !== 'JWT') throw new Error('invalid token header');
   const expected = createHmac('sha256', secret).update(`${header}.${body}`).digest('base64url');
-  // constant-time compare
-  const a = Buffer.from(sig, 'base64url');
-  const b = Buffer.from(expected, 'base64url');
+  // Compare the encoded signatures so alternate base64 spellings are rejected.
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) throw new Error('invalid signature');
   const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as JwtPayload & { exp?: number };
   if (typeof payload.exp !== 'number' || payload.exp <= Math.floor(Date.now() / 1000)) {
