@@ -351,3 +351,359 @@ describe('PaymentsService.pay — ownership: cross-user rejection (AT-FR-05.4 / 
       .rejects.toBeInstanceOf(ForbiddenException);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Extended test cases – bổ sung cho issue A2-5.2.1.2 / #31
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('PaymentsService.pay — Phase 4: finalize edge cases (AT-FR-07.2, AT-FR-07.3)', () => {
+  it('TC-PAY-EXT-01: order bị CANCELLED giữa lúc gateway SUCCESS và finalize — attempt chuyển FAILED với ORDER_CANCELLED', async () => {
+    const mocks = makePrisma();
+    const attempt = { id: 'pay-1', orderId: ORDER_ID };
+    const { paymentFindUnique, txClient } = mocks;
+
+    paymentFindUnique.mockResolvedValue(null);
+
+    // Phase 2: order PENDING → tạo attempt
+    txClient.order.findFirst
+      .mockResolvedValueOnce(pendingOrder) // short-lock trong phase 2
+      .mockResolvedValueOnce(null);         // finalize: order gone/cancelled
+
+    txClient.payment.count
+      .mockResolvedValueOnce(0)  // inFlight = 0
+      .mockResolvedValueOnce(0); // succeeded = 0
+    txClient.payment.create.mockResolvedValue(attempt);
+
+    // finalize transaction — khi freshOrder = null → update FAILED
+    txClient.payment.update.mockResolvedValue({});
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'SUCCESS');
+    const svc = new PaymentsService(mocks.prisma);
+    await svc.pay(USER_ID, ORDER_ID, METHOD, KEY);
+
+    // Payment phải được cập nhật sang FAILED vì order đã mất
+    expect(txClient.payment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'FAILED',
+          failureCode: 'ORDER_CANCELLED',
+        }),
+      }),
+    );
+    // Không được cộng điểm
+    expect(txClient.loyaltyTransaction.create).not.toHaveBeenCalled();
+  });
+
+  it('TC-PAY-EXT-02: duplicate SUCCESS guard — alreadySucceeded > 0 trong finalize → attempt FAILED DUPLICATE_SUCCESS', async () => {
+    const mocks = makePrisma();
+    const attempt = { id: 'pay-1', orderId: ORDER_ID };
+    const { paymentFindUnique, txClient } = mocks;
+
+    paymentFindUnique.mockResolvedValue(null);
+
+    txClient.order.findFirst
+      .mockResolvedValueOnce(pendingOrder)                         // phase 2 lock
+      .mockResolvedValueOnce({ ...pendingOrder, status: 'PAID' }); // finalize (already PAID)
+    txClient.payment.count
+      .mockResolvedValueOnce(0)   // inFlight = 0
+      .mockResolvedValueOnce(0)   // succeeded = 0 (phase 2)
+      .mockResolvedValueOnce(1);  // alreadySucceeded = 1 (finalize guard)
+    txClient.payment.create.mockResolvedValue(attempt);
+    txClient.payment.update.mockResolvedValue({});
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'SUCCESS');
+    const svc = new PaymentsService(mocks.prisma);
+    await svc.pay(USER_ID, ORDER_ID, METHOD, KEY);
+
+    expect(txClient.payment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'FAILED',
+          failureCode: 'DUPLICATE_SUCCESS',
+        }),
+      }),
+    );
+  });
+
+  it('TC-PAY-EXT-03: loyalty EARN bằng 0 khi total < 1000 VND → loyaltyTransaction KHÔNG được tạo', async () => {
+    const mocks = makePrisma();
+    const smallTotalOrder = { ...pendingOrder, total: 500n }; // 500 VND < 1000
+    const attempt = { id: 'pay-1', orderId: ORDER_ID };
+    const { paymentFindUnique, txClient } = mocks;
+
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst
+      .mockResolvedValueOnce(smallTotalOrder)
+      .mockResolvedValueOnce({ ...smallTotalOrder, status: 'PENDING' });
+    txClient.payment.count
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    txClient.payment.create.mockResolvedValue(attempt);
+    txClient.payment.update.mockResolvedValue({});
+    txClient.order.update.mockResolvedValue({});
+    txClient.orderStatusHistory.create.mockResolvedValue({});
+    txClient.inventoryReservation.updateMany.mockResolvedValue({});
+    txClient.couponRedemption.updateMany.mockResolvedValue({});
+    txClient.user.findUnique.mockResolvedValue({ loyaltyBalance: 0 });
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'SUCCESS');
+    const svc = new PaymentsService(mocks.prisma);
+    const result = await svc.pay(USER_ID, ORDER_ID, METHOD, KEY);
+
+    expect(result.status).toBe('SUCCEEDED');
+    // floor(500/1000) = 0 → không tạo loyalty transaction
+    expect(txClient.loyaltyTransaction.create).not.toHaveBeenCalled();
+    // user.update cũng không được gọi
+    expect(txClient.user.update).not.toHaveBeenCalled();
+  });
+
+  it('TC-PAY-EXT-04: loyalty EARN tích lũy vào balanceAfter đúng (AT-FR-10.3)', async () => {
+    const mocks = makePrisma();
+    const bigTotalOrder = { ...pendingOrder, total: 114000n }; // floor(114000/1000) = 114 điểm
+    const attempt = { id: 'pay-1', orderId: ORDER_ID };
+    const { paymentFindUnique, txClient } = mocks;
+
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst
+      .mockResolvedValueOnce(bigTotalOrder)
+      .mockResolvedValueOnce({ ...bigTotalOrder, status: 'PENDING' });
+    txClient.payment.count
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    txClient.payment.create.mockResolvedValue(attempt);
+    txClient.payment.update.mockResolvedValue({});
+    txClient.order.update.mockResolvedValue({});
+    txClient.orderStatusHistory.create.mockResolvedValue({});
+    txClient.inventoryReservation.updateMany.mockResolvedValue({});
+    txClient.couponRedemption.updateMany.mockResolvedValue({});
+    // User đã có 200 điểm từ trước
+    txClient.user.findUnique.mockResolvedValue({ loyaltyBalance: 200 });
+    txClient.loyaltyTransaction.create.mockResolvedValue({});
+    txClient.user.update.mockResolvedValue({});
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'SUCCESS');
+    const svc = new PaymentsService(mocks.prisma);
+    await svc.pay(USER_ID, ORDER_ID, METHOD, KEY);
+
+    // balanceAfter = 200 + 114 = 314
+    expect(txClient.loyaltyTransaction.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'EARN',
+          points: 114,
+          balanceAfter: 314,
+        }),
+      }),
+    );
+    expect(txClient.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { loyaltyBalance: 314 },
+      }),
+    );
+  });
+});
+
+describe('PaymentsService.pay — PAYMENT_FAILED retry flow (AT-FR-07.4)', () => {
+  it('TC-PAY-EXT-05: đơn PAYMENT_FAILED được phép retry với key mới (AT-FR-07.4)', async () => {
+    const KEY_RETRY = 'idem-key-retry-002';
+    const failedOrder = { ...pendingOrder, status: 'PAYMENT_FAILED' as const };
+    const attempt = { id: 'pay-2', orderId: ORDER_ID };
+    const mocks = makePrisma();
+    const { paymentFindUnique, txClient } = mocks;
+
+    // Key mới → không có existing payment
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst
+      .mockResolvedValueOnce(failedOrder)
+      .mockResolvedValueOnce({ ...failedOrder, status: 'PAYMENT_FAILED' });
+    txClient.payment.count
+      .mockResolvedValueOnce(0)  // inFlight = 0
+      .mockResolvedValueOnce(0)  // succeeded = 0
+      .mockResolvedValueOnce(0); // alreadySucceeded = 0 in finalize
+    txClient.payment.create.mockResolvedValue(attempt);
+    txClient.payment.update.mockResolvedValue({});
+    txClient.order.update.mockResolvedValue({});
+    txClient.orderStatusHistory.create.mockResolvedValue({});
+    txClient.inventoryReservation.updateMany.mockResolvedValue({});
+    txClient.couponRedemption.updateMany.mockResolvedValue({});
+    txClient.loyaltyTransaction.create.mockResolvedValue({});
+    txClient.user.findUnique.mockResolvedValue({ loyaltyBalance: 0 });
+    txClient.user.update.mockResolvedValue({});
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'SUCCESS');
+    const svc = new PaymentsService(mocks.prisma);
+    const result = await svc.pay(USER_ID, ORDER_ID, METHOD, KEY_RETRY);
+
+    expect(result.status).toBe('SUCCEEDED');
+  });
+
+  it('TC-PAY-EXT-06: đơn COMPLETED không thể thanh toán → ORDER_INVALID_TRANSITION', async () => {
+    const { prisma, paymentFindUnique, txClient } = makePrisma();
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst.mockResolvedValue({ ...pendingOrder, status: 'COMPLETED' as const });
+
+    const svc = new PaymentsService(prisma);
+    await expect(svc.pay(USER_ID, ORDER_ID, METHOD, KEY))
+      .rejects.toMatchObject({ message: 'ORDER_INVALID_TRANSITION' });
+  });
+
+  it('TC-PAY-EXT-07: đơn CANCELLED không thể thanh toán → ORDER_INVALID_TRANSITION', async () => {
+    const { prisma, paymentFindUnique, txClient } = makePrisma();
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst.mockResolvedValue({ ...pendingOrder, status: 'CANCELLED' as const });
+
+    const svc = new PaymentsService(prisma);
+    await expect(svc.pay(USER_ID, ORDER_ID, METHOD, KEY))
+      .rejects.toMatchObject({ message: 'ORDER_INVALID_TRANSITION' });
+  });
+
+  it('TC-PAY-EXT-08: đơn PREPARING không thể thanh toán → ORDER_INVALID_TRANSITION', async () => {
+    const { prisma, paymentFindUnique, txClient } = makePrisma();
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst.mockResolvedValue({ ...pendingOrder, status: 'PREPARING' as const });
+
+    const svc = new PaymentsService(prisma);
+    await expect(svc.pay(USER_ID, ORDER_ID, METHOD, KEY))
+      .rejects.toMatchObject({ message: 'ORDER_INVALID_TRANSITION' });
+  });
+});
+
+describe('PaymentsService.pay — Coupon consumption (AT-FR-10.2)', () => {
+  it('TC-PAY-EXT-09: couponRedemption.updateMany được gọi với status CONSUMED sau SUCCESS', async () => {
+    const mocks = makePrisma();
+    const attempt = { id: 'pay-1', orderId: ORDER_ID };
+    const { paymentFindUnique, txClient } = mocks;
+
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst
+      .mockResolvedValueOnce(pendingOrder)
+      .mockResolvedValueOnce({ ...pendingOrder, status: 'PENDING' });
+    txClient.payment.count
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    txClient.payment.create.mockResolvedValue(attempt);
+    txClient.payment.update.mockResolvedValue({});
+    txClient.order.update.mockResolvedValue({});
+    txClient.orderStatusHistory.create.mockResolvedValue({});
+    txClient.inventoryReservation.updateMany.mockResolvedValue({});
+    txClient.couponRedemption.updateMany.mockResolvedValue({});
+    txClient.loyaltyTransaction.create.mockResolvedValue({});
+    txClient.user.findUnique.mockResolvedValue({ loyaltyBalance: 0 });
+    txClient.user.update.mockResolvedValue({});
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'SUCCESS');
+    const svc = new PaymentsService(mocks.prisma);
+    await svc.pay(USER_ID, ORDER_ID, METHOD, KEY);
+
+    // Coupon phải được consume trong transaction finalize
+    expect(txClient.couponRedemption.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ orderId: ORDER_ID, status: 'RESERVED' }),
+        data: expect.objectContaining({ status: 'CONSUMED' }),
+      }),
+    );
+  });
+
+  it('TC-PAY-EXT-10: couponRedemption.updateMany KHÔNG được gọi sau DECLINE', async () => {
+    const mocks = makePrisma();
+    const attempt = { id: 'pay-2', orderId: ORDER_ID };
+    const { paymentFindUnique, txClient, paymentUpdate, topLevelOrderUpdate } = mocks;
+
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst.mockResolvedValue(pendingOrder);
+    txClient.payment.count
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    txClient.payment.create.mockResolvedValue(attempt);
+    paymentUpdate.mockResolvedValue({});
+    topLevelOrderUpdate.mockResolvedValue({});
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'DECLINE');
+    const svc = new PaymentsService(mocks.prisma);
+    await svc.pay(USER_ID, ORDER_ID, METHOD, 'key-decline-coupon');
+
+    // Trong transaction finalize không được chạy (DECLINE không vào finalize tx)
+    expect(txClient.couponRedemption.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('PaymentsService.pay — Inventory reservation consumption (AT-FR-06.3)', () => {
+  it('TC-PAY-EXT-11: inventoryReservation.updateMany được gọi với CONSUMED sau SUCCESS', async () => {
+    const mocks = makePrisma();
+    const attempt = { id: 'pay-1', orderId: ORDER_ID };
+    const { paymentFindUnique, txClient } = mocks;
+
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst
+      .mockResolvedValueOnce(pendingOrder)
+      .mockResolvedValueOnce({ ...pendingOrder, status: 'PENDING' });
+    txClient.payment.count
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    txClient.payment.create.mockResolvedValue(attempt);
+    txClient.payment.update.mockResolvedValue({});
+    txClient.order.update.mockResolvedValue({});
+    txClient.orderStatusHistory.create.mockResolvedValue({});
+    txClient.inventoryReservation.updateMany.mockResolvedValue({});
+    txClient.couponRedemption.updateMany.mockResolvedValue({});
+    txClient.loyaltyTransaction.create.mockResolvedValue({});
+    txClient.user.findUnique.mockResolvedValue({ loyaltyBalance: 0 });
+    txClient.user.update.mockResolvedValue({});
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'SUCCESS');
+    const svc = new PaymentsService(mocks.prisma);
+    await svc.pay(USER_ID, ORDER_ID, METHOD, KEY);
+
+    expect(txClient.inventoryReservation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ orderId: ORDER_ID, status: 'ACTIVE' }),
+        data: { status: 'CONSUMED' },
+      }),
+    );
+  });
+});
+
+describe('PaymentsService.pay — OrderStatusHistory ghi đúng transition (AT-FR-09.1)', () => {
+  it('TC-PAY-EXT-12: history entry PENDING → PAID được tạo sau SUCCESS', async () => {
+    const mocks = makePrisma();
+    const attempt = { id: 'pay-1', orderId: ORDER_ID };
+    const { paymentFindUnique, txClient } = mocks;
+
+    paymentFindUnique.mockResolvedValue(null);
+    txClient.order.findFirst
+      .mockResolvedValueOnce(pendingOrder)
+      .mockResolvedValueOnce({ ...pendingOrder, status: 'PENDING' });
+    txClient.payment.count
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    txClient.payment.create.mockResolvedValue(attempt);
+    txClient.payment.update.mockResolvedValue({});
+    txClient.order.update.mockResolvedValue({});
+    txClient.orderStatusHistory.create.mockResolvedValue({});
+    txClient.inventoryReservation.updateMany.mockResolvedValue({});
+    txClient.couponRedemption.updateMany.mockResolvedValue({});
+    txClient.loyaltyTransaction.create.mockResolvedValue({});
+    txClient.user.findUnique.mockResolvedValue({ loyaltyBalance: 0 });
+    txClient.user.update.mockResolvedValue({});
+
+    vi.stubEnv('MOCK_PAYMENT_OUTCOME', 'SUCCESS');
+    const svc = new PaymentsService(mocks.prisma);
+    await svc.pay(USER_ID, ORDER_ID, METHOD, KEY);
+
+    expect(txClient.orderStatusHistory.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          orderId: ORDER_ID,
+          fromStatus: 'PENDING',
+          toStatus: 'PAID',
+          changedByUserId: USER_ID,
+        }),
+      }),
+    );
+  });
+});
