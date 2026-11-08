@@ -102,6 +102,7 @@ describe('PaymentsService.pay — Phase 1: idempotency guard', () => {
       id: 'pay-1',
       status: 'SUCCEEDED',
       orderId: ORDER_ID,
+      order: { userId: USER_ID },
       requestHash: require('node:crypto').createHash('sha256').update(`${ORDER_ID}|${METHOD}`).digest('hex'),
     });
     const svc = new PaymentsService(prisma);
@@ -111,12 +112,28 @@ describe('PaymentsService.pay — Phase 1: idempotency guard', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  it('rejects replay of another customer’s completed payment', async () => {
+    const { prisma, paymentFindUnique } = makePrisma();
+    paymentFindUnique.mockResolvedValue({
+      id: 'pay-1',
+      status: 'SUCCEEDED',
+      orderId: ORDER_ID,
+      order: { userId: 'another-customer' },
+      requestHash: require('node:crypto').createHash('sha256').update(`${ORDER_ID}|${METHOD}`).digest('hex'),
+    });
+
+    await expect(new PaymentsService(prisma).pay(USER_ID, ORDER_ID, METHOD, KEY))
+      .rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it('throws IDEMPOTENCY_KEY_REUSED when payload hash differs (AT-FR-07.3)', async () => {
     const { prisma, paymentFindUnique } = makePrisma();
     paymentFindUnique.mockResolvedValue({
       id: 'pay-1',
       status: 'SUCCEEDED',
       orderId: ORDER_ID,
+      order: { userId: USER_ID },
       requestHash: 'totally-different-hash',
     });
     const svc = new PaymentsService(prisma);
@@ -130,6 +147,7 @@ describe('PaymentsService.pay — Phase 1: idempotency guard', () => {
       id: 'pay-1',
       status: 'PROCESSING',
       orderId: ORDER_ID,
+      order: { userId: USER_ID },
       requestHash: require('node:crypto').createHash('sha256').update(`${ORDER_ID}|${METHOD}`).digest('hex'),
     });
     const svc = new PaymentsService(prisma);
@@ -311,7 +329,7 @@ describe('PaymentsService.pay — idempotency: gateway chargeOnce is called at m
     const hash = crypto.createHash('sha256').update(`${ORDER_ID}|${METHOD}`).digest('hex');
 
     const { prisma, paymentFindUnique } = makePrisma();
-    paymentFindUnique.mockResolvedValue({ id: 'pay-1', status: 'SUCCEEDED', orderId: ORDER_ID, requestHash: hash });
+    paymentFindUnique.mockResolvedValue({ id: 'pay-1', status: 'SUCCEEDED', orderId: ORDER_ID, order: { userId: USER_ID }, requestHash: hash });
 
     const chargeSpy = vi.spyOn(mockGateway, 'chargeOnce');
     const svc = new PaymentsService(prisma);

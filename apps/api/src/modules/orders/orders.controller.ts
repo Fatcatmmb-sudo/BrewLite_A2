@@ -1,12 +1,13 @@
-﻿import { Controller, Post, Get, Patch, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
-import { OrdersService } from './orders.service.js';
+import { Controller, Post, Get, Patch, Query, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { OrdersService } from './services/orders.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../common/guards/roles.guard.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import type { JwtPayload } from '../../common/utils/jwt.js';
-import type { OrderStatus } from '../../generated/prisma/client.js';
+import { OrderHistoryQueryDto } from './dto/order-history-query.dto.js';
+import { UpdateOrderStatusDto } from './dto/staff-orders.dto.js';
 
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
@@ -22,20 +23,24 @@ export class OrdersController {
   }
 
   @Get('me')
-  async getMyOrders(@CurrentUser() user: JwtPayload) {
+  async getMyOrders(@CurrentUser() user: JwtPayload, @Query() query: OrderHistoryQueryDto = {}) {
+    if (query.limit !== undefined || query.cursor !== undefined || query.status !== undefined) {
+      return { success: true, ...await this.ordersService.getMyOrdersPage(user.sub, query) };
+    }
     const data = await this.ordersService.getMyOrders(user.sub);
     return { success: true, data };
   }
 
   @Get(':id')
   async getOrder(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
-    const data = await this.ordersService.getOrderById(id, user.sub);
+    const data = await this.ordersService.getOrderDetail(id, user.sub);
     return { success: true, data };
   }
 
   @Post(':id/cancel')
   async cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: JwtPayload) {
-    const data = await this.ordersService.cancelOrder(id, user.sub);
+    await this.ordersService.cancelOrder(id, user.sub, 'Khách hàng yêu cầu hủy đơn hàng', false);
+    const data = await this.ordersService.getOrderDetail(id, user.sub);
     return { success: true, data };
   }
 
@@ -44,10 +49,10 @@ export class OrdersController {
   @UseGuards(RolesGuard)
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: { status: OrderStatus },
+    @Body() body: UpdateOrderStatusDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    const data = await this.ordersService.updateStatus(id, body.status, user.sub);
+    const data = await this.ordersService.advanceOrderStatus(id, user.sub, body.status);
     return { success: true, data };
   }
 }

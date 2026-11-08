@@ -21,7 +21,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { OrdersController } from '../src/modules/orders/orders.controller.js';
-import { OrdersService } from '../src/modules/orders/orders.service.js';
+import { OrdersService } from '../src/modules/orders/services/orders.service.js';
 import type { JwtPayload } from '../src/common/utils/jwt.js';
 
 // ─────────────────────────────────────────────────
@@ -55,9 +55,9 @@ function makeServiceMock() {
   return {
     createOrder: vi.fn(),
     getMyOrders: vi.fn(),
-    getOrderById: vi.fn(),
+    getOrderDetail: vi.fn(),
     cancelOrder: vi.fn(),
-    updateStatus: vi.fn(),
+    advanceOrderStatus: vi.fn(),
   } as unknown as OrdersService;
 }
 
@@ -128,17 +128,17 @@ describe('OrdersController.getOrder', () => {
     controller = new OrdersController(service);
   });
 
-  it('TC-CTRL-ORDER-05: gọi service.getOrderById với id và userId từ JWT', async () => {
-    (service.getOrderById as ReturnType<typeof vi.fn>).mockResolvedValue(pendingOrderResult);
+  it('TC-CTRL-ORDER-05: gọi service.getOrderDetail với id và userId từ JWT', async () => {
+    (service.getOrderDetail as ReturnType<typeof vi.fn>).mockResolvedValue(pendingOrderResult);
 
     const result = await controller.getOrder(ORDER_ID, customerJwt);
 
-    expect(service.getOrderById).toHaveBeenCalledWith(ORDER_ID, USER_ID);
+    expect(service.getOrderDetail).toHaveBeenCalledWith(ORDER_ID, USER_ID);
     expect(result).toEqual({ success: true, data: pendingOrderResult });
   });
 
   it('TC-CTRL-ORDER-06: propagates NotFoundException từ service', async () => {
-    (service.getOrderById as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (service.getOrderDetail as ReturnType<typeof vi.fn>).mockRejectedValue(
       new NotFoundException('Order not found'),
     );
 
@@ -147,7 +147,7 @@ describe('OrdersController.getOrder', () => {
   });
 
   it('TC-CTRL-ORDER-07: propagates ForbiddenException khi user B cố đọc đơn A', async () => {
-    (service.getOrderById as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (service.getOrderDetail as ReturnType<typeof vi.fn>).mockRejectedValue(
       new ForbiddenException('Access denied'),
     );
 
@@ -166,14 +166,15 @@ describe('OrdersController.cancel', () => {
   });
 
   it('TC-CTRL-ORDER-08: gọi service.cancelOrder với id và userId từ JWT', async () => {
-    (service.cancelOrder as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (service.getOrderDetail as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: ORDER_ID,
       status: 'CANCELLED',
     });
 
     const result = await controller.cancel(ORDER_ID, customerJwt);
 
-    expect(service.cancelOrder).toHaveBeenCalledWith(ORDER_ID, USER_ID);
+    expect(service.cancelOrder).toHaveBeenCalledWith(ORDER_ID, USER_ID, 'Khách hàng yêu cầu hủy đơn hàng', false);
+    expect(service.getOrderDetail).toHaveBeenCalledWith(ORDER_ID, USER_ID);
     expect(result).toEqual({ success: true, data: { id: ORDER_ID, status: 'CANCELLED' } });
   });
 
@@ -205,8 +206,8 @@ describe('OrdersController.updateStatus', () => {
     controller = new OrdersController(service);
   });
 
-  it('TC-CTRL-ORDER-11: BARISTA gọi service.updateStatus với id, status và actorId', async () => {
-    (service.updateStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+  it('TC-CTRL-ORDER-11: BARISTA gọi service.advanceOrderStatus với id, status và actorId', async () => {
+    (service.advanceOrderStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: ORDER_ID,
       status: 'PREPARING',
     });
@@ -217,12 +218,12 @@ describe('OrdersController.updateStatus', () => {
       baristaJwt,
     );
 
-    expect(service.updateStatus).toHaveBeenCalledWith(ORDER_ID, 'PREPARING', BARISTA_ID);
+    expect(service.advanceOrderStatus).toHaveBeenCalledWith(ORDER_ID, BARISTA_ID, 'PREPARING');
     expect(result).toEqual({ success: true, data: { id: ORDER_ID, status: 'PREPARING' } });
   });
 
   it('TC-CTRL-ORDER-12: propagates ConflictException ORDER_INVALID_TRANSITION từ service', async () => {
-    (service.updateStatus as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (service.advanceOrderStatus as ReturnType<typeof vi.fn>).mockRejectedValue(
       new ConflictException('ORDER_INVALID_TRANSITION'),
     );
 
@@ -231,7 +232,7 @@ describe('OrdersController.updateStatus', () => {
   });
 
   it('TC-CTRL-ORDER-13: propagates NotFoundException khi đơn không tồn tại', async () => {
-    (service.updateStatus as ReturnType<typeof vi.fn>).mockRejectedValue(
+    (service.advanceOrderStatus as ReturnType<typeof vi.fn>).mockRejectedValue(
       new NotFoundException('Order not found'),
     );
 

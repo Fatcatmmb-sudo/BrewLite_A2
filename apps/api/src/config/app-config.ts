@@ -9,6 +9,7 @@ export interface AppConfig {
   bcryptRounds: number;
   corsOrigins: string[];
   healthTimeoutMs: number;
+  orderReservationTtlMinutes: number;
 }
 
 function required(name: string): string {
@@ -67,6 +68,9 @@ export function loadConfig(): AppConfig {
     bcryptRounds: integer('BCRYPT_ROUNDS', 10, 10, 15),
     corsOrigins: origins,
     healthTimeoutMs: integer('HEALTHCHECK_TIMEOUT_MS', 2000, 100, 30000),
+    orderReservationTtlMinutes: process.env.RESERVATION_TTL_SECONDS === undefined
+      ? integer('ORDER_RESERVATION_TTL_MINUTES', 15, 1, 10080)
+      : integer('RESERVATION_TTL_SECONDS', 900, 1, 604800) / 60,
   };
   return config;
 }

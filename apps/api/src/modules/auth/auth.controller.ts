@@ -1,8 +1,11 @@
-﻿import { Controller, Post, Get, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { RegisterDto, LoginDto } from './dto/auth.dto.js';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { Roles } from './decorators/roles.decorator.js';
+import { RolesGuard } from './guards/roles.guard.js';
+import { OwnershipGuard } from './guards/ownership.guard.js';
 import type { JwtPayload } from '../../common/utils/jwt.js';
 
 @Controller('auth')
@@ -27,5 +30,18 @@ export class AuthController {
   async me(@CurrentUser() user: JwtPayload) {
     const profile = await this.authService.getMe(user.sub);
     return { success: true, data: profile };
+  }
+
+  @Get('users/:userId')
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  async getUserById(@Param('userId') userId: string) {
+    return { success: true, data: await this.authService.getMe(userId) };
+  }
+
+  @Get('barista-only')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('BARISTA')
+  baristaOnly() {
+    return { success: true, data: { message: 'Chào Barista' } };
   }
 }
