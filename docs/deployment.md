@@ -77,3 +77,14 @@ java '-Djava.awt.headless=true' '-DPLANTUML_LIMIT_SIZE=16000' -jar C:/tools/plan
 Sửa PUML rồi render lại cả SVG và PNG trong cùng PR. SVG là vector để zoom/in rõ; kiểm tra nhãn, nested node, communication path, local/CI/production, registry/volume/env/health/log sau khi đổi layout. Không nhúng ảnh hoặc mã SVG/Draw.io trong file PUML.
 
 Đường liền thể hiện communication path/phân phối image DB; nét đứt thể hiện phụ thuộc vận hành hoặc CI/CD A2 đích. Snapshot đối chiếu vẫn ngày 04/11/2026, source production A1; lần chuyển định dạng này không đọc lại live Railway và không thay cấu hình hay thực hiện deploy.
+
+## 7. Bản bố cục cố định Draw.io
+
+[Nguồn Draw.io](diagrams/deployment-production-drawio.drawio) · [SVG](diagrams/deployment-production-drawio.svg) · [PNG](diagrams/deployment-production-drawio.png) · [Snapshot cấu hình](deployment/railway-snapshot.json).
+
+Bản Draw.io dùng cùng snapshot ngày 04/11/2026 và lưu bố cục cố định theo template UML. Mở nguồn trong diagrams.net để chỉnh vị trí, nhãn và đường nối. Chạy lệnh dưới đây trên Windows với font Arial để tái tạo bản xuất Draw.io.
+
+```powershell
+python -m pip install Pillow
+python scripts/render-deployment.py
+```
