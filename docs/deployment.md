@@ -1,8 +1,8 @@
 # Deployment production BrewLite - Railway
 
-Phiên bản 1.2 · 05/11/2026 · [A2-3.2 / #16](https://github.com/akira-yami/BrewLite_A2/issues/16). Nền tảng Railway theo xác nhận của người dùng; [ADR-005](architecture/adr/005-railway-deployment.md) ghi quyết định và phần cần chuyển sang A2.
+Phiên bản 1.3 · 05/11/2026 · [A2-3.2 / #16](https://github.com/akira-yami/BrewLite_A2/issues/16). Nền tảng Railway theo xác nhận của người dùng; [ADR-005](architecture/adr/005-railway-deployment.md) ghi quyết định và phần cần chuyển sang A2.
 
-[Nguồn Draw.io chỉnh sửa được](diagrams/deployment-production.drawio) · [SVG](diagrams/deployment-production.svg) · [PNG](diagrams/deployment-production.png) · [Snapshot cấu hình không chứa secret](deployment/railway-snapshot.json).
+[Nguồn PlantUML](diagrams/deployment-production.puml) · [SVG](diagrams/deployment-production.svg) · [PNG](diagrams/deployment-production.png).
 
 ![Deployment Railway](diagrams/deployment-production.svg)
 
@@ -61,21 +61,30 @@ Các đường dẫn A1 `main` là nguồn tham khảo đọc ngày 04/11/2026, 
 4. Test persistence sau restart có giữ volume, backup/restore vào DB test và rollback app tương thích schema. Giữ evidence có command/UTC/commit/expected/actual, không log secret.
 5. Cập nhật snapshot và nguồn/bản xuất cùng PR. Issue #16 chỉ đủ tiêu chí cuối A2 khi mapping service -> source A2 và topology deploy thực tế đã được xác minh.
 
-## 6. Chỉnh sửa và xuất hình theo template UML
+## 6. Chỉnh sửa và kết xuất PlantUML
 
-Nguồn chính là [deployment-production.drawio](diagrams/deployment-production.drawio), mở trực tiếp trong diagrams.net. Bố cục theo template người dùng: khung `dd Deployment of Components`, node 3D màu kem, stereotype device/executionEnvironment, instance gạch chân, runtime lồng node và artifact có biểu tượng tài liệu. Khung production/LOCAL/CI tách biệt, đường kết nối trực giao và nhãn giao thức/cổng rõ ràng.
+Nguồn chính là [deployment-production.puml](diagrams/deployment-production.puml). Sơ đồ dùng cú pháp PlantUML thực sự: frame, node, artifact, stereotype device/executionEnvironment, label instance gạch chân và quan hệ giữa các node. Các node 3D màu kem, runtime/artifact lồng nhau giữ phong cách UML của template. Layout được PlantUML tự tính từ graph và ràng buộc hướng, không giữ tọa độ tuyệt đối của Draw.io.
 
-Hình không thêm máy vật lý hoặc CDN chưa có trong inventory Railway: các service được biểu diễn bằng executionEnvironment. Browser/PWA là device bên ngoài; Web/API có runtime Node.js; PostgreSQL có schema/volume; mock payment trong API. Operations gom tên biến/probe/log cho gọn, không coi đây là một container ứng dụng riêng.
+File PUML là nguồn duy nhất cho SVG/PNG trong PR này; không cần Draw.io, Pillow hoặc script render riêng. Dùng Java và [PlantUML 1.2026.8](https://github.com/plantuml/plantuml/releases/tag/v1.2026.8). Smetana là engine layout tích hợp được chọn bằng pragma trong nguồn, không cần cài Graphviz riêng.
 
-Quy ước: đường liền là communication path hoặc phân phối image DB theo cấu hình snapshot; đường nét đứt là phụ thuộc vận hành (env/probe/log) hoặc luồng A2 CI/CD đích. Chi tiết live/staged, nguồn A1/A2 và giới hạn xác minh giữ ở các mục trên. Đây là lần cải thiện hình từ snapshot 04/11, không phải đọc lại trạng thái Railway ngày 05/11.
+Từ root repository, thay đường dẫn JAR theo máy:
 
-Mở Draw.io để chỉnh vị trí, label hoặc waypoint; lưu source và cập nhật cả SVG/PNG. Bộ render cục bộ dùng chung geometry/text/waypoint trong XML để tái tạo bản xuất đã kiểm tra:
+```powershell
+java '-Djava.awt.headless=true' '-DPLANTUML_LIMIT_SIZE=16000' -jar C:/tools/plantuml-1.2026.8.jar -charset UTF-8 -tsvg docs/diagrams/deployment-production.puml
+java '-Djava.awt.headless=true' '-DPLANTUML_LIMIT_SIZE=16000' -jar C:/tools/plantuml-1.2026.8.jar -charset UTF-8 -tpng docs/diagrams/deployment-production.puml
+```
+
+Sửa PUML rồi render lại cả SVG và PNG trong cùng PR. SVG là vector để zoom/in rõ; kiểm tra nhãn, nested node, communication path, local/CI/production, registry/volume/env/health/log sau khi đổi layout. Không nhúng ảnh hoặc mã SVG/Draw.io trong file PUML.
+
+Đường liền thể hiện communication path/phân phối image DB; nét đứt thể hiện phụ thuộc vận hành hoặc CI/CD A2 đích. Snapshot đối chiếu vẫn ngày 04/11/2026, source production A1; lần chuyển định dạng này không đọc lại live Railway và không thay cấu hình hay thực hiện deploy.
+
+## 7. Bản bố cục cố định Draw.io
+
+[Nguồn Draw.io](diagrams/deployment-production-drawio.drawio) · [SVG](diagrams/deployment-production-drawio.svg) · [PNG](diagrams/deployment-production-drawio.png) · [Snapshot cấu hình](deployment/railway-snapshot.json).
+
+Bản Draw.io dùng cùng snapshot ngày 04/11/2026 và lưu bố cục cố định theo template UML. Mở nguồn trong diagrams.net để chỉnh vị trí, nhãn và đường nối. Chạy lệnh dưới đây trên Windows với font Arial để tái tạo bản xuất Draw.io.
 
 ```powershell
 python -m pip install Pillow
 python scripts/render-deployment.py
 ```
-
-Script hỗ trợ đúng các kiểu shape của sơ đồ này và dùng font Arial trong Windows Fonts. Khi thay kiểu shape, cập nhật renderer tương ứng hoặc dùng Export của Draw.io và kiểm tra trực quan lại. Không chạy script đè lên một bản xuất đã chỉnh thủ công. PNG kích thước 1740 × 1220; SVG giữ vector để zoom/in rõ. Nguồn PlantUML cũ được thay bằng Draw.io để chỉ giữ một bản nguồn chuẩn cho bố cục template.
-
-Kiểm tra trước commit: XML/SVG đọc được, nhãn không tràn khung, các node/artifact không chồng, ảnh PNG mở được, nguồn/export cùng kích thước và link local tồn tại. Hình là tài liệu deployment; việc sửa source và export không thay cấu hình Railway.

@@ -1,6 +1,6 @@
 # BrewLite - Bối cảnh, stakeholder và phạm vi
 
-Phiên bản: 1.0 | Ngày: 28/10/2026 | Phụ trách: Khang | Truy vết: [A2-1.1 / Issue #1](https://github.com/phananhkhang/BrewLite_A2/issues/1).
+Phiên bản: 1.1 | Ngày: 04/11/2026 | Phụ trách: Khang | Truy vết: [A2-1.1 / Issue #1](https://github.com/akira-yami/BrewLite_A2/issues/1).
 
 ## 1. Vấn đề nghiệp vụ và mục tiêu
 
@@ -35,7 +35,7 @@ MVP cuối Assignment 2 bao gồm cả hai Sprint. MVP Sprint 1 là phần chạ
 | IN-02 | Chi tiết, một size và nhiều topping hợp lệ; đường/đá và ghi chú theo baseline tham khảo | Sprint 2; A2 mục 7.1, kế thừa A1 |
 | IN-03 | Giỏ client: thêm/sửa/xóa, tạm tính, lưu local và giữ lựa chọn khi reload | Sprint 2; FR-04 |
 | IN-04 | Đăng ký khách hàng, đăng nhập JWT; kiểm soát role và chủ sở hữu | Sprint 2; FR-05 |
-| IN-05 | Tạo đơn `PENDING`; server tính giá, snapshot, giữ tồn nguyên tử và rollback khi lỗi | Sprint 2; FR-06, baseline A1 |
+| IN-05 | Tạo đơn `PENDING`; server tính giá, snapshot, giữ nguyên liệu theo công thức món/topping nguyên tử và rollback khi lỗi | Sprint 2; FR-06, baseline A1 |
 | IN-06 | Ví/Thẻ giả lập; lưu payment attempt, idempotency, lỗi/retry và kết quả chưa xác định | Sprint 2; FR-07 |
 | IN-07 | Xác nhận, chi tiết và lịch sử của chính khách hàng; trạng thái đơn và cập nhật tiến độ qua API nhân viên | Sprint 2; FR-08/09; UI quầy đầy đủ là mở rộng |
 | IN-08 | State machine, chống oversell, coupon và cộng loyalty một lần sau thanh toán thành công | Kế thừa yêu cầu A1; FR-09/10, không bỏ chỉ vì A2 không liệt kê lại từng quy tắc |
@@ -50,10 +50,10 @@ MVP cuối Assignment 2 bao gồm cả hai Sprint. MVP Sprint 1 là phần chạ
 | OUT-02 | Refresh token, realtime WebSocket/push | Could; MVP dùng access token và tải lại trạng thái; phải xử lý hết hạn phiên |
 | OUT-03 | Thu tiền thật, hoàn tiền/đối soát ngân hàng, Momo/VNPay/Stripe production | Won't trong MVP; chỉ mock gateway, không xử lý dữ liệu thẻ thật |
 | OUT-04 | Giao hàng, nhiều chi nhánh, đa tiền tệ, thuế/hóa đơn điện tử | Won't trong MVP; tập trung nhận món tại một quầy |
-| OUT-05 | Kho theo công thức nguyên liệu gram/ml, mua hàng và nhà cung cấp | Won't trong MVP; quản lý tồn theo biến thể |
+| OUT-05 | Mua hàng, nhà cung cấp và UI quản trị kho đầy đủ | Won’t trong MVP; kho Ingredient và công thức món/topping đã thuộc lõi đặt hàng |
 | OUT-06 | Đặt đơn/thanh toán khi offline | Won't trong MVP; hướng PWA không được tạo xác nhận thanh toán giả khi mất mạng |
 
-Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số tài liệu A1 chỉ ghi là đề xuất. Nền tảng hosting/registry cụ thể sẽ được chọn và ghi ADR ở Task 3; không coi nhà cung cấp nào đã được chốt ở Task 1.
+Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số tài liệu A1 chỉ ghi là đề xuất. Nền tảng Railway đã được người dùng chọn; snapshot production trong PR #53 vẫn dùng source A1, chưa là bằng chứng deploy A2.
 
 ## 4. Giả định
 
@@ -62,7 +62,7 @@ Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số
 | AS-01 | Một cửa hàng, nhận tại quầy, tiền nguyên `VND` | Đổi mô hình cửa hàng, phân quyền và tính tiền |
 | AS-02 | Catalog/Barista được cấp bằng seed; đăng ký công khai chỉ tạo `CUSTOMER` | Cần bổ sung use case quản trị/cấp quyền nếu mở đăng ký nhân viên |
 | AS-03 | Giỏ lưu local trên thiết bị; đăng nhập trước tạo đơn | Đồng bộ đa thiết bị cần API và chính sách hòa giải giỏ |
-| AS-04 | Tồn theo `ProductVariant`; một đơn tối đa một coupon; giá/tên/tùy chọn được snapshot | Thay đổi schema, quy tắc giá, inventory và migration |
+| AS-04 | Tồn tại Ingredient.stockQuantity/version; RecipeItem/ToppingRecipeItem quy đổi món/topping sang nguyên liệu; reservation item lưu lượng đã giữ; một coupon/đơn | Đồng bộ schema A1 @7beb0cb; không có stock/version trên ProductVariant |
 | AS-05 | Mỗi payment là một lần thử; tối đa một `SUCCEEDED` và một loyalty `EARN` mỗi đơn | Thay đổi chính sách payment/loyalty và kiểm thử idempotency |
 | AS-06 | Reservation có hạn; thất bại xác định còn cho retry đến hạn; kết quả chưa xác định phải đối soát trước khi giải phóng tồn | Cần chốt timeout/TTL bằng cấu hình và thiết kế Task 2-3 |
 | AS-07 | Kế thừa luật hủy `PAID` trước khi nhận pha: hoàn tồn đúng một lần, giữ payment/coupon/điểm đã ghi, không hoàn tiền mock | Đây là lựa chọn của baseline A1 cần PO review; thay đổi phải cập nhật SRS/state machine/test trước code |
@@ -93,4 +93,6 @@ Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số
 
 Review xác nhận đủ sáu nhóm stakeholder; phân biệt MVP cuối kỳ với Sprint 1; FR/NFR/use case dùng cùng actor, enum và luật nghiệp vụ. Các giả định AS-01..07 được coi là baseline đề xuất, chưa phải kết quả stakeholder phê duyệt. Thay đổi phạm vi phải nêu lý do, FR/NFR/UC bị ảnh hưởng và cách kiểm chứng trong PR; cập nhật tài liệu trước nghiệm thu task kế tiếp.
 
-Tài liệu liên quan theo issue: [SRS chức năng #2](https://github.com/phananhkhang/BrewLite_A2/issues/2), [NFR #3](https://github.com/phananhkhang/BrewLite_A2/issues/3), [use case tổng quát #4](https://github.com/phananhkhang/BrewLite_A2/issues/4). Bốn issue này không thay thế đặc tả use case trọng tâm của A2 mục 3.3 hoặc các tạo phẩm Task 2-5.
+Tài liệu liên quan theo issue: [SRS chức năng #2](https://github.com/akira-yami/BrewLite_A2/issues/2), [NFR #3](https://github.com/akira-yami/BrewLite_A2/issues/3), [use case tổng quát #4](https://github.com/akira-yami/BrewLite_A2/issues/4). Bốn issue này không thay thế đặc tả use case trọng tâm của A2 mục 3.3 hoặc các tạo phẩm Task 2-5.
+
+Cập nhật 04/11/2026 theo yêu cầu đồng bộ A1: UC-06: Đặt hàng và UC-08: Thực hiện thanh toán tách biệt; công thức/kho nguyên liệu thuộc phạm vi lõi. Xem [ADR-006](../architecture/adr/006-a1-recipe-inventory.md).

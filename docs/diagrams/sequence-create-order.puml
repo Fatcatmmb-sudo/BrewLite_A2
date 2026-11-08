@@ -1,0 +1,86 @@
+@startuml
+hide footbox
+autonumber
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam maxMessageSize 280
+title BrewLite - UC-06: Đặt hàng (sequence tạo đơn)
+actor "Khách hàng" as C
+boundary "Next.js UI" as UI
+control "NestJS API\nOrdersController" as API
+control "OrdersService" as Orders
+control "InventoryService" as Inventory
+database "PostgreSQL" as DB
+C -> UI: Chọn Đặt hàng với giỏ và coupon tùy chọn
+opt Chưa có phiên
+  ref over C,API: UC-02: Đăng nhập; giữ giỏ rồi tiếp tục khi có JWT
+end
+UI -> API: POST /api/v1/orders + Bearer JWT\nitems, couponCode?; không giá/userId/status
+API -> API: JWT / role CUSTOMER / ValidationPipe
+break JWT hoặc role/DTO không hợp lệ
+  API --> UI: 401 / 403 / 400; không ghi DB
+  UI --> C: Báo lỗi / login lại, giữ giỏ
+end
+API -> Orders: createOrder(principal.id, dto)
+Orders -> Orders: Chuẩn hóa/gộp dòng, null khác 0, trim note
+loop Attempt đầu hoặc retry conflict tạm thời (A1: tối đa 3 attempt)
+  Orders -> DB: BEGIN Serializable
+  alt Luồng thành công của attempt
+    Orders -> DB: Kiểm tra active CUSTOMER; đọc variant/product/topping\nRecipeItem + ToppingRecipeItem + Ingredient
+    DB --> Orders: Catalog, giá và BOM; stockQuantity/version nguyên liệu
+    Orders -> Orders: Cộng nhu cầu ingredient trên mọi dòng/variant/topping\nkiểm tra công thức/ingredient active và đủ toàn đơn
+    opt Có coupon (UC-07: Áp dụng coupon)
+      Orders -> DB: Khóa coupon, kiểm tra điều kiện/quota và quote
+      DB --> Orders: Discount hợp lệ
+    end
+    Orders -> Orders: Tính subtotal/discount/total >=0\nOrderItem.unitPrice=giá variant; topping snapshot riêng
+    Orders -> DB: INSERT Order(PENDING) + OrderItem + OrderItemTopping\nsnapshot tên/giá/đường/đá/note; expiresAt từ config
+    DB --> Orders: Order/items trong tx, đã có orderId
+    Orders -> Inventory: reserve(tx, orderId, expiresAt, needs)
+    loop Ingredient theo ID tăng dần (cộng cả món/topping dùng chung)
+      Inventory -> DB: UPDATE Ingredient stockQuantity -= need, version +=1\nWHERE version=expected AND stockQuantity>=need AND isActive
+      DB --> Inventory: rowCount=1
+    end
+    loop Mỗi variant đã tổng hợp
+      Inventory -> DB: INSERT InventoryReservation(ACTIVE, số ly)\n+ InventoryReservationItem(ingredientId, lượng thực tế đã giữ)
+      DB --> Inventory: Snapshot nguyên liệu được ghi trong cùng tx
+    end
+    Inventory --> Orders: Giữ đủ nguyên liệu
+    opt Có coupon hợp lệ
+      Orders -> DB: INSERT CouponRedemption(RESERVED)
+    end
+    Orders -> DB: INSERT history(NULL -> PENDING); COMMIT
+    DB --> Orders: Commit xác nhận
+    Orders -> Orders: Kết quả thành công; dừng retry
+  else Lỗi ở bất kỳ bước đọc/kiểm tra/ghi trước commit
+    ref over Orders,DB
+      Nhánh này thay thế luồng thành công tại điểm lỗi.
+      Dừng các bước còn lại; không ghi tiếp sau lỗi.
+    end ref
+    Orders -> DB: ROLLBACK order/items/reservation/items/coupon/history\nhoàn nguyên stockQuantity/version của mọi ingredient
+    DB --> Orders: Đã rollback
+    Orders -> Orders: Lỗi nghiệp vụ: không retry\nConflict version/serialization/deadlock: retry toàn tx khi còn lượt\nHết lượt: INVENTORY_CONFLICT
+  else Mất ACK COMMIT / chưa xác định kết quả
+    Orders -> Orders: Dừng retry; log orderId/requestId để đối chiếu
+  end
+end
+alt Commit được xác nhận
+  Orders --> API: Snapshot đã commit + totals + reservationExpiresAt
+  API --> UI: 201 Created: Order PENDING, orderId/orderNumber\n{data, meta.requestId} + X-Request-Id
+  UI --> C: Hiển thị đơn đã đặt; chưa xóa giỏ, kết thúc UC-06
+else Lỗi xác định
+  Orders --> API: Lỗi sau rollback
+  API --> UI: 400 validation/option, 409 OUT_OF_STOCK/INVENTORY_CONFLICT\n422 coupon hoặc 500 chung; requestId, không lộ stack
+  UI --> C: Giữ giỏ, cho sửa món/coupon hoặc thử lại chủ động
+else Kết quả chưa xác định / mất response
+  API --> UI: Lỗi tạm thời nếu còn trả được response
+  UI --> C: Giữ giỏ, không tự POST lại; tra cứu UC-09 trước khi đặt lại
+end
+legend bottom
+  UC-06: Đặt hàng chỉ tạo Order PENDING và giữ nguyên liệu.
+  Không có Payment Service/Gateway, không tạo payment/consume/EARN.
+  ProductVariant không lưu stock/version; availableServings là số tính từ BOM.
+  ReservationItem lưu lượng đã giữ, dùng hoàn kho kể cả công thức đổi sau đó.
+  POST /orders chưa idempotent; khóa nút không bảo vệ mọi lần gửi lặp.
+endlegend
+@enduml

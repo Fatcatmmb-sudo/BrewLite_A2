@@ -8,6 +8,8 @@ dist/
 coverage/
 .turbo/
 *.tsbuildinfo
+apps/api/src/generated/
+apps/web/next-env.d.ts
 
 # Local environment / credentials; keep safe samples
 .env
@@ -27,3 +29,5 @@ test-results/
 .DS_Store
 Thumbs.db
 *.swp
+
+Kiet-A2.zip

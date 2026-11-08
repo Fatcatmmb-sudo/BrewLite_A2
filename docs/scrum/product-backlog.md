@@ -9,9 +9,9 @@ Phiên bản 1.0 · 03/11/2026 · [A2-4.1 / #17](https://github.com/akira-yami/B
 | Issue | Phụ trách theo issue | Đầu ra / dependency |
 |---|---|---|
 | [#1](https://github.com/akira-yami/BrewLite_A2/issues/1), [#2](https://github.com/akira-yami/BrewLite_A2/issues/2), [#3](https://github.com/akira-yami/BrewLite_A2/issues/3), [#4](https://github.com/akira-yami/BrewLite_A2/issues/4) | Khang | Context/FR/NFR/UC tổng quát có trong baseline, review lại khi đổi scope |
-| [#5](https://github.com/akira-yami/BrewLite_A2/issues/5), [#6](https://github.com/akira-yami/BrewLite_A2/issues/6) | Khang (cả hai issue; nội dung yêu cầu phối hợp Kiệt) | Một UC Đặt và thanh toán: actor/pre/post/main/alternative/exception, FR, source/export |
+| [#5](https://github.com/akira-yami/BrewLite_A2/issues/5), [#6](https://github.com/akira-yami/BrewLite_A2/issues/6) | Khang (cả hai issue; nội dung yêu cầu phối hợp Kiệt) | Hai UC độc lập: #5 UC-06: Đặt hàng; #6 UC-08: Thực hiện thanh toán; mỗi UC có phạm vi/luồng riêng theo sơ đồ tổng thể |
 | [#7](https://github.com/akira-yami/BrewLite_A2/issues/7) | Khải | Activity checkout: chưa login/hết hàng/payment fail, source/export |
-| [#8](https://github.com/akira-yami/BrewLite_A2/issues/8), [#9](https://github.com/akira-yami/BrewLite_A2/issues/9) | Khang / Kiệt | Một sequence chung: JWT/validation/transaction và success/fail/idempotency |
+| [#8](https://github.com/akira-yami/BrewLite_A2/issues/8), [#9](https://github.com/akira-yami/BrewLite_A2/issues/9) | Khang / Kiệt | Hai sequence theo UC: #8 chỉ UC-06: Đặt hàng; #9 riêng UC-08: Thực hiện thanh toán |
 | [#10](https://github.com/akira-yami/BrewLite_A2/issues/10) | Khang | Class domain đủ lớp/thuộc tính/quan hệ/multiplicity/enum |
 | [#11](https://github.com/akira-yami/BrewLite_A2/issues/11) | Khải | Nguồn/export 2 UC + activity + sequence + class + deployment; link/enum nhất quán |
 | [#12](https://github.com/akira-yami/BrewLite_A2/issues/12) | Khang | Kiến trúc phân lớp/C4, Next/Nest/PostgreSQL/mock, trade-off và ADR |
@@ -48,7 +48,7 @@ Exit: checkout sạch chạy Web/API/DB với menu thật; demo UI states; test/
 | A2-5.1.5 / [#29](https://github.com/akira-yami/BrewLite_A2/issues/29) | Kiệt | Ví/Thẻ mock, success/decline/unknown/retry/idempotency và side effect, FR-07/10 | #28/#35, ADR, phối hợp Hoàng/Huy | Must |
 | A2-5.2.1.1 / [#30](https://github.com/akira-yami/BrewLite_A2/issues/30) | Kiệt | Orders: validate/rollback/ownership/state machine/race | #28 | Must |
 | A2-5.2.1.2 / [#31](https://github.com/akira-yami/BrewLite_A2/issues/31) | Kiệt | Payment: replay/concurrency/khác payload/timeout/recovery | #29 | Must |
-| A2-5.2.1.3 / [#32](https://github.com/akira-yami/BrewLite_A2/issues/32) | Hoàng | Inventory: stock=5/20 request, consume/release/expiry một lần | #28/#35 | Must |
+| A2-5.2.1.3 / [#32](https://github.com/akira-yami/BrewLite_A2/issues/32) | Hoàng | Inventory: nguyên liệu đủ 5 ly/20 request, consume/release/expiry một lần | #28/#35 | Must |
 | A2-5.2.1.4 / [#33](https://github.com/akira-yami/BrewLite_A2/issues/33) | Huy | Auth/loyalty: trái quyền, một EARN/order, không cộng khi fail | #27/#29 | Must |
 | A2-5.2.2 / [#34](https://github.com/akira-yami/BrewLite_A2/issues/34) | Khải | Browser E2E menu -> confirmation/history, ca lỗi/giỏ | #25–#29 | Must |
 | A2-5.2.3 / [#35](https://github.com/akira-yami/BrewLite_A2/issues/35) | Hoàng | Migration/seed từ DB rỗng, lặp an toàn, constraint | #13/#17; schema chốt sớm cùng #28/#29 | Must |

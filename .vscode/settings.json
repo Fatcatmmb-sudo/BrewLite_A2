@@ -1,0 +1,15 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "brewlite postgres",
+            "database": "brewlite_checkout_e2e",
+            "username": "brewlite",
+            "password": "change_me_local_only"
+        }
+    ]
+}

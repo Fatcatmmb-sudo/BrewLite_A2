@@ -1,4 +1,4 @@
-"""Render the fixed UML layout in deployment-production.drawio to SVG and PNG.
+"""Render the fixed UML layout in deployment-production-drawio.drawio to SVG and PNG.
 
 Source of truth: editable Draw.io XML (node geometry, labels, edge waypoints).
 Requires Python 3 and Pillow. Supports only the styles used by this diagram;
@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / 'docs/diagrams/deployment-production.drawio'
+SOURCE = ROOT / 'docs/diagrams/deployment-production-drawio.drawio'
 STEM = SOURCE.with_suffix('')
 SCALE = 2
 W, H = 1740, 1220

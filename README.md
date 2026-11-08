@@ -6,9 +6,9 @@ Repository chính: [akira-yami/BrewLite_A2](https://github.com/akira-yami/BrewLi
 
 ## Trạng thái hiện tại
 
-Đây là khung repository và hồ sơ A2, đã có SRS/FR/NFR và use-case tổng quát. `apps/web`, `apps/api` chưa có package/runtime; `docker-compose.yml`, `docs/deployment.md` đang giữ chỗ. **Chưa có lệnh install/dev/test/build/deploy chạy ứng dụng**; khung này chưa phải MVP chạy được.
+Đã có runtime tối thiểu cho NestJS API catalog và Next.js menu, cùng manifest/lockfile và lệnh lint/unit/build. Đây chưa phải MVP đầy đủ: auth/cart/checkout/payment/PWA và deployment còn thuộc các issue riêng; `docker-compose.yml` vẫn giữ chỗ. Xem hướng dẫn [API](apps/api/README.md) và [Web](apps/web/README.md).
 
-Runtime catalog/menu thuộc #21/#22, test #23, CI #24; checkout/delivery thuộc Sprint 2. [#12](https://github.com/akira-yami/BrewLite_A2/issues/12) sở hữu kiến trúc/ADR, [#16](https://github.com/akira-yami/BrewLite_A2/issues/16) deployment thực tế. Cập nhật README bằng lệnh đã kiểm tra từ checkout sạch khi các phần đó tích hợp.
+Runtime tối thiểu được bổ sung trong [PR CI #63](https://github.com/akira-yami/BrewLite_A2/pull/63); menu nâng cao thuộc #22, test nghiệm thu #23. [CI #24](docs/ci-pull-request.md) kiểm tra cả hai ứng dụng bằng lệnh thật và chặn merge khi lỗi. Checkout/delivery thuộc Sprint 2. [#12](https://github.com/akira-yami/BrewLite_A2/issues/12) sở hữu kiến trúc/ADR, [#16](https://github.com/akira-yami/BrewLite_A2/issues/16) deployment thực tế.
 
 ## Clone và đọc hồ sơ
 
@@ -18,21 +18,23 @@ cd BrewLite_A2
 git status
 ```
 
-Hiện chỉ cần Git và trình đọc Markdown. Nhóm sẽ chốt Node/package manager/PostgreSQL version và lockfile trong PR runtime; chưa có dependency được khóa ở bước này.
+Cần Git, Node **24.x** (xem `.nvmrc`) và npm. Mỗi app có lockfile riêng; chạy `npm ci`, `npm run lint`, `npm test`, `npm run build` trong từng thư mục. Build/unit không cần DB. API chạy local cần PostgreSQL và `DATABASE_URL`; Web dùng port 3000, API dùng 3001. Xem README ứng dụng để cấu hình/chạy.
 
 | Thư mục / tệp | Nội dung |
 |---|---|
 | [apps/web](apps/web/README.md) | Ranh giới Next.js/PWA và việc còn lại |
 | [apps/api](apps/api/README.md) | Ranh giới NestJS/API/DB và việc còn lại |
 | [docs](docs/README.md) | Yêu cầu, sơ đồ, kiến trúc và Scrum |
-| `tests/` | Chỗ cho test xuyên ứng dụng; chưa có test executable |
-| `.github/workflows/` | Chỗ cho CI/CD; chưa có workflow executable |
-| [.env.example](.env.example) | Biến local đề xuất, chỉ có placeholder |
+| `tests/` | Chỗ cho test xuyên ứng dụng; unit test nằm trong từng app |
+| `.github/workflows/` | [PR CI](docs/ci-pull-request.md): Install → Lint → Unit Test → Build và required gate |
+| [.env.example](.env.example) | Mẫu local, chỉ có placeholder; API/Web có working directory riêng |
 | `docker-compose.yml` | Chờ cấu hình Web/API/PostgreSQL tại #36 |
+
+Cấu trúc bên trong Web/API, Prisma, kiểm thử và minh chứng đã được tạo bằng các thư mục giữ chỗ. Xem [cây thư mục và quy ước đặt mã nguồn](docs/repository-structure.md).
 
 ## Cấu hình
 
-`.env.example` là mẫu phối hợp, **chưa có chương trình đọc các biến này**. Khi có runtime, tạo `.env` từ mẫu, thay mọi placeholder và theo README ứng dụng. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service khi #36 chốt Compose.
+API đọc `apps/api/.env`; Web đọc `apps/web/.env.local`. Tạo từ mẫu gốc, thay mọi placeholder theo README ứng dụng. Các biến auth/payment trong mẫu chưa được runtime catalog sử dụng. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service khi #36 chốt Compose.
 
 Không dùng mẫu trên production; CI/hosting cấp secret từ secret store. Chưa có production URL/registry/deploy đã xác minh. Chỉ ghi migrate/seed/start/test/build/rollback hoạt động khi có code và evidence từ checkout sạch.
 
