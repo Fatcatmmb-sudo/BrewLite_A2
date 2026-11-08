@@ -19,4 +19,4 @@ JWT phù hợp yêu cầu bài và guard NestJS. RBAC đơn thuần không ngăn
 
 ## Hệ quả và kiểm chứng
 
-Session UX cần phối hợp #14/#27. Test hai customer và một Barista: 401 thiếu/sai/hết hạn JWT, 403 sai role, từ chối đọc/pay/cancel/replay chéo chủ mà không đổi DB; username trùng 409, input sai 400; network error không tự logout; reload/expiry giữ giỏ. Log và bundle không chứa secret. Đây là thiết kế, chưa có auth runtime hay test pass.
+Session UX cần phối hợp #14/#27. Runtime nền hiện có register/login/me, bcrypt, JWT HS256 với issuer/audience/TTL, CUSTOMER-only public registration, DTO validation và role claims. Test hai customer và một Barista: 401 thiếu/sai/hết hạn JWT, 403 sai role, từ chối đọc/pay/cancel/replay chéo chủ mà không đổi DB; username trùng 409, input sai 400; network error không tự logout; reload/expiry giữ giỏ. Automated unit tests bao phủ auth/JWT; ownership HTTP tests và browser session UX còn thiếu. Log và bundle không chứa secret.

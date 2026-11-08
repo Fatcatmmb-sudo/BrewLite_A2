@@ -16,15 +16,20 @@ const baseUser = {
   role: 'CUSTOMER' as const,
   loyaltyBalance: 0,
   isActive: true,
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
 };
 
 function makeService() {
   const users = {
-    findByUsername: vi.fn(),
-    findById: vi.fn(),
-    create: vi.fn(),
+    findByUsername: vi.fn<UsersService['findByUsername']>(),
+    findById: vi.fn<UsersService['findById']>(),
+    create: vi.fn<UsersService['create']>(),
   };
-  const auth = new AuthService(users as unknown as UsersService);
+  const auth = new AuthService(users as unknown as UsersService, {
+    jwtSecret: 'unit-test-secret-abc12345678901234567890', jwtIssuer: 'brewlite-api', jwtAudience: 'brewlite-web',
+    jwtExpiresInSeconds: 900, bcryptRounds: 10,
+  } as never);
   return { auth, users };
 }
 

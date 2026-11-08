@@ -16,9 +16,11 @@ export class RegisterDto {
 export class LoginDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(50)
   username!: string;
 
   @IsString()
   @MinLength(1)
+  @MaxLength(100)
   password!: string;
 }
