@@ -6,7 +6,7 @@ Repository chính: [akira-yami/BrewLite_A2](https://github.com/akira-yami/BrewLi
 
 ## Trạng thái hiện tại — Sprint 2 (v1.0.0)
 
-MVP đầy đủ đã sẵn sàng: auth/cart/checkout/payment/order history và CI pass. Luồng end-to-end: **menu → detail → giỏ hàng → đăng nhập → tạo đơn → thanh toán Ví/Thẻ mock → xác nhận/lịch sử**.
+Luồng ứng dụng gồm menu → chi tiết món → giỏ hàng → đăng nhập → tạo đơn → thanh toán Ví/Thẻ mock → xác nhận/lịch sử. API có logging và readiness. Xem hướng dẫn [API](apps/api/README.md) và [Web](apps/web/README.md).
 
 - **API**: 161 unit tests pass, NestJS với Catalog/Auth/Orders/Payments/Inventory/Coupon/Loyalty
 - **Web**: 38 unit tests pass, Next.js với App Router, React Query, Tailwind CSS
@@ -102,7 +102,7 @@ Cấu trúc bên trong Web/API, Prisma, kiểm thử và minh chứng đã đư�
 
 ## Cấu hình
 
-API đọc `apps/api/.env`; Web đọc `apps/web/.env.local`. Tạo từ mẫu gốc, thay mọi placeholder theo README ứng dụng. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service khi #36 chốt Compose.
+API đọc `apps/api/.env`; Web đọc `apps/web/.env.local`. Tạo từ mẫu gốc, thay mọi placeholder theo README ứng dụng. API fail-fast với cấu hình sai/thiếu và chỉ chấp nhận `PAYMENT_PROVIDER=mock`. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service khi #36 chốt Compose.
 
 Không dùng mẫu trên production; CI/hosting cấp secret từ secret store. Chưa có production URL/registry/deploy đã xác minh. Chỉ ghi migrate/seed/start/test/build/rollback hoạt động khi có code và evidence từ checkout sạch.
 
