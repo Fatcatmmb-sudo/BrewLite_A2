@@ -44,7 +44,7 @@ describe('Orders -> Inventory integration', () => {
     new PromotionsRepository(prisma as never),
   );
 
-  const usersService = new UsersService(prisma as never);
+  const usersService = new UsersService();
 
   // Sử dụng InventoryService mới với Prisma và InventoryRepository.
   const inventoryRepository = new InventoryRepository({} as never);

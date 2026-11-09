@@ -1,33 +1,52 @@
-/docs/tham_khao/
-
-# Dependencies / build output
+# Dependencies
 node_modules/
-.next/
-out/
-dist/
-coverage/
-.turbo/
-*.tsbuildinfo
-apps/api/src/generated/
-apps/web/next-env.d.ts
+.pnpm-store/
 
-# Local environment / credentials; keep safe samples
+# Build outputs
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Environment / secrets
 .env
 .env.*
 !.env.example
-!.env.*.example
-*.pem
-*.key
+!**/.env.example
+/outputs/*-with-secrets.zip
 
-# Logs / test artifacts
+# Logs
 *.log
-playwright-report/
-test-results/
-.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+!logs/*.log
+logs/newman-report.json
 
-# Editor / OS temporary files
+# IDE / OS
+.idea/
+.vscode/
 .DS_Store
 Thumbs.db
-*.swp
 
-Kiet-A2.zip
+# Prisma/local data
+*.db
+*.db-journal
+apps/api/src/generated/prisma/
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Temporary files
+.tmp/
+tmp/
+
+# Tài liệu tham khảo cục bộ
+BrewLite-Report/tham_khao/
+.agents/
+.worktrees/
+BrewLite-Report/
+docs/tham_khao
