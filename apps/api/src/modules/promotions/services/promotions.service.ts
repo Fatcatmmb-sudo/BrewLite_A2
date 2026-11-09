@@ -9,7 +9,7 @@ import { PrismaClient } from '../../../generated/prisma/internal/class.js';
 
 @Injectable()
 export class PromotionsService {
-    releaseByOrderId(_orderId: string, _arg1: string, _arg2: Date, _tx: Omit<PrismaClient<never, Prisma.GlobalOmitConfig | undefined, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$use" | "$extends">) {
+    releaseByOrderId(orderId: string, arg1: string, arg2: Date, tx: Omit<PrismaClient<never, Prisma.GlobalOmitConfig | undefined, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$use" | "$extends">) {
       throw new Error('Method not implemented.');
     }
     constructor(private readonly repository: PromotionsRepository) {}
