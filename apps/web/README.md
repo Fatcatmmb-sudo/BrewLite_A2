@@ -1,38 +1,58 @@
-# BrewLite Web - Next.js
+# BrewLite Web
 
-Requires Node **24.x** and npm. Run in `apps/web`:
+Frontend BrewLite sử dụng Next.js App Router, React, TypeScript và Tailwind CSS.
 
-```powershell
+## Chạy local
+
+```bash
 npm ci
-npm run lint
-npm test
-npm run build
-npm start
+npm run dev
 ```
 
-For development: `npm run dev`, then open http://localhost:3000.
-For a separate type check: `npm run typecheck` (build also checks TypeScript).
+Ứng dụng chạy tại `http://localhost:3000`. Khi chạy ngoài Docker, tạo `apps/web/.env.local`:
 
-The minimal menu fetches `GET /api/v1/products`, displays name/description/price,
-and handles loading, empty, failure and retry. The default API base is
-`http://localhost:3001/api/v1`. Set `NEXT_PUBLIC_API_BASE_URL` in
-`apps/web/.env.local` **before building** to change it. Public variables are
-embedded into the client bundle; never put secrets there.
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+API_INTERNAL_URL=http://localhost:3001/api/v1
+```
 
-Build does not fetch the API or remote fonts, and needs no running database.
-Unit tests cover API envelopes, invalid products, VND formatting, empty menus,
-HTTP/network errors and abort signal forwarding. Browser E2E is not covered.
+`NEXT_PUBLIC_API_URL` được đóng vào client bundle tại thời điểm build. Khi build Docker cho môi trường khác, truyền biến này qua build argument.
 
-The integration includes menu, persistent cart, login/register, checkout and
-order history UI. Auth/order/payment API endpoints must be implemented on the
-backend before the full flow can be accepted. They are not provided by the
-catalog-only backend on main. PWA remains separate (#14).
+## Kiểm tra
 
-NEXT_PUBLIC_API_BASE_URL is canonical; NEXT_PUBLIC_API_URL is accepted for
-compatibility. / redirects to /menu; /health returns a liveness JSON response.
-React Query and auth session providers wrap the application. Tailwind is built
-locally, and system fonts keep production builds independent of Google Fonts.
-The Playwright suite requiring the real backend remains separate from unit CI.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-Do not commit `.next`, `node_modules` or `.env.local`.
-See [PR CI](../../docs/ci-pull-request.md).
+Build production dùng `output: "standalone"` để Docker image chỉ chứa các file runtime cần thiết.
+
+## Phiên đăng nhập (Huy S1-W2)
+
+- `/login` và `/register` thiết lập phiên dùng chung rồi chuyển sang `/menu`.
+- Menu có liên kết Đăng nhập cho khách, tên tài khoản và nút Đăng xuất khi đã đăng nhập.
+- Tải lại trang kiểm tra token qua `GET /auth/me`, không tin role/user cũ trong localStorage. Phiên cũ dùng `brewlite_token` vẫn được đọc.
+- Token hết hạn hoặc API có xác thực trả 401: xóa `brewlite_token`/`brewlite_user`, hủy cache truy vấn và chuyển về Login kèm thông báo. Đăng xuất ở tab khác cũng đồng bộ; giỏ hàng được giữ nguyên.
+- Lỗi mạng/5xx khi kiểm tra phiên không tự xóa token; Menu có nút thử lại. Sai mật khẩu ở form Login chỉ hiển thị lỗi đăng nhập.
+- Request nghiệp vụ cần đăng nhập dùng `authenticatedRequest` tại `src/features/auth/api.ts` để gửi Bearer token và xử lý 401 nhất quán.
+
+Logout ở MVP là kết thúc phiên trên trình duyệt. JWT không được thu hồi ở server trước `exp`; không có endpoint logout/refresh mới trong phần này. Giải mã `exp` phía client chỉ phục vụ UX, backend vẫn xác minh JWT bằng signature/issuer/audience/expiration.
+
+Kiểm tra riêng auth: `node --test tests/auth-*.test.mjs`. [Hồ sơ kiểm chứng](../../docs/scrum/trello-audit-2026-11-03.md).
+
+## Tùy chọn đường/đá
+
+Chi tiết món cho chọn độc lập mức đường/đá: công thức chuẩn (null) hoặc 0/25/50/75/100%. Giỏ hiển thị và persist cả hai trường, giữ 0% và tự đọc giỏ cũ thiếu trường thành null. Dòng chỉ gộp khi cùng variant, tập topping và đường/đá; tùy chọn không thay đổi giá.
+
+Chi tiết món có ô ghi chú tối đa 500 ký tự. Giỏ hiển thị văn bản thuần, trim ghi chú và chuyển rỗng thành null, persist khi reload và tách dòng khác note. Giỏ cũ thiếu note được đọc với null.
+
+`cartStore.getOrderItems()` cung cấp payload cho checkout gồm `productVariantId`, `quantity`, `toppingIds`, `sugarLevel`, `iceLevel`, `note`, không gửi giá từ client. Luồng `/checkout` tạo order, gọi `POST /payments` với `Idempotency-Key`, chỉ xóa giỏ sau `SUCCEEDED`, rồi chuyển đến confirmation. Lịch sử/chi tiết đơn nằm ở `/orders` và `/orders/:id`; các màn có loading, empty và error/retry. `npm test` chạy test giỏ bằng Node.js 24.
+
+## Checkout và coupon
+
+Checkout dùng chung contract với backend tại `src/types/checkout.contract.ts`: `POST /coupons/validate` trả `code` và `discountAmount`; `POST /payments` trả `success`, `isRetried`, `status` và `errorCode`. Frontend đọc token `brewlite_token` và base URL đã có hậu tố `/api/v1`, không tự ghép thêm prefix lần nữa.
+
+Khách nhập mã giảm giá tại `/checkout`; UI preview số tiền giảm và tổng mới, nhưng `POST /orders` vẫn gửi `couponCode` để backend kiểm tra, khóa lượt dùng và tính lại giá cuối cùng. Nếu Card thất bại, giỏ và order được giữ lại; khách có thể đổi sang Ví để retry cùng order bằng `Idempotency-Key` mới. E2E UI chạy bằng `npm run test:e2e`; backend E2E cần `SMOKE_DATABASE_URL` như hướng dẫn trong README API.
+

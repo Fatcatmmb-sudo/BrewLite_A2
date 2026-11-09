@@ -1,12 +1,13 @@
+import 'dotenv/config';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: { tsconfigPaths: true },
   test: {
     globals: true,
     include: ['test/**/*.integration-spec.ts'],
-    setupFiles: ['reflect-metadata'],
+    hookTimeout: 15000,
+    testTimeout: 15000,
     fileParallelism: false,
-    testTimeout: 60000,
-    hookTimeout: 60000,
   },
 });
