@@ -1,76 +1,264 @@
+import { isIP } from 'node:net';
+
+export interface VnpayConfig {
+  enabled: boolean;
+  tmnCode: string | null;
+  hashSecret: string | null;
+  paymentUrl: string;
+  queryUrl: string;
+  queryServerIp: string | null;
+  returnUrl: string | null;
+  ipnUrl: string | null;
+  frontendOrigin: string;
+}
+
 export interface AppConfig {
-  nodeEnv: 'development' | 'test' | 'production';
-  port: number;
-  databaseUrl: string;
+  trustedProxyCidrs: string[];
   jwtSecret: string;
   jwtIssuer: string;
   jwtAudience: string;
   jwtExpiresInSeconds: number;
-  bcryptRounds: number;
-  corsOrigins: string[];
-  healthTimeoutMs: number;
   orderReservationTtlMinutes: number;
+  webOrigin: string;
+  vnpay: VnpayConfig;
+  healthTimeoutMs: number;
 }
 
-function required(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value || value.includes('REPLACE_')) throw new Error(`${name} is required`);
-  return value;
-}
+type Environment = Record<string, string | undefined>;
+const MAX_JWT_TTL_SECONDS = 7 * 24 * 60 * 60;
+const MAX_ORDER_RESERVATION_TTL_MINUTES = 7 * 24 * 60;
+export const VNPAY_SANDBOX_PAYMENT_URL =
+  'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
+export const VNPAY_SANDBOX_QUERY_URL =
+  'https://sandbox.vnpayment.vn/merchant_webapi/api/transaction';
 
-function integer(name: string, fallback: number, min: number, max: number): number {
-  const raw = process.env[name];
-  if (raw === undefined) return fallback;
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(`${name} must be an integer from ${min} to ${max}`);
+function parseJwtExpiresIn(value: string | undefined): number {
+  const normalized = value?.trim() || '15m';
+  const match = /^(\d+)(s|m|h|d)?$/i.exec(normalized);
+  if (!match) {
+    throw new Error('JWT_EXPIRES_IN must be a positive duration such as 15m, 900s, 1h, or 1d');
   }
-  return value;
-}
-
-function durationSeconds(raw: string): number {
-  const match = /^(\d+)(s|m|h|d)?$/.exec(raw);
-  if (!match) throw new Error('JWT_EXPIRES_IN must be seconds or use s, m, h, or d');
   const amount = Number(match[1]);
-  const multiplier = ({ s: 1, m: 60, h: 3600, d: 86400, undefined: 1 } as Record<string, number>)[match[2] ?? 'undefined'];
-  const seconds = amount * multiplier;
-  if (!Number.isSafeInteger(seconds) || seconds < 1 || seconds > 86400) {
-    throw new Error('JWT_EXPIRES_IN must be between 1 second and 24 hours');
+  const unit = (match[2] ?? "s").toLowerCase();
+  const secondsPerUnitByUnit: Record<string, number> = {
+    s: 1,
+    m: 60,
+    h: 3600,
+    d: 86400,
+  };
+  const seconds = amount * secondsPerUnitByUnit[unit];
+  if (!Number.isSafeInteger(seconds) || seconds <= 0 || seconds > MAX_JWT_TTL_SECONDS) {
+    throw new Error('JWT_EXPIRES_IN must resolve to a duration between 1 second and 7 days');
   }
   return seconds;
 }
 
-export function loadConfig(): AppConfig {
-  const nodeEnv = process.env.NODE_ENV ?? 'development';
+function parsePositiveInteger(name: string, value: string | undefined, defaultValue: number): number {
+  const normalized = value?.trim();
+  if (!normalized) return defaultValue;
+  if (!/^\d+$/.test(normalized)) throw new Error(name + ' must be a positive integer');
+  const parsed = Number(normalized);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || parsed > MAX_ORDER_RESERVATION_TTL_MINUTES) {
+    throw new Error(name + ' must be a positive integer no greater than 10080');
+  }
+  return parsed;
+}
+
+function requiredValue(name: string, value: string | undefined): string {
+  const normalized = value?.trim();
+  if (!normalized) throw new Error(name + ' is required when VNPAY_ENABLED=true');
+  return normalized;
+}
+
+function requireHttpsUrl(name: string, value: string): URL {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(name + ' must be a valid HTTPS URL');
+  }
+  if (url.protocol !== 'https:' || url.username || url.password || url.hash) {
+    throw new Error(name + ' must be a valid HTTPS URL without credentials or fragments');
+  }
+  return url;
+}
+
+function isLoopbackUrl(value: string): boolean {
+  return /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:[/?]|$)/.test(value);
+}
+
+function parseTrustedProxyCidrs(value: string | undefined): string[] {
+  const normalized = value?.trim();
+  if (!normalized) return [];
+
+  const entries = normalized.split(',');
+  const cidrs = entries.map((rawEntry) => {
+    const entry = rawEntry.trim();
+    const parts = entry.split('/');
+    if (!entry || parts.length > 2) {
+      throw new Error('TRUSTED_PROXY_CIDRS must be a comma-separated list of literal IP addresses or CIDRs');
+    }
+
+    const address = parts[0];
+    const family = isIP(address);
+    if (family === 0) {
+      throw new Error('TRUSTED_PROXY_CIDRS entries must use valid IPv4 or IPv6 addresses');
+    }
+
+    const maxPrefix = family === 4 ? 32 : 128;
+    const prefix = parts.length === 1 ? maxPrefix : Number(parts[1]);
+    if (
+      (parts.length === 2 && !/^[0-9]+$/.test(parts[1])) ||
+      !Number.isInteger(prefix) ||
+      prefix <= 0 ||
+      prefix > maxPrefix
+    ) {
+      throw new Error('TRUSTED_PROXY_CIDRS prefix must be between 1 and ' + maxPrefix + '; /0 is not allowed');
+    }
+
+    return address + '/' + prefix;
+  });
+
+  return [...new Set(cidrs)];
+}
+
+function loadVnpayConfig(env: Environment, webOrigin: string): VnpayConfig {
+  const enabledRaw = env.VNPAY_ENABLED?.trim().toLowerCase() || 'false';
+  if (enabledRaw !== 'true' && enabledRaw !== 'false') {
+    throw new Error('VNPAY_ENABLED must be true or false');
+  }
+
+  const frontendOrigin = webOrigin.split(',')[0]?.trim() || 'http://localhost:3000';
+  if (enabledRaw === 'false') {
+    return {
+      enabled: false,
+      tmnCode: null,
+      hashSecret: null,
+      paymentUrl: VNPAY_SANDBOX_PAYMENT_URL,
+      queryUrl: VNPAY_SANDBOX_QUERY_URL,
+      queryServerIp: null,
+      returnUrl: null,
+      ipnUrl: null,
+      frontendOrigin,
+    };
+  }
+
+  const tmnCode = requiredValue('VNPAY_TMN_CODE', env.VNPAY_TMN_CODE);
+  const hashSecret = requiredValue('VNPAY_HASH_SECRET', env.VNPAY_HASH_SECRET);
+  if (!/^[A-Za-z0-9]{8}$/.test(tmnCode)) {
+    throw new Error('VNPAY_TMN_CODE must contain exactly 8 alphanumeric characters');
+  }
+  if (hashSecret.length < 32) {
+    throw new Error('VNPAY_HASH_SECRET must contain at least 32 characters');
+  }
+
+  const paymentUrlString =
+    env.VNPAY_PAYMENT_URL?.trim() || VNPAY_SANDBOX_PAYMENT_URL;
+  const paymentUrl = requireHttpsUrl('VNPAY_PAYMENT_URL', paymentUrlString);
+  const paymentHost = paymentUrl.hostname.toLowerCase();
+  if (
+    !['sandbox.vnpayment.vn', 'pay.vnpay.vn'].includes(paymentHost) ||
+    paymentUrl.search ||
+    !paymentUrl.pathname.endsWith('/vpcpay.html')
+  ) {
+    throw new Error('VNPAY_PAYMENT_URL must use the official VNPay sandbox or production endpoint');
+  }
+
+  const queryUrl = requireHttpsUrl(
+    'VNPAY_QUERY_URL',
+    env.VNPAY_QUERY_URL?.trim() || VNPAY_SANDBOX_QUERY_URL,
+  );
+  if (
+    !['sandbox.vnpayment.vn', 'merchant.vnpay.vn'].includes(queryUrl.hostname.toLowerCase()) ||
+    queryUrl.search ||
+    queryUrl.pathname !== '/merchant_webapi/api/transaction'
+  ) {
+    throw new Error('VNPAY_QUERY_URL must use the official VNPay QueryDr endpoint');
+  }
+
+  const queryServerIp = env.VNPAY_QUERY_SERVER_IP?.trim() || null;
+  if (queryServerIp && isIP(queryServerIp) === 0) {
+    throw new Error('VNPAY_QUERY_SERVER_IP must be a valid literal IPv4 or IPv6 address');
+  }
+
+  const localSandbox = env.NODE_ENV !== 'production' && paymentHost === 'sandbox.vnpayment.vn';
+  const returnUrlValue = requiredValue('VNPAY_RETURN_URL', env.VNPAY_RETURN_URL);
+  const returnUrl = localSandbox && isLoopbackUrl(returnUrlValue)
+    ? new URL(returnUrlValue)
+    : requireHttpsUrl('VNPAY_RETURN_URL', returnUrlValue);
+  if (returnUrl.hash) throw new Error('VNPAY_RETURN_URL must not contain a fragment');
+  const ipnUrl = requireHttpsUrl(
+    'VNPAY_IPN_URL',
+    requiredValue('VNPAY_IPN_URL', env.VNPAY_IPN_URL),
+  );
+  const frontend =
+    localSandbox && isLoopbackUrl(frontendOrigin)
+      ? new URL(frontendOrigin)
+      : requireHttpsUrl('WEB_ORIGIN', frontendOrigin);
+
+  return {
+    enabled: true,
+    tmnCode,
+    hashSecret,
+    paymentUrl: paymentUrl.toString(),
+    queryUrl: queryUrl.toString(),
+    queryServerIp,
+    returnUrl: returnUrl.toString(),
+    ipnUrl: ipnUrl.toString(),
+    frontendOrigin: frontend.origin,
+  };
+}
+
+export function loadAppConfig(env: Environment = process.env): AppConfig {
+  const jwtSecret = env.JWT_SECRET?.trim();
+  const isTest = env.NODE_ENV === 'test';
+  if (!jwtSecret && !isTest) {
+    throw new Error('JWT_SECRET environment variable is required and has no default fallback');
+  }
+
+  const webOrigin = env.WEB_ORIGIN?.trim() || 'http://localhost:3000';
+  return {
+    jwtSecret: jwtSecret || 'test-jwt-secret-for-isolated-tests-only-32bytes-long',
+    jwtIssuer: env.JWT_ISSUER?.trim() || 'brewlite-api',
+    jwtAudience: env.JWT_AUDIENCE?.trim() || 'brewlite-web',
+    jwtExpiresInSeconds: parseJwtExpiresIn(env.JWT_EXPIRES_IN),
+    orderReservationTtlMinutes: parsePositiveInteger(
+      'ORDER_RESERVATION_TTL_MINUTES',
+      env.ORDER_RESERVATION_TTL_MINUTES,
+      15,
+    ),
+    webOrigin,
+    trustedProxyCidrs: parseTrustedProxyCidrs(env.TRUSTED_PROXY_CIDRS),
+    vnpay: loadVnpayConfig(env, webOrigin),
+    healthTimeoutMs: parsePositiveInteger('HEALTHCHECK_TIMEOUT_MS', env.HEALTHCHECK_TIMEOUT_MS, 2000),
+  };
+}
+
+export function loadConfig(env: Environment = process.env): any {
+  const nodeEnv = (env.NODE_ENV ?? 'development') as 'development' | 'test' | 'production';
   if (!['development', 'test', 'production'].includes(nodeEnv)) throw new Error('NODE_ENV is invalid');
-  const databaseUrl = required('DATABASE_URL');
+  const databaseUrl = env.DATABASE_URL?.trim();
+  if (!databaseUrl || databaseUrl.includes('REPLACE_')) throw new Error('DATABASE_URL is required');
   let database: URL;
   try { database = new URL(databaseUrl); } catch { throw new Error('DATABASE_URL must be a valid PostgreSQL URL'); }
   if (!['postgres:', 'postgresql:'].includes(database.protocol)) throw new Error('DATABASE_URL must use PostgreSQL');
 
-  const jwtSecret = required('JWT_SECRET');
-  if (Buffer.byteLength(jwtSecret, 'utf8') < 32) throw new Error('JWT_SECRET must be at least 32 bytes');
-  const origins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000').split(',').map((value) => value.trim());
+  const origins = (env.CORS_ORIGIN ?? 'http://localhost:3000').split(',').map((value) => value.trim());
   if (origins.some((origin) => {
     try { const parsed = new URL(origin); return !['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin; }
     catch { return true; }
   })) throw new Error('CORS_ORIGIN must contain valid origins separated by commas');
-  if ((process.env.PAYMENT_PROVIDER ?? 'mock') !== 'mock') throw new Error('Only PAYMENT_PROVIDER=mock is supported');
+  if ((env.PAYMENT_PROVIDER ?? 'mock') !== 'mock') throw new Error('Only PAYMENT_PROVIDER=mock is supported');
 
-  const config: AppConfig = {
-    nodeEnv: nodeEnv as AppConfig['nodeEnv'],
-    port: integer('PORT', 3001, 1, 65535),
+  const baseConfig = loadAppConfig(env);
+  if (Buffer.byteLength(baseConfig.jwtSecret, 'utf8') < 32) throw new Error('JWT_SECRET must be at least 32 bytes');
+
+  return {
+    ...baseConfig,
+    nodeEnv,
+    port: parsePositiveInteger('PORT', env.PORT, 3001),
     databaseUrl,
-    jwtSecret,
-    jwtIssuer: required('JWT_ISSUER'),
-    jwtAudience: required('JWT_AUDIENCE'),
-    jwtExpiresInSeconds: durationSeconds(process.env.JWT_EXPIRES_IN ?? '15m'),
-    bcryptRounds: integer('BCRYPT_ROUNDS', 10, 10, 15),
+    bcryptRounds: 10,
     corsOrigins: origins,
-    healthTimeoutMs: integer('HEALTHCHECK_TIMEOUT_MS', 2000, 100, 30000),
-    orderReservationTtlMinutes: process.env.RESERVATION_TTL_SECONDS === undefined
-      ? integer('ORDER_RESERVATION_TTL_MINUTES', 15, 1, 10080)
-      : integer('RESERVATION_TTL_SECONDS', 900, 1, 604800) / 60,
   };
-  return config;
 }
