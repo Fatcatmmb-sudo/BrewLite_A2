@@ -21,6 +21,7 @@ export interface AppConfig {
   orderReservationTtlMinutes: number;
   webOrigin: string;
   vnpay: VnpayConfig;
+  healthTimeoutMs: number;
 }
 
 type Environment = Record<string, string | undefined>;
@@ -33,12 +34,12 @@ export const VNPAY_SANDBOX_QUERY_URL =
 
 function parseJwtExpiresIn(value: string | undefined): number {
   const normalized = value?.trim() || '15m';
-  const match = /^(\d+)(s|m|h|d)$/i.exec(normalized);
+  const match = /^(\d+)(s|m|h|d)?$/i.exec(normalized);
   if (!match) {
     throw new Error('JWT_EXPIRES_IN must be a positive duration such as 15m, 900s, 1h, or 1d');
   }
   const amount = Number(match[1]);
-  const unit = match[2].toLowerCase();
+  const unit = (match[2] ?? "s").toLowerCase();
   const secondsPerUnitByUnit: Record<string, number> = {
     s: 1,
     m: 60,
@@ -229,5 +230,35 @@ export function loadAppConfig(env: Environment = process.env): AppConfig {
     webOrigin,
     trustedProxyCidrs: parseTrustedProxyCidrs(env.TRUSTED_PROXY_CIDRS),
     vnpay: loadVnpayConfig(env, webOrigin),
+    healthTimeoutMs: parsePositiveInteger('HEALTHCHECK_TIMEOUT_MS', env.HEALTHCHECK_TIMEOUT_MS, 2000),
+  };
+}
+
+export function loadConfig(env: Environment = process.env): any {
+  const nodeEnv = (env.NODE_ENV ?? 'development') as 'development' | 'test' | 'production';
+  if (!['development', 'test', 'production'].includes(nodeEnv)) throw new Error('NODE_ENV is invalid');
+  const databaseUrl = env.DATABASE_URL?.trim();
+  if (!databaseUrl || databaseUrl.includes('REPLACE_')) throw new Error('DATABASE_URL is required');
+  let database: URL;
+  try { database = new URL(databaseUrl); } catch { throw new Error('DATABASE_URL must be a valid PostgreSQL URL'); }
+  if (!['postgres:', 'postgresql:'].includes(database.protocol)) throw new Error('DATABASE_URL must use PostgreSQL');
+
+  const origins = (env.CORS_ORIGIN ?? 'http://localhost:3000').split(',').map((value) => value.trim());
+  if (origins.some((origin) => {
+    try { const parsed = new URL(origin); return !['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin; }
+    catch { return true; }
+  })) throw new Error('CORS_ORIGIN must contain valid origins separated by commas');
+  if ((env.PAYMENT_PROVIDER ?? 'mock') !== 'mock') throw new Error('Only PAYMENT_PROVIDER=mock is supported');
+
+  const baseConfig = loadAppConfig(env);
+  if (Buffer.byteLength(baseConfig.jwtSecret, 'utf8') < 32) throw new Error('JWT_SECRET must be at least 32 bytes');
+
+  return {
+    ...baseConfig,
+    nodeEnv,
+    port: parsePositiveInteger('PORT', env.PORT, 3001),
+    databaseUrl,
+    bcryptRounds: 10,
+    corsOrigins: origins,
   };
 }

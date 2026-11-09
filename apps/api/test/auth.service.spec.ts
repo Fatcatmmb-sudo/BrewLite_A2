@@ -4,10 +4,12 @@ import { AuthService } from '../src/modules/auth/auth.service.js';
 import type { UsersService } from '../src/modules/users/users.service.js';
 
 // Mock bcryptjs to avoid slow real hashing in unit tests
-vi.mock('bcryptjs', () => ({
-  hash: async (_pw: string, _r: number) => '$2b$10$mockhash',
-  compare: async (pw: string, hash: string) => hash === '$2b$10$mockhash' && pw === 'correct-password',
-}));
+// Mock bcryptjs to avoid slow real hashing in unit tests
+vi.mock('bcryptjs', () => {
+  const hash = async (_pw: string, _r: number) => '$2b$10$mockhash';
+  const compare = async (pw: string, hash: string) => hash === '$2b$10$mockhash' && pw === 'correct-password';
+  return { default: { hash, compare }, hash, compare };
+});
 
 const baseUser = {
   id: 'user-uuid',
