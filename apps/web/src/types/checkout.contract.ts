@@ -14,30 +14,21 @@ export interface ValidateCouponResponse {
 // ==========================================
 // PAYMENT DOMAIN
 // ==========================================
-export type PaymentMethod = 'E_WALLET' | 'CARD';
+export type PaymentMethod = 'VNPAY';
 
-export type PaymentStatus = 'PROCESSING' | 'SUCCEEDED' | 'FAILED';
+export type PaymentStatus = 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'MANUAL_REVIEW' | 'REFUNDED';
 
 export interface CreatePaymentPayload {
     orderId: string;
     method: PaymentMethod;
 }
 
-/**
- * Response trả về từ POST /api/v1/payments (sau unwrap .data)
- * - id: UUID của Payment attempt
- * - status: kết quả thanh toán theo PaymentStatus
- * - orderId: đơn hàng tương ứng
- * - success/isRetried: legacy fields kept for backward compat (optional)
- */
 export interface PaymentResponse {
-    id: string;
+    success: boolean;
+    isRetried: boolean;
     status: PaymentStatus;
-    orderId: string;
-    /** Legacy: có thể không có trong response thực tế */
-    success?: boolean;
-    isRetried?: boolean;
     gatewayTransactionId?: string | null;
+    paymentUrl?: string | null;
     errorCode?: string | null;
-    failureCode?: string | null;
+    message?: string;
 }
