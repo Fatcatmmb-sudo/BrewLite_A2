@@ -77,7 +77,7 @@ function setup() {
     {} as any,
     catalog,
     inventory,
-    new UsersService(prisma as never),
+    new UsersService(),
   );
 
   const dto = {

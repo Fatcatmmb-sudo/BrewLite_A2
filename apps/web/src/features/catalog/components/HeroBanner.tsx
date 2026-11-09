@@ -11,7 +11,7 @@ export const HeroBanner = ({ onExploreClick }: HeroBannerProps) => {
     <div className="space-y-3.5">
       {/* Khối Hero Banner chính - Đảm bảo overflow-hidden để bo tròn không bị lỗi */}
       <section className="relative overflow-hidden rounded-[2.25rem] bg-[#153D2C] text-white shadow-xl">
-
+        
         {/* 1. NỀN PHẢI: Ảnh ly nước trên bàn gỗ */}
         <div className="absolute inset-0">
           <Image
@@ -26,7 +26,7 @@ export const HeroBanner = ({ onExploreClick }: HeroBannerProps) => {
 
         {/* 2. Mảng xanh rêu cắt chéo một đường duy nhất có bóng đổ sang phải
             - overflow-hidden bên trong để tránh lòi góc xanh ra ngoài khi bo tròn */}
-        <div
+        <div 
           className="absolute inset-0 hidden lg:block pointer-events-none overflow-hidden rounded-[2.25rem]"
           style={{
             filter: 'drop-shadow(20px 0 25px rgba(0, 0, 0, 0.65))',
@@ -57,7 +57,7 @@ export const HeroBanner = ({ onExploreClick }: HeroBannerProps) => {
         {/* 4. NỘI DUNG CHỮ & NÚT BẤM */}
         <div className="relative z-10 grid min-h-[380px] grid-cols-1 items-stretch lg:grid-cols-12">
           <div className="flex flex-col justify-center space-y-5 p-8 sm:p-10 lg:col-span-5 lg:p-12">
-
+            
             <div className="inline-flex items-center gap-2.5 text-[10px] font-bold tracking-[0.22em] text-[#C2DBC7] uppercase">
               <span className="h-px w-6 bg-[#C2DBC7]/70" />
               <span>HẠT MỘC CẦU ĐẤT</span>
@@ -120,17 +120,17 @@ export const HeroBanner = ({ onExploreClick }: HeroBannerProps) => {
 
 {/* 3 Cam kết chất lượng bên dưới */}
       <div className="grid grid-cols-1 border-b border-[#E8DFC8] py-3 sm:grid-cols-3 sm:py-3.5">
-
+        
         {/* 1. Hạt mộc Cầu Đất - Icon Hạt Cà Phê */}
         <div className="flex items-center gap-3.5 py-1 sm:border-r sm:border-[#E8DFC8] sm:py-0 sm:pr-6">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#EFE6D8]">
-            <svg
-              className="h-5 w-5 text-[#7C3A1D]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
+            <svg 
+              className="h-5 w-5 text-[#7C3A1D]" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.8" 
+              strokeLinecap="round" 
               strokeLinejoin="round"
             >
               {/* Hình hạt cà phê với đường rãnh lượn sóng ở giữa */}
@@ -149,13 +149,13 @@ export const HeroBanner = ({ onExploreClick }: HeroBannerProps) => {
         {/* 2. Pha tươi tại quầy - Icon Tách Cà Phê Nóng Bốc Khói */}
         <div className="flex items-center gap-3.5 py-1 sm:border-r sm:border-[#E8DFC8] sm:py-0 sm:px-6">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#EFE6D8]">
-            <svg
-              className="h-5 w-5 text-[#7C3A1D]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
+            <svg 
+              className="h-5 w-5 text-[#7C3A1D]" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.8" 
+              strokeLinecap="round" 
               strokeLinejoin="round"
             >
               {/* 2 làn khói phía trên */}
@@ -179,13 +179,13 @@ export const HeroBanner = ({ onExploreClick }: HeroBannerProps) => {
         {/* 3. Trà thơm tuyển chọn - Icon Chiếc Lá Trà */}
         <div className="flex items-center gap-3.5 py-1 sm:py-0 sm:pl-6">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#EFE6D8]">
-            <svg
-              className="h-5 w-5 text-[#7C3A1D]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
+            <svg 
+              className="h-5 w-5 text-[#7C3A1D]" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.8" 
+              strokeLinecap="round" 
               strokeLinejoin="round"
             >
               {/* Hình chiếc lá và gân lá */}

@@ -7,7 +7,7 @@ import type {
 import { authSession } from './session';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export class AuthApiError extends Error {
   constructor(
@@ -37,7 +37,7 @@ async function request<T>(
   if (res.status === 401 && token) authSession.invalidate(token);
   const json = await res.json().catch(() => null);
   if (!res.ok) {
-    const raw = json?.error?.message ?? json?.message;
+    const raw = json?.error?.message ?? json?.error ?? json?.message;
     const code = json?.error?.code;
     const message = Array.isArray(raw)
       ? raw.filter((value) => typeof value === 'string').join('. ')
