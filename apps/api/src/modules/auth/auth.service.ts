@@ -1,58 +1,168 @@
-﻿import {
-  Injectable,
+import {
   ConflictException,
-  UnauthorizedException,
+  ForbiddenException,
   Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
-import { UsersService } from '../users/users.service.js';
-import { jwt as jwtUtil, type JwtPayload } from '../../common/utils/jwt.js';
-import type { AppConfig } from '../../config/app-config.js';
-import { Prisma } from '../../generated/prisma/client.js';
+import { JwtService } from '@nestjs/jwt';
+import bcrypt from 'bcryptjs';
+import { UserRole } from '../../generated/prisma/client.js';
+import { UserRepository } from './repositories/user.repository.js';
+import { LoginDto } from './dto/login.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
+import { APP_CONFIG } from '../../config/app-config.module.js';
+import { loadAppConfig, type AppConfig } from '../../config/app-config.js';
+
+export interface SafeUser {
+  id: string;
+  username: string;
+  role: UserRole;
+  loyaltyBalance: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuthResult {
+  user: SafeUser;
+  accessToken: string;
+  expiresIn: number;
+}
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly usersService: UsersService, @Inject('APP_CONFIG') private readonly config: AppConfig) {}
+  private readonly saltRounds = 10;
 
-  async register(username: string, password: string) {
-    const existing = await this.usersService.findByUsername(username);
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly jwtService: JwtService,
+    @Inject(APP_CONFIG) private readonly config: AppConfig = loadAppConfig(),
+  ) {}
+
+  /**
+   * Đăng ký tài khoản người dùng mới.
+   * Mật khẩu được băm qua bcrypt với cost factor 10.
+   * Role mặc định là CUSTOMER theo quy ước đã chốt.
+   */
+  async register(dto: RegisterDto): Promise<AuthResult> {
+    const existing = await this.userRepository.findByUsername(dto.username);
+
     if (existing) {
-      throw new ConflictException('Username already taken');
+      throw new ConflictException({
+        error: {
+          code: 'USERNAME_ALREADY_EXISTS',
+          message: 'Tên đăng nhập đã tồn tại trong hệ thống.',
+        },
+      });
     }
-    const passwordHash = await bcrypt.hash(password, this.config.bcryptRounds);
-    try {
-      const user = await this.usersService.create(username, passwordHash);
-      return { id: user.id, username: user.username, role: user.role };
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Username already taken');
-      }
-      throw error;
-    }
+
+    const passwordHash = await bcrypt.hash(dto.password, this.saltRounds);
+
+    const user = await this.userRepository.create({
+      username: dto.username,
+      passwordHash,
+      role: UserRole.CUSTOMER,
+    });
+
+    const accessToken = await this.generateToken(user.id, user.username, user.role);
+
+    return {
+      user: this.sanitizeUser(user),
+      accessToken,
+      expiresIn: this.config.jwtExpiresInSeconds,
+    };
   }
 
-  async login(username: string, password: string): Promise<{ accessToken: string }> {
-    const user = await this.usersService.findByUsername(username);
-    // Always run compare to prevent timing attacks revealing username existence
-    const dummyHash = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
-    const hash = user?.passwordHash ?? dummyHash;
-    const valid = await bcrypt.compare(password, hash);
-    if (!user || !valid || !user.isActive) {
-      throw new UnauthorizedException('Invalid credentials');
+  /**
+   * Đăng nhập xác thực người dùng.
+   * Sử dụng bcrypt.compare và thông báo lỗi INVALID_CREDENTIALS đồng nhất.
+   */
+  async login(dto: LoginDto): Promise<AuthResult> {
+    const user = await this.userRepository.findByUsername(dto.username);
+
+    if (!user) {
+      throw new UnauthorizedException({
+        error: {
+          code: 'INVALID_CREDENTIALS',
+          message: 'Thông tin đăng nhập không chính xác.',
+        },
+      });
     }
-    const payload: JwtPayload = { sub: user.id, role: user.role };
-    const accessToken = jwtUtil.sign(payload, this.config.jwtSecret, this.config.jwtExpiresInSeconds, this.config.jwtIssuer, this.config.jwtAudience);
-    return { accessToken };
+
+    const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!isMatch) {
+      throw new UnauthorizedException({
+        error: {
+          code: 'INVALID_CREDENTIALS',
+          message: 'Thông tin đăng nhập không chính xác.',
+        },
+      });
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException({
+        error: {
+          code: 'ACCOUNT_INACTIVE',
+          message: 'Tài khoản đã bị tạm khóa hoặc chưa kích hoạt.',
+        },
+      });
+    }
+
+    const accessToken = await this.generateToken(user.id, user.username, user.role);
+
+    return {
+      user: this.sanitizeUser(user),
+      accessToken,
+      expiresIn: this.config.jwtExpiresInSeconds,
+    };
   }
 
-  async getMe(userId: string) {
-    const user = await this.usersService.findById(userId);
-    if (!user) throw new UnauthorizedException('User not found');
+  /**
+   * Lấy thông tin người dùng an toàn theo ID.
+   */
+  async getProfile(userId: string): Promise<SafeUser> {
+    const user = await this.userRepository.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException({
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'Không tìm thấy người dùng.',
+        },
+      });
+    }
+
+    return this.sanitizeUser(user);
+  }
+
+  private async generateToken(userId: string, username: string, role: UserRole): Promise<string> {
+    return this.jwtService.signAsync({
+      sub: userId,
+      username,
+      role,
+    });
+  }
+
+  private sanitizeUser(user: {
+    id: string;
+    username: string;
+    passwordHash?: string;
+    role: UserRole;
+    loyaltyBalance: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }): SafeUser {
     return {
       id: user.id,
       username: user.username,
       role: user.role,
       loyaltyBalance: user.loyaltyBalance,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     };
   }
 }
