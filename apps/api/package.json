@@ -31,7 +31,9 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "start:e2e": "node --import=tsx prisma/seed-e2e.ts && npm run start:prod",
     "generate:postman": "node ../../scripts/generate-postman.mjs",
-    "test:api": "node ../../scripts/run-api-tests.mjs"
+    "test:api": "node ../../scripts/run-api-tests.mjs",
+    "postinstall": "prisma generate",
+    "pretest": "prisma generate"
   },
   "engines": {
     "node": ">=24 <25"
