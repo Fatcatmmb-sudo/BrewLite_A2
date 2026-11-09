@@ -24,6 +24,7 @@ export class OrdersController {
 
   @Get('me')
   async getMyOrders(@CurrentUser() user: JwtPayload, @Query() query: OrderHistoryQueryDto = {}) {
+    // Include pagination metadata only when the caller passes a history query option.
     if (query.limit !== undefined || query.cursor !== undefined || query.status !== undefined) {
       return { success: true, ...await this.ordersService.getMyOrdersPage(user.sub, query) };
     }
