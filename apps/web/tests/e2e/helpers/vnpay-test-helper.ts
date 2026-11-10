@@ -83,7 +83,7 @@ export class VnpayTestHelper {
 
       const expectedSignature = this.computeSignature(params);
       return secureHash === expectedSignature;
-    } catch {
+    } catch (error) {
       return false;
     }
   }

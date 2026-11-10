@@ -33,7 +33,9 @@ test.describe('VNPAY Double-Click Protection', () => {
 
   test('status query before replay on page reload', async ({
     page,
+    request,
     testUser,
+    apiUrl,
   }) => {
     await setupCartWithProduct(page, testUser.accessToken);
     await proceedToCheckout(page);
