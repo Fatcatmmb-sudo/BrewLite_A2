@@ -2,13 +2,13 @@
 
 Phiên bản 1.1 · 04/11/2026 · Phụ trách: Khang · [A2-3.1.1 / #12](https://github.com/akira-yami/BrewLite_A2/issues/12).
 
-**Trạng thái: thiết kế đề xuất cho A2.** Baseline `d600b26` chỉ có tài liệu yêu cầu và thư mục ứng dụng giữ chỗ; chưa có Next.js, NestJS, schema, migration hay dịch vụ chạy được. Các đường dẫn, module và API dưới đây là đích triển khai, không phải minh chứng runtime.
+Kiến trúc A2 tại revision `2645b87`. Topology và revision production được ghi riêng trong [Deployment Railway](../deployment.md).
 
 ## 1. Căn cứ và phạm vi
 
 - [Bối cảnh và phạm vi](../requirements/context-and-scope.md), [FR-01..15](../requirements/srs.md), [NFR-01..12](../requirements/non-functional-requirements.md), [UC-01..10](../requirements/use-case-overview.md) là baseline yêu cầu của repository A2.
 - Tham khảo `docs/tham_khao/BrewLite/docs/architecture/system-architecture.md`, `architecture/foundation-contract.md` và `decisions/ADR-001..004` của BrewLite A1. Kế thừa ranh giới module và nguyên tắc transaction; không kế thừa trạng thái đã triển khai, approval, PR hay evidence của A1. Thư mục tham khảo chỉ có ở máy làm việc, không cần để đọc thiết kế này.
-- Phạm vi MVP: một quầy, VND nguyên, JWT với `CUSTOMER`/`BARISTA`, payment mock. Refresh token, realtime, màn quầy đầy đủ là mở rộng; tiền thật và đặt/thanh toán offline ngoài MVP.
+- Phạm vi: một quầy, VND nguyên, Web Next.js, API NestJS và PostgreSQL. Checkout dùng VNPay. Ví/Thẻ mock thuộc bộ test API.
 
 ## 2. Cấu trúc và ranh giới hệ thống
 
@@ -17,10 +17,10 @@ Chọn **kiến trúc phân lớp trong modular monolith**: Next.js là ứng d�
 | Thành phần | Trách nhiệm | Giao tiếp / ranh giới |
 |---|---|---|
 | Thiết bị khách hàng/Barista | Trình duyệt/PWA, nhập lựa chọn, xem kết quả | HTTPS tới Web/API; không được quyết định giá, quyền hoặc kết quả thanh toán |
-| Next.js / `apps/web` | Menu/detail/cart/auth/checkout/history, mobile-first; vỏ PWA và offline fallback | REST/JSON tới NestJS, prefix `/api/v1`; giỏ local, server state lấy lại từ API |
+| Next.js / `apps/web` | Menu, giỏ, auth, checkout, lịch sử, loyalty và khu Barista | REST/JSON tới NestJS, prefix `/api/v1`; giỏ local, server state lấy lại từ API |
 | NestJS / `apps/api` | JWT/RBAC/ownership, validation, nghiệp vụ, điều phối transaction, health/log | API public qua HTTPS; Prisma tới PostgreSQL trên mạng nội bộ |
 | PostgreSQL | Order snapshot, tồn/reservation, payment attempt, coupon, loyalty ledger, history | Chỉ API và migration job được truy cập bằng tài khoản có quyền phù hợp |
-| Mock Payment Adapter | Ví/Thẻ giả lập qua port `PaymentGateway`; success/decline/unknown | Chạy trong process API ở MVP; không là container độc lập, không nhận thông tin thẻ thật |
+| VNPay | Tạo URL ký, callback và QueryDr theo cấu hình | Browser redirect HTTPS, VNPay gửi IPN tới API |
 | Công cụ vận hành | Migration một lần trước API; cấu hình, health và log | Local/CI/production dùng cấu hình riêng, secret bên ngoài Git |
 
 ```text
@@ -31,18 +31,18 @@ Next.js Web/PWA ---- REST/JSON + Bearer JWT ----> NestJS API
                                                    |
                     +------------------------------+-------------------+
                     |                                                  |
-         Controller -> Service -> Repository                 PaymentGateway port
+         Controller -> Service -> Repository                 VNPay gateway
                                    |                                  |
-                                 Prisma                       Mock Payment Adapter
+                                 Prisma                       VNPay (HTTPS)
                                    |
                               PostgreSQL
 ```
 
-Đây là mô tả kiến trúc phân lớp, không thay thế các sơ đồ UML bắt buộc ở Task 2 hoặc deployment production. Nền tảng hosting/registry chưa được chọn hoặc xác minh; [#16](https://github.com/akira-yami/BrewLite_A2/issues/16) phải chốt topology, HTTPS, persistent storage, cổng và ranh giới local/CI/production theo môi trường thực tế. Không gọi kiến trúc đích này là deployment đã chạy.
+Xem [Deployment Railway A2](../deployment.md) cho cổng, network và persistent volume đã quan sát.
 
 ## 3. Backend theo module và lớp
 
-| Module đích | Dữ liệu / trách nhiệm sở hữu | FR / UC |
+| Module | Dữ liệu / trách nhiệm sở hữu | FR / UC |
 |---|---|---|
 | `auth`, `users` | Đăng ký/login, JWT, role, hồ sơ; không tự quyết định điểm | FR-05; UC-01/02 |
 | `catalog` | Product, variant, topping, giá và trạng thái bán | FR-01/02/03; UC-03/04 |
@@ -50,7 +50,7 @@ Next.js Web/PWA ---- REST/JSON + Bearer JWT ----> NestJS API
 | `inventory` | RecipeItem/ToppingRecipeItem, tổng nhu cầu ingredient, reserve/consume/release/expiry theo snapshot | FR-06/09; UC-06/08 |
 | `payments` | Attempt, request hash/key, serialize attempt theo order, gateway, đối soát | FR-07; UC-08 |
 | `promotions` | Quote, hạn mức coupon, reservation và consumption | FR-10; UC-07/08 |
-| `loyalty` | Ledger EARN duy nhất mỗi order, balance trong transaction | FR-10; hậu điều kiện UC-08 |
+| `loyalty` | Ledger EARN theo order, đổi điểm lấy coupon và lịch sử | FR-10; UC-08/11 |
 
 Luồng phụ thuộc chuẩn là `Controller -> Service -> Repository -> Prisma`.
 
@@ -68,19 +68,22 @@ Route/layout ở `apps/web/src/app`; feature ở `src/features/{catalog,cart,aut
 
 API client ghép base URL có `/api/v1`, gửi Bearer access JWT tới route bảo vệ; JWT/credential không ghi log. MVP dùng access token sống ngắn trong bộ nhớ, xác minh phiên với API; reload có thể yêu cầu login lại nhưng phải giữ giỏ. Không coi network error là 401. Thiết kế session chi tiết và PWA cache thuộc [#14](https://github.com/akira-yami/BrewLite_A2/issues/14), xác thực thuộc [#27](https://github.com/akira-yami/BrewLite_A2/issues/27); không mặc nhiên sao chép token localStorage của A1.
 
-PWA cache chỉ phục vụ vỏ/static asset và offline fallback. Không cache response auth/order/payment hoặc tự xếp hàng mutation để gửi lại khi online. Timeout payment: giữ giỏ, báo đang kiểm tra, tra cứu server và replay cùng key; chỉ xóa phần giỏ đã checkout sau xác nhận success. UI luôn có loading/empty/error/retry tương ứng FR/NFR.
+Khi chờ thanh toán, Web dùng key lưu trong phiên checkout để tra trạng thái và khôi phục điều hướng. Web chuyển trình duyệt qua URL VNPay, rồi xác nhận bằng trạng thái payment hoặc đơn.
 
-| API tương đối đề xuất | Chủ thể / nghiệp vụ | Kiểm soát bắt buộc |
+| API dưới /api/v1 | Chủ thể / nghiệp vụ | Kiểm soát bắt buộc |
 |---|---|---|
 | `GET /products`, `GET /products/:id` | Public, catalog active | Validate ID, không trả option không bán được như có thể mua |
 | `POST /auth/register`, `POST /auth/login`, `GET /auth/me` | Đăng ký/login/xác minh phiên | Chỉ đăng ký CUSTOMER, hash bcrypt, không trả password/hash |
 | `POST /orders` | CUSTOMER tạo đơn | JWT, DTO, giá DB, transaction/reservation, không nhận userId/total |
 | `GET /orders/me`, `GET /orders/:id` | Khách xem đơn của mình | Ownership kể cả khi biết ID; danh sách chỉ của principal |
-| `POST /payments` | Chủ đơn trả tiền mock | `Idempotency-Key`, order/method hợp lệ, amount từ DB |
-| `POST /orders/:id/cancel`, `PATCH /orders/:id/status` | Chủ đơn hủy; Barista cập nhật pha chế | Ownership/RBAC, state machine, phân xử race với payment/expiry |
+| `POST /payments`, `GET /payments/status` | Chủ đơn khởi tạo/tra thanh toán | JWT, `Idempotency-Key`, amount từ DB |
+| `GET /payments/vnpay/ipn`, `GET /payments/vnpay/return` | VNPay callback và browser return | Chữ ký, mã giao dịch, số tiền, xử lý lặp |
+| `GET /staff/recipes`, `GET /staff/inventory`, `PATCH /staff/inventory/:id/stock` | Công thức và tồn nguyên liệu | Role BARISTA |
+| `GET /loyalty/me`, `POST /loyalty/redeem` | Xem điểm và đổi voucher | Role CUSTOMER |
+| `POST /orders/:id/cancel`, `PATCH /staff/orders/:id/status` | Chủ đơn hủy; Barista cập nhật pha chế | Ownership/RBAC, state machine, phân xử race với payment/expiry |
 | `GET /health` | Readiness | Kiểm tra DB có timeout, 200/503, không lộ config |
 
-Tên route là contract đề xuất để phối hợp, chưa có OpenAPI/runtime. Contract triển khai phải được review trước [#21](https://github.com/akira-yami/BrewLite_A2/issues/21), [#27](https://github.com/akira-yami/BrewLite_A2/issues/27), [#28](https://github.com/akira-yami/BrewLite_A2/issues/28), [#29](https://github.com/akira-yami/BrewLite_A2/issues/29).
+Xem [ma trận truy vết](../traceability-matrix.md) cho route, sơ đồ và test tương ứng.
 
 ## 5. Dữ liệu, migration và tính nhất quán
 
@@ -94,27 +97,29 @@ Migration one-shot chạy trước API, fail thì không start release mới; kh
 2. Đọc RecipeItem và ToppingRecipeItem của mọi topping, nhân số ly và cộng theo ingredientId toàn giỏ. Tồn/version ở Ingredient, không ở ProductVariant. Thiếu BOM/inactive ingredient không bán được; availableServings chỉ là thông tin tính toán.
 3. Tính giá server, khóa/quote coupon nếu có, tạo Order PENDING và items/topping snapshots. OrderItem.unitPrice là giá variant; topping snapshot riêng, lineTotal=(giá variant+topping) x quantity.
 4. Theo thứ tự ingredientId ổn định, UPDATE Ingredient SET stockQuantity-=need, version+=1 WHERE version=expected AND stockQuantity>=need. InventoryReservation mỗi order/variant lưu số ly; InventoryReservationItem lưu lượng ingredient thật đã giữ, gồm cả topping.
-5. Coupon RESERVED và history cùng transaction. Lỗi rollback toàn bộ stockQuantity/version/bản ghi; conflict retry toàn transaction có giới hạn, A1 hiện tối đa 3 attempt. TTL từ config. Không retry hết nguyên liệu hoặc giả COMMIT thất bại khi mất ACK.
+5. Coupon RESERVED và history cùng transaction. Lỗi rollback toàn bộ stockQuantity/version/bản ghi; conflict retry toàn transaction có giới hạn, tối đa 3 attempt. TTL từ config. Không retry hết nguyên liệu hoặc giả COMMIT thất bại khi mất ACK.
 6. Trả 201 PENDING và kết thúc UC-06; chưa gọi gateway, không tạo payment/consume/EARN. POST /orders chưa idempotent, UI mất response cần tra cứu trước đặt lại.
 
 ### 5.2. UC-08: Thực hiện thanh toán (use case độc lập)
 
-1. Xác thực và kiểm tra chủ đơn **trước replay**. Chuẩn hóa orderId/method, tính hash server-side; kiểm tra key/payload.
-2. Transaction ngắn khóa order và tạo duy nhất attempt `PROCESSING` theo key; không cho attempt đang xử lý thứ hai trên cùng order kể cả key khác. Order PAID không có success thứ hai. Unique constraint/key và khóa order phân xử request đồng thời.
-3. Cùng key/hash đã hoàn tất trả lại kết quả; đang PROCESSING trả 409 `PAYMENT_IN_PROGRESS`; khác hash trả 409 `IDEMPOTENCY_KEY_REUSED`. Gateway được gọi **ngoài** transaction, dùng cùng key của attempt.
-4. Success: transaction khóa order/attempt, cập nhật Payment `SUCCEEDED`, Order `PAID`, consume reservation/coupon, ghi history và một EARN/balance cùng commit. Unique success/order và EARN/order là hàng rào cuối ở DB.
-5. Decline xác định: `FAILED` + `PAYMENT_FAILED`, không cộng điểm; giữ reservation đến hạn. Retry bằng key mới, về PENDING trước attempt mới; không reserve tồn lần hai.
-6. Timeout hoặc gateway success nhưng DB chưa commit: giữ PROCESSING, phản hồi tạm thời 503 khi chưa xác nhận được; recovery tra cứu mock bằng key/attempt, rồi finalize idempotent. Không charge key mới, hủy hay expire cho tới khi đối soát. Mock phải giữ kết quả truy vấn được qua restart, bằng dữ liệu bền vững riêng cho kết quả gateway; không giữ mỗi trong memory. Chi tiết [ADR-004](adr/004-payment-inventory-consistency.md).
+1. API xác thực chủ đơn, tính request hash từ orderId, method và amount. Cùng key và hash trả lại dữ liệu đã lưu, gồm URL của attempt VNPay đang xử lý.
+2. Attempt mới khóa đơn, kiểm tra trạng thái/hạn và ghi `PROCESSING` cùng URL. API trả HTTP 200 để Web chuyển sang VNPay.
+3. IPN xác minh callback và chốt trong transaction. Return hợp lệ ở Sandbox cũng có thể chốt. Thành công consume giữ chỗ/coupon và cộng `floor(total / 10)` điểm cùng commit. Thành công muộn có thể vào `MANUAL_REVIEW`.
+4. Thất bại xác định cho phép thử lại đơn còn hạn bằng key mới. Web tra trạng thái bằng key cũ trong lúc chờ kết quả. Đối soát có thẩm quyền được ghi audit.
+
+[Sequence checkout](../diagrams/sequence-checkout.svg) · [Sequence thanh toán](../diagrams/sequence-payment.svg) · [Đặc tả UC-08](../requirements/uc-08-thanh-toan.md).
+
+Chi tiết API phục vụ đối soát nằm trong [hướng dẫn backend](../../apps/api/README.md).
 
 ### 5.3. Vòng đời và công việc nền
 
-Order: `PENDING`, `PAYMENT_FAILED`, `PAID`, `PREPARING`, `READY`, `COMPLETED`, `CANCELLED`. Payment: `PROCESSING`, `SUCCEEDED`, `FAILED`. Không dùng chung hai enum.
+Order: `PENDING`, `PAYMENT_FAILED`, `PAID`, `PREPARING`, `READY`, `COMPLETED`, `CANCELLED`. Payment: `PROCESSING`, `SUCCEEDED`, `FAILED`, `MANUAL_REVIEW`, `REFUNDED`. Không dùng chung hai enum.
 
-Job expiry chạy trong API ở MVP, chỉ expire PENDING/PAYMENT_FAILED hết hạn khi không có payment chưa đối soát; khóa order và chuyển reservation ACTIVE sang EXPIRED và coupon RESERVED sang EXPIRED khi hết hạn; RELEASED cho hủy trước hạn; hoàn nguyên liệu theo InventoryReservationItem một lần. Khi nhiều instance, mỗi lần xử lý vẫn phải dựa vào DB lock/transition, không dựa mutex trong process. PAID chỉ bị chủ đơn hủy trước PREPARING; theo baseline giữ payment/coupon/điểm và hoàn tồn một lần, **không hoàn tiền**. Luật này và tỷ lệ loyalty `floor(total/1000)` là đề xuất trong SRS cần PO review, không phải quyết định đã phê duyệt.
+Job expiry chạy trong API. Hủy hoặc hết hạn dùng khóa đơn và hoàn tồn theo snapshot của reservation ACTIVE. Payment cần đối soát ảnh hưởng đến điều kiện hủy hoặc hết hạn. Xem [OrdersService](../../apps/api/src/modules/orders/services/orders.service.ts) và [expiry job](../../apps/api/src/modules/orders/services/order-expiry.job.ts) cho các điều kiện theo trạng thái và phương thức.
 
 ## 6. Cấu hình, health và logging
 
-Đích config: validate `NODE_ENV`, `PORT`, `DATABASE_URL`, JWT secret/issuer/audience/TTL, `CORS_ORIGIN`, `PAYMENT_PROVIDER=mock`, reservation TTL khi startup; thiếu hoặc sai cấu hình thì fail fast. Chỉ `NEXT_PUBLIC_API_BASE_URL` và biến public thực sự được đưa vào bundle web. Secret qua env local/CI secret store/platform secret, không commit `.env`, không log connection string/token/password. [#15](https://github.com/akira-yami/BrewLite_A2/issues/15) sở hữu thiết kế chi tiết và chuẩn hóa tên env khi triển khai.
+API đọc DATABASE_URL, JWT, WEB_ORIGIN/CORS_ORIGIN, TTL giữ chỗ và cấu hình VNPAY theo môi trường. URL API public được đưa vào bundle Next.js lúc build. Secret được cấp qua biến môi trường của service.
 
 - `GET /api/v1/health` readiness: truy vấn DB có timeout, DB sẵn sàng trả 200; lỗi DB trả 503 chung. Production platform dùng probe này; liveness process có thể tách nếu cần.
 - Log JSON ra stdout: timestamp UTC, level, requestId, route, status, duration, error code; che authorization/cookie/password/secret. Không trả stack/Prisma error ra response.
@@ -128,7 +133,7 @@ Job expiry chạy trong API ở MVP, chỉ expire PENDING/PAYMENT_FAILED hết h
 | Monorepo, Web/API riêng | Review cùng FR/contract, phối hợp một PR | Cần giữ ranh giới, build/test từng app | Nhiều repo tốn đồng bộ contract ở quy mô nhóm nhỏ |
 | Modular monolith, phân lớp | Một transaction cho nhiều domain; ít vận hành | Deploy/scale toàn API, service có thể phình lớn | Microservices thêm network, distributed transaction và recovery quá sức MVP |
 | PostgreSQL + Prisma | ACID, constraint, migration có lịch sử | Vẫn cần SQL/locking và test DB thật | Memory DB không chứng minh concurrency; ORM khác hợp lệ nhưng không dùng song song |
-| Mock qua gateway port | Demo có kiểm soát success/decline/timeout | Không chứng minh tích hợp ngân hàng/thẻ thật | Tiền thật tăng phạm vi, rủi ro và bí mật không cần cho bài tập |
+| VNPay theo môi trường | Tách redirect, callback và đối soát | Phụ thuộc merchant, callback HTTPS và điều kiện QueryDr | Mock Ví/Thẻ giữ cho kiểm thử API |
 | Reservation + durable attempt | Tránh oversell, replay/recovery sau restart | Job expiry và đối soát phức tạp hơn | Giữ transaction khi gọi gateway tạo lock dài; cache key memory mất khi restart |
 
 ## 8. ADR và điều kiện kiểm chứng
@@ -147,4 +152,4 @@ Khi triển khai: unit cho giá/state machine/coupon; HTTP cho DTO/JWT/role/owne
 
 ## 9. Baseline công thức/kho và ranh giới UC
 
-Theo chỉ dẫn người dùng ngày 04/11/2026, A2 tương thích A1 @7beb0cb: kho Ingredient, RecipeItem/ToppingRecipeItem và snapshot InventoryReservationItem thay mô tả stock/version trên variant. [ADR-006](adr/006-a1-recipe-inventory.md) thay thế phần giả định kho cũ; [class domain](class-domain.md) giữ tên model/schema, Coupon là Promotion theo đề. Code A1 là căn cứ, chưa là runtime A2. UC-06: Đặt hàng và UC-08: Thực hiện thanh toán tách biệt; payment vẫn thuộc toàn kiến trúc hệ thống nhưng không nằm trong sequence UC-06. Railway được chọn tại PR #53, environment quan sát vẫn source A1.
+A2 kế thừa mô hình kho Ingredient và công thức món/topping từ baseline A1. [Class domain](class-domain.md) và [ERD](../../database/BrewLite.svg) bám schema hiện tại. UC-06 tạo đơn và giữ nguyên liệu, UC-08 xử lý thanh toán trên đơn đã tạo.

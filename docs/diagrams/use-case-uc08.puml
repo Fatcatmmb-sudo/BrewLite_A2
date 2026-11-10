@@ -1,0 +1,23 @@
+@startuml
+!pragma layout smetana
+left to right direction
+title BrewLite A2 - UC-08 Thực hiện thanh toán
+skinparam defaultFontName Arial
+skinparam shadowing false
+actor "Khách hàng" as Customer
+actor "VNPay" as Gateway
+rectangle "BrewLite" {
+  usecase "UC-08 Thực hiện thanh toán" as Pay
+  usecase "Xem trạng thái giao dịch" as Status
+  usecase "Thử lại thanh toán" as Retry
+  Retry ..> Pay : <<extend>>\n[thất bại xác định, đơn còn hạn]
+}
+Customer -- Pay
+Customer -- Status
+Customer -- Retry
+Gateway -- Pay : Thanh toán và callback
+note bottom of Pay
+  Đơn của khách còn hạn; cần JWT và Idempotency-Key.
+  Kết quả gồm thành công, thất bại hoặc đang xử lý.
+end note
+@enduml

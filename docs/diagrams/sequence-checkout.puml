@@ -1,0 +1,47 @@
+@startuml
+title BrewLite A2 - Checkout từ giỏ hàng đến xác nhận đơn
+hide footbox
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+actor "Khách hàng" as Customer
+boundary "Next.js UI" as UI
+control "NestJS API" as API
+
+Customer -> UI: Mở giỏ hàng và tiếp tục checkout
+opt Chưa đăng nhập
+  UI --> Customer: Yêu cầu đăng nhập và giữ giỏ
+  ref over Customer, UI, API: UC-02 Đăng nhập
+end
+opt Có coupon
+  Customer -> UI: Áp dụng mã giảm giá
+  UI -> API: POST /coupons/validate
+  API --> UI: Báo giá hoặc lỗi coupon
+end
+Customer -> UI: Xác nhận đặt đơn và thanh toán
+ref over UI, API: UC-06 Tạo đơn và giữ nguyên liệu
+break Không tạo được đơn
+  UI --> Customer: Hiện lỗi để sửa giỏ hoặc thử lại
+end
+
+ref over Customer, UI, API: UC-08 Thực hiện thanh toán
+alt Đã thanh toán
+  UI -> API: GET /orders/:id
+  API --> UI: Chi tiết đơn của khách
+  UI --> Customer: Hiển thị xác nhận đơn
+  opt Khách mở lịch sử
+    Customer -> UI: Xem lịch sử đơn
+    UI -> API: GET /orders/me
+    API --> UI: Danh sách đơn của khách
+    UI --> Customer: Hiển thị lịch sử đơn
+  end
+else Thất bại xác định
+  UI --> Customer: Hiện lỗi và cho thử lại nếu đơn còn hạn
+else Chưa có kết quả cuối
+  UI --> Customer: Hiện trạng thái đang xử lý hoặc cần đối soát
+end
+legend bottom
+  Khung ref dẫn đến luồng chi tiết UC-06 và UC-08.
+  Các API sử dụng tiền tố /api/v1.
+endlegend
+@enduml

@@ -1,0 +1,73 @@
+{
+  "version": 2,
+  "pathBase": "repository",
+  "renderer": "PlantUML 1.2026.8 / Java 27 / Arial (Windows)",
+  "jarSha256": "5e1ecfa8ecd32c90b03bbf3b1eb6f020943f98ab0fcf4032be31a0002ee2c462",
+  "sourceNormalization": "UTF-8, CRLF -> LF",
+  "entries": [
+    {
+      "source": "docs/diagrams/class-domain.puml",
+      "sha256": "406b7533763d8ba99aadea5d9ab7272ccbcf66d08996875f05cf571938e67c70",
+      "outputs": {
+        "docs/diagrams/class-domain.svg": "f4e1286d41439b6c9737fce77fce31f621bcc686f54829057bfbb0850f4b5bf5",
+        "docs/diagrams/class-domain.png": "6be05fca51a88aee509afb1f4eb36b0c1e3615a1d9602ed0bc7c05c438708547"
+      }
+    },
+    {
+      "source": "docs/diagrams/deployment-production.puml",
+      "sha256": "e58af37c5f0d734d19ed2031528946ca901f1af257921932053664e1aaccf76d",
+      "outputs": {
+        "docs/diagrams/deployment-production.svg": "687a2f2813441f62cd0ae79e4c2a1fcb247398a54677b848a976674eceac7e2e",
+        "docs/diagrams/deployment-production.png": "81d01a612c87e6933a1c3502c3b9da38d68839534498baf8f8d413fbe1bfb3a3"
+      }
+    },
+    {
+      "source": "docs/diagrams/sequence-checkout.puml",
+      "sha256": "c067ee3daf83004f96ce47eaa222e13be30acbb3bbfe70682e3a45403c560d8b",
+      "outputs": {
+        "docs/diagrams/sequence-checkout.svg": "dd4553800af195cbf4c689b1684896bb01affc271d2c484f542d08771f291fae",
+        "docs/diagrams/sequence-checkout.png": "2953e3691b064c2b500ddb1e06a30baed673436b7e8babc44e9c6288440a49df"
+      }
+    },
+    {
+      "source": "docs/diagrams/sequence-create-order.puml",
+      "sha256": "0afa787178add1edba55c55e93509e5eafad84a31bbf4d8ea291f316012b8b28",
+      "outputs": {
+        "docs/diagrams/sequence-create-order.svg": "78f19c953895d8993173a13fb810d249e0be469d8a02ec2c5a77e3a63a978e3c",
+        "docs/diagrams/sequence-create-order.png": "4dc9390c1f7b93e82d4cccabec97e72b14dbf6521c415b8f90cfdec5efae520c"
+      }
+    },
+    {
+      "source": "docs/diagrams/sequence-payment.puml",
+      "sha256": "0e33b6382fa0664e3991abc8bbf21d7e8c0b6b3990197698f88dffd7845f985c",
+      "outputs": {
+        "docs/diagrams/sequence-payment.svg": "a2707705b4994130067068460b402a967903fe73710f93be19829e2adacf7b02",
+        "docs/diagrams/sequence-payment.png": "f1434a7140123af789ae8dfa1a5663ae423b43ab881facbc5f9b94a7569c3cbe"
+      }
+    },
+    {
+      "source": "docs/diagrams/use-case-overview.puml",
+      "sha256": "b602ca579dd4179ab8e58e886dcbc793754d209696cde2de4e77c7c927c218dd",
+      "outputs": {
+        "docs/diagrams/use-case-overview.svg": "71d43b51b375e88b455ec03aa616148a90c8c7764b898b092fde6f6af0e64d85",
+        "docs/diagrams/use-case-overview.png": "2718d0906e392f5a074e09d125ea8829630be027b18bcd95cde5629e8f9aec60"
+      }
+    },
+    {
+      "source": "docs/diagrams/use-case-uc06.puml",
+      "sha256": "164cd37e7f13b9abe1fe53b624b2d77be9833f0a54a46e513dce7ca6e1d79550",
+      "outputs": {
+        "docs/diagrams/use-case-uc06.svg": "8e953d698b140bff082f7706f42a26611672ebf9649e978d6dccc27ba1b668e5",
+        "docs/diagrams/use-case-uc06.png": "baaed02931e1c2bbe16d07444ce4ec0b0275103157930ddbb358b7be3a2ff06b"
+      }
+    },
+    {
+      "source": "docs/diagrams/use-case-uc08.puml",
+      "sha256": "1fd4044b1805c992de98d340126ce36ed96e9a067fe27d72032b44800ded398c",
+      "outputs": {
+        "docs/diagrams/use-case-uc08.svg": "3076943a0bf9381b5cbcec9e3c273a48b246f12afdb024c956c62d9279359047",
+        "docs/diagrams/use-case-uc08.png": "4a70bcbe08ecb17fe0184ea0c3241d258802d2b1e09b9d97cad748f91bc67fc1"
+      }
+    }
+  ]
+}

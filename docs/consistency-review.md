@@ -1,6 +1,6 @@
 # Đối chiếu tính nhất quán Task 1–3
 
-Ngày: 04/11/2026. Nguồn tên/actor: `docs/diagrams/use-case-overview.drawio` và PNG tổng thể của nhóm; nguồn domain: [A1 @7beb0cb06a2a89bc53a119bcb8d905cf596f548b](https://github.com/akira-yami/BrewLite_A1/tree/7beb0cb06a2a89bc53a119bcb8d905cf596f548b).
+Hồ sơ đối chiếu lịch sử ngày 04/11/2026. Bộ sơ đồ A2 hiện tại nằm ở [danh mục sơ đồ](diagrams/README.md). Nguồn tên/actor: `docs/diagrams/use-case-overview.drawio` và PNG tổng thể của nhóm; nguồn domain: [A1 @7beb0cb06a2a89bc53a119bcb8d905cf596f548b](https://github.com/akira-yami/BrewLite_A1/tree/7beb0cb06a2a89bc53a119bcb8d905cf596f548b).
 
 ## Tên use case chuẩn
 

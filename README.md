@@ -4,11 +4,17 @@
 
 Repository chính: [akira-yami/BrewLite_A2](https://github.com/akira-yami/BrewLite_A2). Thiết lập và quy trình: [A2-4.1 / #17](https://github.com/akira-yami/BrewLite_A2/issues/17).
 
-## Trạng thái hiện tại
+## Trạng thái hiện tại — Sprint 2 (v1.0.0)
 
-Đây là khung repository và hồ sơ A2, đã có SRS/FR/NFR và use-case tổng quát. `apps/web`, `apps/api` chưa có package/runtime; `docker-compose.yml`, `docs/deployment.md` đang giữ chỗ. **Chưa có lệnh install/dev/test/build/deploy chạy ứng dụng**; khung này chưa phải MVP chạy được.
+Luồng ứng dụng gồm menu → chi tiết món → giỏ hàng → đăng nhập → tạo đơn → thanh toán VNPay → xác nhận/lịch sử. API có logging và readiness. Xem hướng dẫn [API](apps/api/README.md) và [Web](apps/web/README.md).
 
-Runtime catalog/menu thuộc #21/#22, test #23, CI #24; checkout/delivery thuộc Sprint 2. [#12](https://github.com/akira-yami/BrewLite_A2/issues/12) sở hữu kiến trúc/ADR, [#16](https://github.com/akira-yami/BrewLite_A2/issues/16) deployment thực tế. Cập nhật README bằng lệnh đã kiểm tra từ checkout sạch khi các phần đó tích hợp.
+- **API**: 161 unit tests pass, NestJS với Catalog/Auth/Orders/Payments/Inventory/Coupon/Loyalty
+- **Web**: 38 unit tests pass, Next.js với App Router, React Query, Tailwind CSS
+- **CI**: GitHub Actions required check `PR quality gate` chặn merge khi lint/test/build lỗi
+- **Release notes**: xem [`docs/RELEASE-NOTES-v1.0.0.md`](docs/RELEASE-NOTES-v1.0.0.md)
+- **Rollback guide**: xem [`docs/evidence/cd/rollback-guide.md`](docs/evidence/cd/rollback-guide.md)
+
+Xem hướng dẫn chi tiết [API](apps/api/README.md) và [Web](apps/web/README.md). Docker Compose local (#36), browser E2E (#34), production deployment A2 (#39) còn trong backlog.
 
 ## Clone và đọc hồ sơ
 
@@ -18,23 +24,85 @@ cd BrewLite_A2
 git status
 ```
 
-Hiện chỉ cần Git và trình đọc Markdown. Nhóm sẽ chốt Node/package manager/PostgreSQL version và lockfile trong PR runtime; chưa có dependency được khóa ở bước này.
+Cần Git, Node **24.x** (xem `.nvmrc`) và npm. Mỗi app có lockfile riêng; chạy `npm ci`, `npm run lint`, `npm test`, `npm run build` trong từng thư mục. Build/unit không cần DB. API chạy local cần PostgreSQL và `DATABASE_URL`; Web dùng port 3000, API dùng 3001. Xem README ứng dụng để cấu hình/chạy.
+
+## Chạy Local (không cần Docker)
+
+### 1. Cài đặt dependencies
+
+```powershell
+cd apps/api ; npm ci ; cd ../..
+cd apps/web ; npm ci ; cd ../..
+```
+
+### 2. Cấu hình API
+
+```powershell
+Copy-Item .env.example apps/api/.env
+# Mở apps/api/.env và thay:
+#   DATABASE_URL=postgresql://user:password@localhost:5432/brewlite
+#   JWT_SECRET=any-random-string-32-chars-or-more
+```
+
+### 3. Migrate + seed database
+
+```powershell
+cd apps/api
+npm run db:migrate
+npm run db:seed
+cd ../..
+```
+
+### 4. Cấu hình Web
+
+```powershell
+Set-Content apps/web/.env.local "NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api/v1"
+```
+
+### 5. Chạy API và Web
+
+```powershell
+# Terminal 1 — API
+cd apps/api ; npm run build ; npm start
+# → http://localhost:3001/api/v1/health phải trả {"status":"ok"}
+
+# Terminal 2 — Web
+cd apps/web ; npm run dev
+# → http://localhost:3000/menu để xem menu
+```
+
+### 6. CI local (từ gốc repo, không cần DB)
+
+```powershell
+node scripts/ci-projects.mjs validate
+node scripts/ci-projects.mjs lint
+node scripts/ci-projects.mjs test   # 199 tests
+node scripts/ci-projects.mjs build
+```
+
+### 7. Smoke test (khi API đang chạy)
+
+```powershell
+node apps/api/scripts/smoke.mjs http://localhost:3001
+```
 
 | Thư mục / tệp | Nội dung |
 |---|---|
 | [apps/web](apps/web/README.md) | Ranh giới Next.js/PWA và việc còn lại |
 | [apps/api](apps/api/README.md) | Ranh giới NestJS/API/DB và việc còn lại |
 | [docs](docs/README.md) | Yêu cầu, sơ đồ, kiến trúc và Scrum |
-| `tests/` | Chỗ cho test xuyên ứng dụng; chưa có test executable |
-| `.github/workflows/` | Chỗ cho CI/CD; chưa có workflow executable |
-| [.env.example](.env.example) | Biến local đề xuất, chỉ có placeholder |
+| [docs/RELEASE-NOTES-v1.0.0.md](docs/RELEASE-NOTES-v1.0.0.md) | Release notes v1.0.0 — tính năng, CI evidence, quick start |
+| [docs/evidence/cd/rollback-guide.md](docs/evidence/cd/rollback-guide.md) | Hướng dẫn rollback/backup/restore |
+| `tests/` | Chỗ cho test xuyên ứng dụng; unit test nằm trong từng app |
+| `.github/workflows/` | [PR CI](docs/ci-pull-request.md): Install → Lint → Unit Test → Build và required gate |
+| [.env.example](.env.example) | Mẫu local, chỉ có placeholder; API/Web có working directory riêng |
 | `docker-compose.yml` | Chờ cấu hình Web/API/PostgreSQL tại #36 |
 
 Cấu trúc bên trong Web/API, Prisma, kiểm thử và minh chứng đã được tạo bằng các thư mục giữ chỗ. Xem [cây thư mục và quy ước đặt mã nguồn](docs/repository-structure.md).
 
 ## Cấu hình
 
-`.env.example` là mẫu phối hợp, **chưa có chương trình đọc các biến này**. Khi có runtime, tạo `.env` từ mẫu, thay mọi placeholder và theo README ứng dụng. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service khi #36 chốt Compose.
+API đọc `apps/api/.env`; Web đọc `apps/web/.env.local`. Tạo từ mẫu gốc, thay mọi placeholder theo README ứng dụng. API kiểm tra cấu hình khi khởi động. VNPay cần bộ biến `VNPAY_*` của môi trường đang chạy. Không commit `.env`, token, mật khẩu, DB dump. `NEXT_PUBLIC_*` công khai trong browser, không chứa secret. DB URL host `localhost` dành cho ứng dụng trên máy; container phải dùng hostname service trong Compose.
 
 Không dùng mẫu trên production; CI/hosting cấp secret từ secret store. Chưa có production URL/registry/deploy đã xác minh. Chỉ ghi migrate/seed/start/test/build/rollback hoạt động khi có code và evidence từ checkout sạch.
 

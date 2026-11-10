@@ -1,0 +1,72 @@
+{
+  "observedDate": "2026-11-10",
+  "timezone": "Asia/Bangkok",
+  "provider": "Railway",
+  "project": "brewlite-a2",
+  "environment": "a2-production",
+  "region": "sfo",
+  "applicationRepository": "akira-yami/BrewLite_A2",
+  "branch": "main",
+  "deploymentCommit": "2d868b685caa98092d9d1ee77d78365b75021725",
+  "services": [
+    {
+      "name": "web",
+      "rootDirectory": "/apps/web",
+      "dockerfile": "Dockerfile.railway",
+      "domain": "web-a2-production.up.railway.app",
+      "targetPort": 3000,
+      "healthcheckPath": "/health",
+      "healthcheckTimeoutSeconds": 180,
+      "latestDeploymentId": "70e32317-3a78-41d8-8e9b-60d9518271f5",
+      "deploymentStatus": "SUCCESS",
+      "replicas": 1,
+      "variableNames": [
+        "NEXT_PUBLIC_API_URL",
+        "PORT",
+        "RAILWAY_DOCKERFILE_PATH"
+      ]
+    },
+    {
+      "name": "api",
+      "rootDirectory": "/apps/api",
+      "dockerfile": "Dockerfile.railway",
+      "startCommand": "node dist/main.js",
+      "preDeployCommand": "npm run prisma:deploy",
+      "domain": "api-a2-production.up.railway.app",
+      "targetPort": 3001,
+      "healthcheckPath": "/api/v1/health",
+      "healthcheckTimeoutSeconds": 180,
+      "latestDeploymentId": "8983920f-02cc-42fa-92c8-56aa234ffc04",
+      "deploymentStatus": "SUCCESS",
+      "replicas": 1,
+      "variableNames": [
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "NODE_ENV",
+        "PORT",
+        "RAILWAY_DOCKERFILE_PATH",
+        "VNPAY_ENABLED",
+        "VNPAY_HASH_SECRET",
+        "VNPAY_IPN_URL",
+        "VNPAY_PAYMENT_URL",
+        "VNPAY_QUERY_URL",
+        "VNPAY_RETURN_URL",
+        "VNPAY_TMN_CODE",
+        "WEB_ORIGIN"
+      ]
+    },
+    {
+      "name": "postgres",
+      "image": "postgres:18.4-alpine3.23",
+      "privatePort": 5432,
+      "publicDomains": [],
+      "tcpProxies": [],
+      "volume": {
+        "name": "postgres-data",
+        "sizeMb": 500,
+        "mountPath": "/var/lib/postgresql"
+      },
+      "replicas": 1
+    }
+  ]
+}

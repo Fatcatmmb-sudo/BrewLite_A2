@@ -1,32 +1,27 @@
-
 @startuml
-title Usecase tổng thể dự án
-
+!pragma layout smetana
 left to right direction
-
-skinparam packageStyle rectangle
+title BrewLite A2 - Use Case tổng thể
+skinparam defaultFontName Arial
 skinparam shadowing false
-skinparam actorStyle stickman
-
 actor "Khách hàng" as Customer
 actor "Nhân viên quầy" as Staff
-actor "Mock Payment Gateway" as Payment
-
-rectangle "HỆ THỐNG BREWLITE" {
-
-    usecase "UC-01: Đăng ký" as UC01
-    usecase "UC-02: Đăng nhập" as UC02
-    usecase "UC-03: Xem menu" as UC03
-    usecase "UC-04: Xem chi tiết sản phẩm\n+ size + topping" as UC04
-    usecase "UC-05: Quản lý giỏ hàng" as UC05
-    usecase "UC-06: Đặt hàng" as UC06
-    usecase "UC-07: Áp dụng coupon" as UC07
-    usecase "UC-08: Thực hiện thanh toán" as UC08
-    usecase "UC-09: Xem xác nhận\nvà lịch sử đơn hàng" as UC09
-    usecase "UC-10: Cập nhật trạng thái đơn hàng" as UC10
+actor "VNPay" as Gateway
+rectangle "BrewLite" {
+  usecase "UC-01 Đăng ký" as UC01
+  usecase "UC-02 Đăng nhập" as UC02
+  usecase "UC-03 Xem menu" as UC03
+  usecase "UC-04 Xem chi tiết và tùy chọn món" as UC04
+  usecase "UC-05 Quản lý giỏ hàng" as UC05
+  usecase "UC-06 Đặt hàng" as UC06
+  usecase "UC-07 Áp dụng coupon" as UC07
+  usecase "UC-08 Thực hiện thanh toán" as UC08
+  usecase "UC-09 Xem xác nhận và lịch sử" as UC09
+  usecase "UC-10 Cập nhật trạng thái đơn" as UC10
+  usecase "UC-11 Xem và đổi điểm lấy voucher" as UC11
+  usecase "UC-12 Xem công thức món" as UC12
+  usecase "UC-13 Quản lý tồn nguyên liệu" as UC13
 }
-
-' Khách hàng
 Customer -- UC01
 Customer -- UC02
 Customer -- UC03
@@ -35,16 +30,12 @@ Customer -- UC06
 Customer -- UC07
 Customer -- UC08
 Customer -- UC09
-
-' Nhân viên quầy
+Customer -- UC11
 Staff -- UC02
 Staff -- UC10
-
-' Cổng thanh toán giả lập
-Payment -- UC08
-
-' Quan hệ mở rộng
+Staff -- UC12
+Staff -- UC13
+Gateway -- UC08
 UC04 ..> UC03 : <<extend>>
 UC07 ..> UC06 : <<extend>>
-
 @enduml

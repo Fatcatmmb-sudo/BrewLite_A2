@@ -1,5 +1,7 @@
 Tài liệu Mô tả Lớp Lưu trữ và Cơ chế Migration (A2-3.1.2)
 
+[ERD PostgreSQL A2](../../database/BrewLite.svg) · [Nguồn PlantUML](../../database/BrewLite.puml) · [Schema Prisma](../../apps/api/prisma/schema.prisma).
+
 # 1. Cơ chế Lưu trữ Bền vững (Persistent Storage)
 +Hệ quản trị Cơ sở Dữ liệu: Dự án sử dụng PostgreSQL làm nguồn dữ liệu giao dịch duy nhất cho toàn bộ hệ thống backend (NestJS).
 -Tính bền vững (Persistence): Dữ liệu được lưu trữ thông qua các Docker Volumes cấu hình trong tệp compose.yaml. Điều này đảm bảo toàn bộ thông tin về người dùng, sản phẩm, giỏ hàng, đơn hàng, lịch sử thanh toán và kho hàng không bị mất mát khi các container khởi động lại.
@@ -23,4 +25,4 @@ Tài liệu Mô tả Lớp Lưu trữ và Cơ chế Migration (A2-3.1.2)
 -Kết nối: NestJS kết nối trực tiếp đến PostgreSQL thông qua Prisma Client (hỗ trợ adapter PrismaPg), cấu hình bảo mật thông qua biến môi trường DATABASE_URL
 -Xử lý đồng thời và toàn vẹn dữ liệu (ACID):
 +Giao dịch (Transactions): Các luồng quan trọng như tạo đơn hàng, trừ tồn kho nguyên liệu, áp dụng mã giảm giá (coupon_redemptions) đều được bọc trong Prisma $transaction. Nếu bất kỳ bước nào lỗi, toàn bộ thay đổi sẽ được hoàn tác (rollback) an toàn.
-+Chống ghi lặp (Idempotency): Giao dịch thanh toán (payments) sử dụng ràng buộc độc nhất (UNIQUE) trên idempotency_key kết hợp với chỉ mục một chiều (uq_one_successful_payment_per_order) để ngăn chặn tuyệt đối tình trạng thanh toán lặp (double-charge) khi có nhiều request đồng thời gửi đến.
++Chống ghi lặp (Idempotency): Giao dịch thanh toán (payments) sử dụng ràng buộc độc nhất (UNIQUE) trên idempotency_key kết hợp với chỉ mục một chiều (uq_one_successful_payment_per_order) để ràng buộc ghi nhận payment khi nhiều request đến đồng thời. IPN, replay và đối soát có xử lý riêng ở [UC-08](../requirements/uc-08-thanh-toan.md).

@@ -1,0 +1,333 @@
+'use client';
+
+import { useSyncExternalStore } from 'react';
+import type { Product, ProductSize, Topping } from '@/features/catalog/types';
+import type { CreateOrderItemInput } from '@/features/orders/types';
+
+export interface CartItem {
+  id: string;
+  productId: string;
+  variantId: string;
+  sku: string;
+  name: string;
+  imageUrl: string;
+  size: ProductSize;
+  unitPrice: number;
+  quantity: number;
+  toppings: Array<Pick<Topping, 'id' | 'name' | 'price'>>;
+  sugarLevel: number | null;
+  iceLevel: number | null;
+  note: string | null;
+  lineTotal: number;
+}
+
+export interface AddCartItemInput {
+  product: Product;
+  variantId: string;
+  size: ProductSize;
+  unitPrice: number;
+  quantity: number;
+  toppings: Array<Pick<Topping, 'id' | 'name' | 'price'>>;
+  sugarLevel?: number | null;
+  iceLevel?: number | null;
+  note?: string | null;
+}
+
+export interface CartSnapshot {
+  items: CartItem[];
+  totalQuantity: number;
+  subtotal: number;
+}
+
+const STORAGE_KEY = 'brewlite_cart_storage';
+const emptySnapshot: CartSnapshot = {
+  items: [],
+  totalQuantity: 0,
+  subtotal: 0,
+};
+
+let currentSnapshot = emptySnapshot;
+let hydrated = false;
+const listeners = new Set<() => void>();
+
+export const MAX_ITEM_QUANTITY = 20;
+export const ITEM_QUANTITY_LIMIT_MESSAGE = `Tối đa ${MAX_ITEM_QUANTITY} ly cho mỗi món có cùng tùy chọn.`;
+
+function assertValidQuantity(quantity: number) {
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_ITEM_QUANTITY) {
+    throw new RangeError(`Số lượng mỗi món phải là số nguyên từ 1 đến ${MAX_ITEM_QUANTITY}.`);
+  }
+}
+
+function normalizeLevel(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100
+    ? value
+    : null;
+}
+
+function normalizeNote(value: unknown): string | null {
+  return typeof value === 'string' ? value.trim() || null : null;
+}
+
+function orderItemKey(item: CreateOrderItemInput): string {
+  return JSON.stringify([
+    item.productVariantId,
+    [...(item.toppingIds ?? [])].sort(),
+    normalizeLevel(item.sugarLevel),
+    normalizeLevel(item.iceLevel),
+    normalizeNote(item.note),
+  ]);
+}
+
+function toOrderItem(item: CartItem): CreateOrderItemInput {
+  return {
+    productVariantId: item.variantId,
+    quantity: item.quantity,
+    toppingIds: item.toppings.map(topping => topping.id),
+    sugarLevel: item.sugarLevel,
+    iceLevel: item.iceLevel,
+    note: item.note,
+  };
+}
+
+function formatCartItemId(
+  input: Pick<CartItem, 'productId' | 'variantId' | 'toppings' | 'sugarLevel' | 'iceLevel' | 'note'>,
+) {
+  const toppingKey = input.toppings
+    .map((topping) => topping.id)
+    .sort()
+    .join('.');
+
+  return [
+    input.productId,
+    input.variantId,
+    toppingKey || 'plain',
+    `sugar=${input.sugarLevel ?? 'standard'}`,
+    `ice=${input.iceLevel ?? 'standard'}`,
+    `note=${JSON.stringify(input.note)}`,
+  ].join(':');
+}
+
+function buildCartItem(input: AddCartItemInput): CartItem {
+  assertValidQuantity(input.quantity);
+  const sugarLevel = normalizeLevel(input.sugarLevel);
+  const iceLevel = normalizeLevel(input.iceLevel);
+  const note = normalizeNote(input.note);
+  const toppingsTotal = input.toppings.reduce((sum, topping) => sum + topping.price, 0);
+
+  const baseItem = {
+    productId: input.product.id,
+    variantId: input.variantId,
+    toppings: input.toppings,
+    sugarLevel,
+    iceLevel,
+    note,
+  };
+
+  return {
+    id: formatCartItemId(baseItem),
+    productId: input.product.id,
+    variantId: input.variantId,
+    sku: input.product.sku,
+    name: input.product.name,
+    imageUrl: input.product.imageUrl,
+    size: input.size,
+    unitPrice: input.unitPrice,
+    quantity: input.quantity,
+    toppings: input.toppings,
+    sugarLevel,
+    iceLevel,
+    note,
+    lineTotal: (input.unitPrice + toppingsTotal) * input.quantity,
+  };
+}
+
+function calculateSnapshot(items: CartItem[]): CartSnapshot {
+  const normalizedItems = items.map((item) => {
+    const sugarLevel = normalizeLevel(item.sugarLevel);
+    const iceLevel = normalizeLevel(item.iceLevel);
+    const note = normalizeNote(item.note);
+    const toppingsTotal = item.toppings.reduce((sum, topping) => sum + topping.price, 0);
+    const lineTotal = (item.unitPrice + toppingsTotal) * item.quantity;
+
+    return {
+      ...item,
+      id: formatCartItemId({ ...item, sugarLevel, iceLevel, note }),
+      sugarLevel,
+      iceLevel,
+      note,
+      lineTotal,
+    };
+  });
+
+  return {
+    items: normalizedItems,
+    totalQuantity: normalizedItems.reduce((sum, item) => sum + item.quantity, 0),
+    subtotal: normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0),
+  };
+}
+
+function emit(nextItems: CartItem[]) {
+  currentSnapshot = calculateSnapshot(nextItems);
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentSnapshot.items));
+  }
+
+  listeners.forEach((listener) => listener());
+}
+
+function hydrateCart() {
+  if (hydrated || typeof window === 'undefined') return;
+
+  hydrated = true;
+
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return;
+
+    const parsed = JSON.parse(stored) as CartItem[];
+    if (!Array.isArray(parsed)) return;
+
+    currentSnapshot = calculateSnapshot(
+      parsed.filter(
+        (item) =>
+          item
+          && item.id
+          && item.productId
+          && Number.isInteger(item.quantity)
+          && item.quantity >= 1
+          && item.quantity <= MAX_ITEM_QUANTITY,
+      ),
+    );
+  } catch {
+    currentSnapshot = emptySnapshot;
+  }
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  hydrateCart();
+
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot() {
+  hydrateCart();
+  return currentSnapshot;
+}
+
+function getServerSnapshot() {
+  return emptySnapshot;
+}
+
+export function useCartStore() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
+export const cartStore = {
+  getSnapshot(): CartSnapshot {
+    hydrateCart();
+    return currentSnapshot;
+  },
+
+  getOrderItems(): CreateOrderItemInput[] {
+    hydrateCart();
+    return currentSnapshot.items.map(toOrderItem);
+  },
+
+  removeOrderItems(orderItems: CreateOrderItemInput[]): boolean {
+    hydrateCart();
+    const remainingToRemove = new Map<string, number>();
+    for (const item of orderItems) {
+      const key = orderItemKey(item);
+      remainingToRemove.set(key, (remainingToRemove.get(key) ?? 0) + item.quantity);
+    }
+
+    let changed = false;
+    const items = currentSnapshot.items.flatMap(item => {
+      const key = orderItemKey(toOrderItem(item));
+      const removed = Math.min(remainingToRemove.get(key) ?? 0, item.quantity);
+      if (!removed) return [item];
+      changed = true;
+      remainingToRemove.set(key, remainingToRemove.get(key)! - removed);
+      const quantity = item.quantity - removed;
+      return quantity > 0 ? [{ ...item, quantity }] : [];
+    });
+    if (changed) emit(items);
+    return changed;
+  },
+
+  addItem(input: AddCartItemInput) {
+    hydrateCart();
+    const nextItem = buildCartItem(input);
+    const existing = currentSnapshot.items.find((item) => item.id === nextItem.id);
+
+    if (existing) {
+      assertValidQuantity(existing.quantity + nextItem.quantity);
+      emit(
+        currentSnapshot.items.map((item) =>
+          item.id === nextItem.id
+            ? { ...item, quantity: item.quantity + nextItem.quantity }
+            : item,
+        ),
+      );
+      return;
+    }
+
+    emit([...currentSnapshot.items, nextItem]);
+  },
+
+  replaceItem(idToReplace: string, input: AddCartItemInput) {
+    hydrateCart();
+    const replacement = buildCartItem(input);
+    const withoutOriginal = currentSnapshot.items.filter((item) => item.id !== idToReplace);
+    const sameConfiguration = withoutOriginal.find((item) => item.id === replacement.id);
+
+    if (sameConfiguration) {
+      assertValidQuantity(sameConfiguration.quantity + replacement.quantity);
+      emit(
+        withoutOriginal.map((item) =>
+          item.id === replacement.id
+            ? { ...item, quantity: item.quantity + replacement.quantity }
+            : item,
+        ),
+      );
+      return;
+    }
+
+    emit([...withoutOriginal, replacement]);
+  },
+
+  updateQuantity(id: string, quantity: number) {
+    hydrateCart();
+    if (quantity === 0) {
+      this.removeItem(id);
+      return;
+    }
+
+    assertValidQuantity(quantity);
+
+    emit(
+      currentSnapshot.items.map((item) =>
+        item.id === id ? { ...item, quantity } : item,
+      ),
+    );
+  },
+
+  removeItem(id: string) {
+    hydrateCart();
+    emit(currentSnapshot.items.filter((item) => item.id !== id));
+  },
+
+  clearCart() {
+    hydrateCart();
+    emit([]);
+  },
+};
+
+export function formatVnd(value: number) {
+  return `${value.toLocaleString('vi-VN')} đ`;
+}

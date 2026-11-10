@@ -1,0 +1,72 @@
+@startuml
+title BrewLite A2 - UC-08 Thực hiện thanh toán VNPay
+hide footbox
+skinparam defaultFontName Arial
+skinparam shadowing false
+actor "Khách hàng" as Customer
+boundary "Next.js UI" as UI
+control "NestJS API" as API
+control "PaymentsService" as Pay
+database "PostgreSQL" as DB
+participant "VNPay" as VN
+
+Customer -> UI: Thanh toán đơn đã tạo
+UI -> API: POST /payments + Bearer JWT + Idempotency-Key\n{orderId, method: VNPAY}
+API -> API: Kiểm tra DTO/key, CUSTOMER và chủ đơn\nLấy amount từ Order.total
+API -> Pay: processPayment(orderId, userId, method, amount, key)
+Pay -> Pay: Hash SHA-256 của orderId, method và amount
+break VNPay chưa cấu hình
+  API --> UI: 503 VNPAY_NOT_CONFIGURED
+end
+Pay -> DB: Đọc payment theo Idempotency-Key
+alt Key đã có, hash trùng
+  Pay --> API: Kết quả đã lưu, có thể kèm paymentUrl
+  API --> UI: 200 {data: kết quả}
+else Key đã có, hash khác
+  API --> UI: 409 IDEMPOTENCY_KEY_REUSED
+else Attempt mới
+  Pay -> DB: BEGIN, khóa đơn, kiểm tra lại key/trạng thái/hạn
+  break Đã PAID, hết hạn, không hợp lệ hoặc có attempt PROCESSING
+    API --> UI: 409, không tạo attempt mới
+  end
+  opt Retry sau thất bại, đơn còn hạn
+    Pay -> DB: PAYMENT_FAILED → PENDING + lịch sử
+  end
+  Pay -> Pay: Tạo URL thanh toán và gatewayReference
+  Pay -> DB: INSERT Payment(PROCESSING, key, hash, URL, reference)\nCOMMIT
+  Pay --> API: PROCESSING + paymentUrl
+  API --> UI: 200 {data: trạng thái và URL}
+end
+UI -> VN: Redirect nếu có URL và cần tiếp tục giao dịch
+
+group IPN từ VNPay
+  VN -> API: GET /payments/vnpay/ipn
+  API -> Pay: verifyCallback và tìm Payment qua gatewayReference
+  alt Chữ ký/mã/amount không khớp
+    API --> VN: RspCode lỗi, không chốt đơn
+  else Kết quả hợp lệ
+    Pay -> DB: Transaction, khóa đơn và kiểm tra lại payment
+    alt Thành công khi đơn còn PENDING
+      Pay -> DB: SUCCEEDED + PAID + lịch sử\nConsume giữ chỗ/coupon + EARN floor(total / 10)
+    else Thất bại khi attempt còn PROCESSING
+      Pay -> DB: FAILED; nếu đơn PENDING, ghi PAYMENT_FAILED
+    else Thành công muộn cần đối soát
+      Pay -> DB: MANUAL_REVIEW + audit
+    else Callback lặp
+      Pay -> DB: Giữ kết quả đã chốt
+    end
+    API --> VN: 200 + RspCode
+  end
+end
+Customer -> API: GET /payments/vnpay/return qua trình duyệt
+API -> Pay: Xác minh chữ ký; Return hợp lệ ở Sandbox có thể chốt
+API --> UI: Redirect về checkout
+UI -> API: GET /payments/status + JWT + cùng key
+API -> DB: Đọc trạng thái theo key và chủ đơn
+API --> UI: 200 {data: trạng thái}, nếu tìm thấy
+UI --> Customer: Xác nhận, thử lại khi thất bại hoặc chờ đối soát
+
+legend bottom
+  Base path /api/v1. Ví/Thẻ mock được dùng trong môi trường test.
+endlegend
+@enduml

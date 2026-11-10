@@ -1,0 +1,44 @@
+{
+  "name": "brewlite-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "env:local": "powershell -ExecutionPolicy Bypass -File ../../scripts/switch-env.ps1 local",
+    "env:prod": "powershell -ExecutionPolicy Bypass -File ../../scripts/switch-env.ps1 prod",
+    "env:status": "powershell -ExecutionPolicy Bypass -File ../../scripts/switch-env.ps1 status",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "playwright test --project=chromium",
+    "test:e2e:vnpay": "playwright test --project=vnpay --reporter=html,list",
+    "test:e2e:vnpay:ui": "playwright test --project=vnpay --ui",
+    "test:e2e:vnpay:debug": "playwright test --project=vnpay --debug"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.104.1",
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true
+  }
+}

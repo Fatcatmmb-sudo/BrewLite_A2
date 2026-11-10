@@ -20,6 +20,6 @@ Customer -- Coupon
 legend bottom
   UC-02: Đăng nhập là tiền điều kiện khi chưa có phiên.
   UC-08: Thực hiện thanh toán là use case độc lập sau UC-06.
-  Không có Mock Payment Gateway, Payment hoặc loyalty trong phạm vi này.
+  UC-06 ghi đơn và giữ nguyên liệu trong cùng transaction.
 endlegend
 @enduml
