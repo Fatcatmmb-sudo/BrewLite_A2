@@ -2,12 +2,12 @@
 
 Phiên bản 1.0 · 03/11/2026 · [A2-TV.1 / #41](https://github.com/akira-yami/BrewLite_A2/issues/41). Nguồn AC: [SRS FR](../requirements/srs.md), [SRS NFR](../requirements/non-functional-requirements.md). [Ma trận](../traceability-matrix.md) nối tới UC, diagram, issue và Code/API đích.
 
-**Toàn bộ ca dưới đây là đặc tả chưa thực thi; chưa có executable test hoặc kết quả pass.** TC là nhóm ca cần tách thành test thật khi runtime được triển khai. Không lấy test của repository tham khảo làm kết quả A2.
+TC là kế hoạch kiểm chứng. [Ma trận truy vết](../traceability-matrix.md) dẫn đến các test A2 đã có. Trạng thái pass cần kết quả chạy gắn với revision và môi trường.
 
 ## Điều kiện chung
 
 - DB PostgreSQL test riêng, không chạy concurrency/fault injection trên production hoặc DB dùng chung. Reset fixture giữa lượt, không reset khi đang đo. Ghi commit, version, seed, command, UTC và log đã che bí mật.
-- Fixture tối thiểu: customer A/B, Barista; product/variant/topping active/inactive; BOM và ingredient có tồn đủ 0 hoặc 5 ly, có ingredient dùng chung giữa món/topping; coupon hợp lệ/hết hạn/hạn mức 1; gateway mock điều khiển success/decline/timeout, có call counter và lookup bền vững theo key. Không có dữ liệu thẻ thật.
+- Fixture tối thiểu: customer A/B, Barista; product/variant/topping active/inactive; BOM và ingredient có tồn đủ 0 hoặc 5 ly, có ingredient dùng chung giữa món/topping; coupon hợp lệ/hết hạn/hạn mức 1; mock Ví/Thẻ cho bộ test API và fixture callback/QueryDr cho VNPay. Không có dữ liệu thẻ thật.
 - Unit cho hàm giá/normalization/state policy; HTTP test qua guard/validation thật; integration dùng PostgreSQL thật cho transaction/constraint/concurrency; browser E2E đi qua UI -> API -> DB, không stub API trong ca nghiệm thu end-to-end.
 - Endpoint/đường dẫn executable test chưa được chốt. Issue code/test trong matrix chịu trách nhiệm bổ sung file/case/evidence. Tách test UI fixture có chủ đích khỏi E2E thật và ghi rõ loại.
 
@@ -67,6 +67,8 @@ Phiên bản 1.0 · 03/11/2026 · [A2-TV.1 / #41](https://github.com/akira-yami/
 
 <a id="tc-fr-07"></a>
 ## TC-FR-07 - Payment (AT-FR-07.1/.2/.3/.4/.5)
+
+Các ca mock bên dưới giữ tiêu chí baseline. Để kiểm chứng luồng hiện tại, chạy bộ [VNPay E2E](../../apps/web/tests/e2e/vnpay/README.md), gồm redirect, IPN, chữ ký, polling, gửi lặp và timeout. Quy tắc kết quả theo [UC-08](../requirements/uc-08-thanh-toan.md).
 
 | Ca | Thao tác / dữ liệu | Kết quả mong đợi |
 |---|---|---|
