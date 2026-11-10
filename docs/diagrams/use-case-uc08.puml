@@ -1,100 +1,23 @@
-﻿@startuml
+@startuml
 !pragma layout smetana
 left to right direction
+title BrewLite A2 - UC-08 Thực hiện thanh toán
 skinparam defaultFontName Arial
 skinparam shadowing false
-skinparam backgroundColor #FFFFFF
-
-' ── Actor ─────────────────────────────────────────────────────────────
-skinparam actor {
-  BackgroundColor #F8F9FA
-  BorderColor     #000000
-  FontColor       #000000
-  FontSize        13
+actor "Khách hàng" as Customer
+actor "VNPay" as Gateway
+rectangle "BrewLite" {
+  usecase "UC-08 Thực hiện thanh toán" as Pay
+  usecase "Xem trạng thái giao dịch" as Status
+  usecase "Thử lại thanh toán" as Retry
+  Retry ..> Pay : <<extend>>\n[thất bại xác định, đơn còn hạn]
 }
-
-' ── Use-case ellipse ──────────────────────────────────────────────────
-skinparam usecase {
-  BackgroundColor #F8F9FA
-  BorderColor     #000000
-  FontColor       #000000
-  FontSize        13
-  BorderThickness 1.5
-}
-
-' ── Rectangle / system boundary ───────────────────────────────────────
-skinparam rectangle {
-  BackgroundColor #FFFFFF
-  BorderColor     #000000
-  FontColor       #000000
-  FontStyle       bold
-  BorderThickness 1.5
-}
-
-' ── Arrow / connector ─────────────────────────────────────────────────
-skinparam arrow {
-  Color     #000000
-  FontColor #000000
-  FontSize  12
-}
-
-' ── Note ──────────────────────────────────────────────────────────────
-skinparam note {
-  BackgroundColor #E9ECEF
-  BorderColor     #ADB5BD
-  FontColor       #000000
-  FontSize        12
-}
-
-' ── Legend ────────────────────────────────────────────────────────────
-skinparam legend {
-  BackgroundColor #F8F9FA
-  BorderColor     #ADB5BD
-  FontColor       #000000
-  FontSize        12
-}
-
-title <b>BrewLite — UC-08: Thực hiện thanh toán</b>
-
-actor "Khách hàng\n(CUSTOMER)" as Customer
-actor "Mock Payment\nGateway"   as Gateway
-
-rectangle "HỆ THỐNG BREWLITE — Phạm vi UC-08" {
-
-  usecase "UC-08: Thực hiện\nthanh toán" as Pay
-
-  usecase "<<replay>>\nTra cứu kết quả\ncùng Idempotency-Key" as Replay
-
-  usecase "<<recovery>>\nĐối soát kết quả\nchưa xác định" as Recovery
-
-  Replay  ..> Pay : <<extend>>\n[key đã hoàn tất]
-  Recovery ..> Pay : <<extend>>\n[kết quả chưa rõ\n→ finalize idempotent]
-
-  note bottom of Pay
-    <b>Tiền điều kiện:</b> CUSTOMER + JWT hợp lệ; đơn ở
-    PENDING/PAYMENT_FAILED, thuộc chủ đơn, còn hạn,
-    không có attempt PROCESSING chưa giải quyết.
-    Idempotency-Key bắt buộc trên header.
-    ──────────────────────────────────────────
-    <b>Hậu điều kiện (success):</b>
-      PAID + SUCCEEDED + CONSUMED + EARN — cùng commit.
-    <b>Hậu điều kiện (decline):</b>
-      PAYMENT_FAILED + FAILED; tồn giữ để retry.
-    <b>Kết quả chưa rõ:</b>
-      Giữ PROCESSING; đối soát qua Recovery.
-  end note
-
-}
-
 Customer -- Pay
-Customer -- Replay
-Gateway  -- Pay      : charge
-Gateway  -- Recovery : lookup kết quả\ntheo key
-
-legend bottom
-  UC-06: Đặt hàng là tiền điều kiện tạo orderId cho UC-08.
-  UC-08 và UC-06 là hai use case độc lập, không include/extend lẫn nhau.
-  Loyalty EARN là hậu điều kiện backend, không phải use case riêng trong MVP.
-  UC-09: Xem xác nhận và lịch sử là bước người dùng tiếp theo sau UC-08.
-endlegend
+Customer -- Status
+Customer -- Retry
+Gateway -- Pay : Thanh toán và callback
+note bottom of Pay
+  Đơn của khách còn hạn; cần JWT và Idempotency-Key.
+  Kết quả gồm thành công, thất bại hoặc đang xử lý.
+end note
 @enduml

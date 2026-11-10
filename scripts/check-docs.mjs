@@ -41,32 +41,21 @@ for (const file of [...new Set(markdown)]) {
 
 let sourceCount = 0;
 let enumCount = 0;
-const manifestPath = ownerFolders
+const manifestPaths = ownerFolders
   .map((owner) => `${owner}/docs/architecture/diagrams/manifest.json`)
-  .concat('docs/architecture/diagrams/manifest.json', 'database/manifest.json')
-  .find(exists);
+  .concat('docs/architecture/diagrams/manifest.json', 'docs/diagrams/manifest.json', 'database/manifest.json')
+  .filter(exists);
+const manifestSources = [];
 
-if (manifestPath) {
+for (const manifestPath of manifestPaths) {
   const manifest = JSON.parse(read(manifestPath));
   const manifestDirectory = dirname(manifestPath).replaceAll('\\', '/');
   const repositoryRelative = manifest.pathBase === 'repository';
   if (manifest.version === 2 && !repositoryRelative) errors.push('Diagram manifest v2 must use repository-relative paths');
 
-  const sources = documentationRoots.flatMap((directory) =>
-    walk(resolve(root, directory === 'database' ? directory : `${directory}/architecture/diagrams`))
-      .filter((file) => file.endsWith('.puml'))
-      .map((file) => relative(root, file).replaceAll('\\', '/'))).sort();
-  sourceCount = sources.length;
-  const manifestSources = manifest.entries.map((entry) => {
-    if (repositoryRelative) return entry.source;
-    return `${manifestDirectory}/${entry.source}`;
-  }).sort();
-  if (JSON.stringify(sources) !== JSON.stringify(manifestSources)) {
-    errors.push('Diagram manifest does not list every current PlantUML source exactly once');
-  }
-
   for (const entry of manifest.entries) {
     const sourcePath = repositoryRelative ? entry.source : `${manifestDirectory}/${entry.source}`;
+    manifestSources.push(sourcePath);
     if (!exists(sourcePath)) {
       errors.push(`Missing diagram source: ${sourcePath}`);
       continue;
@@ -99,8 +88,17 @@ if (manifestPath) {
       for (const value of expected) if (!new RegExp(`\\b${value}\\b`).test(domain)) errors.push(`CD-01 missing ${name}.${value}`);
     }
   }
-} else if (documentationRoots.some((directory) => walk(resolve(root, directory)).some((file) => file.endsWith('.puml')))) {
-  errors.push('Diagram sources exist but no manifest.json was found');
+}
+
+const diagramDirectories = ['database', 'docs/diagrams', ...documentationRoots
+  .filter((directory) => directory !== 'database')
+  .map((directory) => `${directory}/architecture/diagrams`)];
+const sources = diagramDirectories.flatMap((directory) => walk(resolve(root, directory)))
+  .filter((file) => file.endsWith('.puml'))
+  .map((file) => relative(root, file).replaceAll('\\', '/')).sort();
+sourceCount = sources.length;
+if (JSON.stringify(sources) !== JSON.stringify(manifestSources.sort())) {
+  errors.push('Diagram manifests must list every current PlantUML source exactly once');
 }
 
 let inventoryCount = 0;
@@ -123,7 +121,7 @@ if (errors.length) {
   process.exitCode = 1;
 } else {
   const skipped = [
-    manifestPath ? null : 'diagram manifest/exports',
+    manifestPaths.length ? null : 'diagram manifest/exports',
     inventoryPath ? null : 'document register',
   ].filter(Boolean);
   const suffix = skipped.length ? ` (skipped: ${skipped.join(', ')})` : '';

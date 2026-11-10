@@ -1,5 +1,7 @@
 # Evidence: Production HTTPS, DB Private và Secret Config — A2-5.4.1
 
+> Hồ sơ lịch sử của môi trường A1. Xem [deployment A2](../../deployment.md) cho topology và URL hiện tại.
+
 > Issue: [#39](https://github.com/akira-yami/BrewLite_A2/issues/39) · Phân công: Khải · Sprint 2  
 > Recorded: 2026-11-05 · Platform: Railway (`aware-clarity`, region `sfo`)
 
@@ -99,7 +101,7 @@ GET https://api-production-1be6.up.railway.app/api/v1/health
 
 ## 5. Dockerfile Railway cho Web (A2)
 
-File thêm trong PR này: [`apps/web/Dockerfile.railway`](../../apps/web/Dockerfile.railway)
+File thêm trong PR này: [`apps/web/Dockerfile.railway`](../../../apps/web/Dockerfile.railway)
 
 - Build stage: `node:24-bookworm` → `npm ci` → `npm run build` (Next.js standalone)
 - Runtime stage: `node:24-bookworm-slim` (image nhỏ hơn)

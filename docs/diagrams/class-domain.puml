@@ -1,263 +1,120 @@
 @startuml
 !pragma layout smetana
-title BrewLite - Class domain theo schema A1 @7beb0cb
+title BrewLite A2 - Class Diagram domain
 hide circle
 skinparam defaultFontName Arial
+skinparam defaultFontSize 15
 skinparam classAttributeIconSize 0
 skinparam shadowing false
-skinparam nodesep 40
-skinparam ranksep 55
-package "Danh mục" {
-class Product {
-  id: String
-  sku: String {unique}
-  name: String
-  description: String?
-  imageUrl: String
-  isActive: Boolean
+skinparam nodesep 19
+skinparam ranksep 25
+skinparam packageStyle rectangle
+
+package "Danh mục và kho" {
+  class Product {
+    name: String
+    isActive: Boolean
+  }
+  class ProductVariant {
+    size: ProductSize
+    price: BigInt
+  }
+  class RecipeItem {
+    quantity: Int
+  }
+  class Ingredient {
+    stockQuantity: Int
+    version: Int
+  }
+  class InventoryReservation {
+    quantity: Int
+    status: ReservationStatus
+    expiresAt: DateTime
+  }
 }
-class ProductVariant {
-  id: String
-  productId: String
-  size: ProductSize
-  price: BigInt
-  isActive: Boolean
+
+package "Đơn hàng và ưu đãi" {
+  class User {
+    username: String
+    role: UserRole
+    loyaltyBalance: Int
+  }
+  class Order {
+    status: OrderStatus
+    total: BigInt
+    reservationExpiresAt: DateTime
+  }
+  class OrderItem {
+    quantity: Int
+    unitPrice: BigInt
+  }
+  class "Coupon (Promotion)" as Coupon {
+    code: String
+    discountValue: BigInt
+  }
+  class CouponRedemption {
+    status: CouponRedemptionStatus
+    discountAmount: BigInt
+  }
+  class LoyaltyTransaction {
+    type: LoyaltyTransactionType
+    points: Int
+    balanceAfter: Int
+  }
 }
-class Topping {
-  id: String
-  code: String {unique}
-  name: String
-  type: ToppingType
-  price: BigInt
-  isActive: Boolean
+
+package "Thanh toán và đối soát" {
+  class Payment {
+    method: PaymentMethod
+    status: PaymentStatus
+    amount: BigInt
+    idempotencyKey: String
+    gatewayReference: String?
+    paymentUrl: String?
+  }
+  class PaymentRecoveryRequest {
+    status: PaymentRecoveryRequestStatus
+    incidentReference: String
+  }
+  class PaymentRecoveryAudit {
+    actorType: PaymentRecoveryActorType
+    beforeState: PaymentStatus
+    afterState: PaymentStatus
+  }
+  class PaymentRecoveryResolution {
+    decision: PaymentRecoveryDecision
+    evidenceReference: String
+  }
 }
-class ProductTopping {
-  productId: String
-  toppingId: String
-}
-}
-package "Công thức và kho" {
-class Ingredient {
-  id: String
-  code: String {unique}
-  name: String
-  unit: IngredientUnit
-  stockQuantity: Int
-  version: Int
-  isActive: Boolean
-}
-class RecipeItem {
-  productVariantId: String
-  ingredientId: String
-  quantity: Int
-}
-class ToppingRecipeItem {
-  toppingId: String
-  ingredientId: String
-  quantity: Int
-}
-class InventoryReservation {
-  id: String
-  orderId: String
-  productVariantId: String
-  quantity: Int
-  status: ReservationStatus
-  expiresAt: DateTime
-}
-class InventoryReservationItem {
-  id: String
-  reservationId: String
-  ingredientId: String
-  quantity: Int
-}
-}
-package "Đơn và tài khoản" {
-class User {
-  id: String
-  username: String {unique}
-  passwordHash: String
-  role: UserRole
-  loyaltyBalance: Int
-  isActive: Boolean
-}
-class Order {
-  id: String
-  orderNumber: String {unique}
-  userId: String
-  status: OrderStatus
-  subtotal: BigInt
-  discountAmount: BigInt
-  total: BigInt
-  couponCodeSnapshot: String?
-  reservationExpiresAt: DateTime
-}
-class OrderItem {
-  id: String
-  orderId: String
-  productVariantId: String
-  productNameSnapshot: String
-  variantNameSnapshot: String
-  unitPrice: BigInt
-  quantity: Int
-  sugarLevel: Int?
-  iceLevel: Int?
-  note: String?
-}
-class OrderItemTopping {
-  id: String
-  orderItemId: String
-  toppingId: String
-  toppingNameSnapshot: String
-  unitPrice: BigInt
-  quantity: Int
-}
-class OrderStatusHistory {
-  id: String
-  orderId: String
-  fromStatus: OrderStatus?
-  toStatus: OrderStatus
-  changedByUserId: String?
-  reason: String?
-}
-}
-package "Thanh toán và ưu đãi" {
-class Payment {
-  id: String
-  orderId: String
-  idempotencyKey: String {unique}
-  requestHash: String
-  method: PaymentMethod
-  status: PaymentStatus
-  amount: BigInt
-  gatewayTransactionId: String? {unique}
-  failureCode: String?
-  processedAt: DateTime?
-}
-class "Coupon\n(Promotion trong đề)" as Coupon {
-  id: String
-  code: String {unique}
-  discountType: DiscountType
-  discountValue: BigInt
-  maxDiscount: BigInt?
-  minOrderValue: BigInt
-  usageLimit: Int?
-  perUserLimit: Int
-  startsAt: DateTime
-  endsAt: DateTime
-  isActive: Boolean
-}
-class CouponRedemption {
-  id: String
-  couponId: String
-  userId: String
-  orderId: String {unique}
-  discountAmount: BigInt
-  status: CouponRedemptionStatus
-  expiresAt: DateTime
-  consumedAt: DateTime?
-  releasedAt: DateTime?
-}
-class LoyaltyTransaction {
-  id: String
-  userId: String
-  orderId: String?
-  type: LoyaltyTransactionType
-  points: Int
-  balanceAfter: Int
-  reason: String
-}
-}
+
 Product "1" -- "0..*" ProductVariant
 ProductVariant "1" -- "0..*" RecipeItem
 Ingredient "1" -- "0..*" RecipeItem
-Topping "1" -- "0..*" ToppingRecipeItem
-Ingredient "1" -- "0..*" ToppingRecipeItem
-Product "1" -- "0..*" ProductTopping
-Topping "1" -- "0..*" ProductTopping
+ProductVariant "1" -- "0..*" OrderItem
+ProductVariant "1" -- "0..*" InventoryReservation
 User "1" -- "0..*" Order
 Order "1" -- "0..*" OrderItem
-ProductVariant "1" -- "0..*" OrderItem
-OrderItem "1" -- "0..*" OrderItemTopping
-Topping "1" -- "0..*" OrderItemTopping
-Order "1" -- "0..*" Payment
-Order "1" -- "0..*" OrderStatusHistory
-User "0..1" -- "0..*" OrderStatusHistory
 Order "1" -- "0..*" InventoryReservation
-ProductVariant "1" -- "0..*" InventoryReservation
-InventoryReservation "1" -- "0..*" InventoryReservationItem
-Ingredient "1" -- "0..*" InventoryReservationItem
+Order "1" -- "0..*" Payment
 Coupon "1" -- "0..*" CouponRedemption
-User "1" -- "0..*" CouponRedemption
 Order "1" -- "0..1" CouponRedemption
+User "1" -- "0..*" CouponRedemption
 User "1" -- "0..*" LoyaltyTransaction
 Order "0..1" -- "0..*" LoyaltyTransaction
-package "Enums (giữ nguyên schema A1)" {
-enum UserRole {
-  CUSTOMER
-  BARISTA
-}
-enum ProductSize {
-  S
-  M
-  L
-}
-enum OrderStatus {
-  PENDING
-  PAYMENT_FAILED
-  PAID
-  PREPARING
-  READY
-  COMPLETED
-  CANCELLED
-}
-enum PaymentMethod {
-  E_WALLET
-  CARD
-}
-enum PaymentStatus {
-  PROCESSING
-  SUCCEEDED
-  FAILED
-}
-enum IngredientUnit {
-  G
-  ML
-  PCS
-}
-enum ToppingType {
-  PREPACKAGED
-  PREPARED
-}
-enum ReservationStatus {
-  ACTIVE
-  CONSUMED
-  RELEASED
-  EXPIRED
-}
-enum DiscountType {
-  PERCENTAGE
-  FIXED_AMOUNT
-}
-enum CouponRedemptionStatus {
-  RESERVED
-  CONSUMED
-  RELEASED
-  EXPIRED
-}
-enum LoyaltyTransactionType {
-  EARN
-  REDEEM
-  ADJUSTMENT
-  REVERSAL
-}
-}
+Payment "1" -- "0..*" PaymentRecoveryRequest
+Payment "1" -- "0..*" PaymentRecoveryAudit
+Payment "1" -- "0..*" PaymentRecoveryResolution
+PaymentRecoveryRequest "0..1" -- "0..*" PaymentRecoveryAudit
+
 legend bottom
-  Field/model/enum theo Prisma A1 commit 7beb0cb; bỏ timestamps thông thường để gọn.
-  ProductVariant không có stock/version; Ingredient giữ stockQuantity/version và đơn vị G/ML/PCS.
-  RecipeItem: BOM món; ToppingRecipeItem: BOM topping PREPACKAGED/PREPARED.
-  ReservationItem snapshot lượng đã giữ (gồm món/topping), hoàn theo snapshot khi BOM đổi.
-  Cardinality theo FK: OrderItem 0..* ở schema; nghiệp vụ order commit cần 1..20 dòng.
-  LoyaltyTransaction: orderId nullable, nhiều loại; EARN/order tối đa một bằng partial unique SQL.
-  Coupon là Promotion trong phạm vi đề, không thêm bảng Promotion song song.
+  |= Enum |= Giá trị |
+  | UserRole | CUSTOMER, BARISTA, PAYMENT_OPERATOR |
+  | OrderStatus | PENDING, PAYMENT_FAILED, PAID, PREPARING, READY, COMPLETED, CANCELLED |
+  | PaymentMethod | E_WALLET, CARD, VNPAY |
+  | PaymentStatus | PROCESSING, SUCCEEDED, FAILED, MANUAL_REVIEW, REFUNDED |
+  | ReservationStatus | ACTIVE, CONSUMED, RELEASED, EXPIRED |
+  | CouponRedemptionStatus | RESERVED, CONSUMED, RELEASED, EXPIRED |
+  | LoyaltyTransactionType | EARN, REDEEM, ADJUSTMENT, REVERSAL |
+  Các bảng hỗ trợ, quan hệ actor đối soát và enum đầy đủ nằm ở ERD PostgreSQL.
 endlegend
 @enduml

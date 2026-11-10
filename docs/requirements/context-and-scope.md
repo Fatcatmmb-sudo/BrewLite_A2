@@ -19,7 +19,7 @@ Mục tiêu nghiệm thu là hoàn thành một đơn end-to-end với số ti�
 | ST-03 | Quản lý cửa hàng / đại diện PO | Không bán quá tồn; tiền, coupon và điểm nhất quán; phạm vi MVP rõ ràng | Review quy tắc nghiệp vụ, test đồng thời và Sprint Review; chưa có màn quản trị riêng |
 | ST-04 | Giảng viên / khách hàng nghiệm thu | Truy được yêu cầu tới thiết kế, code, test; có lịch sử PR, demo và URL production hoạt động | Đối chiếu rubric, ma trận truy vết, CI/CD, release và demo |
 | ST-05 | Nhóm phát triển | Contract thống nhất, trách nhiệm rõ, tích hợp được qua PR và tái tạo môi trường | Review chéo tài liệu, CI, hướng dẫn local/test/deploy/rollback |
-| ST-06 | Đơn vị thanh toán (được đại diện bằng Mock Payment Gateway) | Nhận đúng amount từ server; phân biệt thành công, từ chối và kết quả chưa xác định; xử lý request lặp an toàn | Test adapter/gateway và lỗi timeout; chưa tích hợp nhà cung cấp tiền thật |
+| ST-06 | Đơn vị thanh toán (VNPay) | Nhận đúng amount từ server; phân biệt thành công, từ chối và kết quả chưa xác định; xử lý request lặp an toàn | Test redirect, callback và xử lý kết quả chưa xác định |
 
 Các kỳ vọng trên được phân tích từ đề và tài liệu tham khảo; cần xác nhận qua review/demo. Stakeholder không mặc nhiên là actor hay role: quản lý/giảng viên/nhóm phát triển không có tài khoản nghiệp vụ trong MVP; gateway là actor tích hợp, không phải role.
 
@@ -48,12 +48,12 @@ MVP cuối Assignment 2 bao gồm cả hai Sprint. MVP Sprint 1 là phần chạ
 |---|---|---|
 | OUT-01 | UI quầy hoàn chỉnh, dashboard quản trị menu/kho/báo cáo | Could, sau MVP; backend chuyển trạng thái và RBAC vẫn bắt buộc |
 | OUT-02 | Refresh token, realtime WebSocket/push | Could; MVP dùng access token và tải lại trạng thái; phải xử lý hết hạn phiên |
-| OUT-03 | Thu tiền thật, hoàn tiền/đối soát ngân hàng, Momo/VNPay/Stripe production | Won't trong MVP; chỉ mock gateway, không xử lý dữ liệu thẻ thật |
+| OUT-03 | Thu tiền thật, hoàn tiền/đối soát ngân hàng, Momo/VNPay/Stripe production | Won't trong MVP. Luồng tích hợp được kiểm chứng với VNPay Sandbox hoặc mock test. |
 | OUT-04 | Giao hàng, nhiều chi nhánh, đa tiền tệ, thuế/hóa đơn điện tử | Won't trong MVP; tập trung nhận món tại một quầy |
 | OUT-05 | Mua hàng, nhà cung cấp và UI quản trị kho đầy đủ | Won’t trong MVP; kho Ingredient và công thức món/topping đã thuộc lõi đặt hàng |
 | OUT-06 | Đặt đơn/thanh toán khi offline | Won't trong MVP; hướng PWA không được tạo xác nhận thanh toán giả khi mất mạng |
 
-Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số tài liệu A1 chỉ ghi là đề xuất. Nền tảng Railway đã được người dùng chọn; snapshot production trong PR #53 vẫn dùng source A1, chưa là bằng chứng deploy A2.
+Production HTTPS và CI/CD **thuộc phạm vi bắt buộc A2**, dù một số tài liệu A1 chỉ ghi là đề xuất. Production A2 chạy trên Railway. Xem [snapshot và URL](../deployment.md).
 
 ## 4. Giả định
 

@@ -191,7 +191,7 @@ Tóm tắt:
 
 - [Repository](https://github.com/akira-yami/BrewLite_A2)
 - [Issue #40](https://github.com/akira-yami/BrewLite_A2/issues/40)
-- [CI/CD workflow](.github/workflows/pr-ci.yml)
-- [Architecture](docs/architecture/system-architecture.md)
-- [SRS](docs/requirements/srs.md)
-- [Test Plan](docs/testing/test-plan.md)
+- [CI/CD workflow](../.github/workflows/pr-ci.yml)
+- [Architecture](architecture/system-architecture.md)
+- [SRS](requirements/srs.md)
+- [Test Plan](testing/test-plan.md)

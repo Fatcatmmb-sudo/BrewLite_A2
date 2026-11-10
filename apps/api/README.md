@@ -82,7 +82,7 @@ Build/typecheck tự generate client; `src/generated/prisma` được bỏ qua t
 
 `sugarLevel Int? @map("sugar_level")` và `iceLevel Int? @map("ice_level")` nhận phần trăm nguyên 0..100. Null hoặc không gửi dùng công thức chuẩn; 0 là không đường/đá. Migration `20261010090000_order_item_sugar_ice_levels` thêm hai cột nullable và CHECK, giữ đơn cũ với null. Cập nhật DB đang dùng bằng `npm run prisma:deploy`, rồi `npm run prisma:generate` (hoặc build/typecheck).
 
-`CreateOrderDto` validate các trường mới; `toOrderItemResponse` trả nguyên lựa chọn từ snapshot, không phụ thu. Controller/service Orders đã có trong mã nguồn; snapshot cần giữ giá trị 0 và tổng hợp nhu cầu nguyên liệu qua các dòng khác tùy chọn. Xem [DTO tạo đơn](src/modules/orders/dto/create-order.dto.ts) và [ERD](../../docs/architecture/erd.md).
+`CreateOrderDto` validate các trường mới; `toOrderItemResponse` trả nguyên lựa chọn từ snapshot, không phụ thu. Controller/service Orders đã có trong mã nguồn; snapshot cần giữ giá trị 0 và tổng hợp nhu cầu nguyên liệu qua các dòng khác tùy chọn. Xem [DTO tạo đơn](src/modules/orders/dto/create-order.dto.ts) và [ERD](../../database/BrewLite.svg).
 
 ## Ghi chú của OrderItem
 
@@ -118,8 +118,8 @@ Environment variables:
 - POST /api/v1/payments with method VNPAY stores a PROCESSING Payment, a unique merchant reference and signed payment URL before returning the redirect URL.
 - Replaying the same Idempotency-Key returns the persisted URL; it does not create a second merchant transaction.
 - GET /api/v1/payments/status includes the saved payment URL for the authenticated Order owner.
-- GET /api/v1/payments/vnpay/ipn is the only settlement path. It validates HMAC-SHA512, merchant code, exact amount and processes Payment/Order transition in one transaction.
-- GET /api/v1/payments/vnpay/return redirects to Checkout on the first `WEB_ORIGIN`. The signed IPN settles live VNPay transactions.
+- GET /api/v1/payments/vnpay/ipn validates HMAC-SHA512, merchant code and exact amount, and processes the Payment/Order transition in one transaction.
+- GET /api/v1/payments/vnpay/return redirects to Checkout on the first `WEB_ORIGIN`. The signed IPN settles live VNPay transactions. A verified Sandbox Return can also settle an attempt.
 - For Sandbox transactions, BrewLite can settle a signed Return before redirecting, including on hosted deployments that use the Sandbox gateway. The payment must have been created with a Sandbox payment link. IPN and Return share settlement validation and order locking.
 - For local Sandbox testing, set `WEB_ORIGIN=http://localhost:3000` and `VNPAY_RETURN_URL=http://localhost:3001/api/v1/payments/vnpay/return`. Hosted production deployments require HTTPS for both URLs.
 - Checkout uses VNPay as its only payment method. Enable `VNPAY_ENABLED` on the API and configure the merchant credentials to accept payments.
