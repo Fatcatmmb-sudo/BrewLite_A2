@@ -1,0 +1,89 @@
+name: Railway CD
+
+on:
+  workflow_run:
+    workflows: [Pull Request CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: railway-a2-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: a2-production
+    env:
+      REVISION: ${{ github.event.workflow_run.head_sha }}
+      API_ORIGIN: ${{ vars.A2_API_ORIGIN }}
+      WEB_ORIGIN: ${{ vars.A2_WEB_ORIGIN }}
+      PROJECT_ID: ${{ vars.RAILWAY_PROJECT_ID }}
+      ENVIRONMENT_ID: ${{ vars.RAILWAY_ENVIRONMENT_ID }}
+      API_SERVICE_ID: ${{ vars.RAILWAY_API_SERVICE_ID }}
+      WEB_SERVICE_ID: ${{ vars.RAILWAY_WEB_SERVICE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Validate deployment configuration
+        run: |
+          test "$(git rev-parse HEAD)" = "$REVISION"
+          for id in "$PROJECT_ID" "$ENVIRONMENT_ID" "$API_SERVICE_ID" "$WEB_SERVICE_ID"; do
+            [[ "$id" =~ ^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$ ]] ||
+              { echo "::error::Missing or invalid A2 Railway ID"; exit 1; }
+          done
+          test "$API_SERVICE_ID" != "$WEB_SERVICE_ID"
+          for origin in "$API_ORIGIN" "$WEB_ORIGIN"; do
+            [[ "$origin" =~ ^https://[a-zA-Z0-9.-]+$ ]] ||
+              { echo "::error::Use an HTTPS origin without a trailing slash"; exit 1; }
+          done
+          test "$API_ORIGIN" != "$WEB_ORIGIN"
+
+      - name: Build and tag Docker images
+        run: |
+          docker build --file apps/api/Dockerfile.railway \
+            --label "org.opencontainers.image.revision=$REVISION" \
+            --tag "brewlite-a2-api:$REVISION" apps/api
+          docker build --file apps/web/Dockerfile.railway \
+            --build-arg "NEXT_PUBLIC_API_URL=$API_ORIGIN/api/v1" \
+            --label "org.opencontainers.image.revision=$REVISION" \
+            --tag "brewlite-a2-web:$REVISION" apps/web
+          docker image inspect --format '{{.Id}} {{join .RepoTags ", "}}' \
+            "brewlite-a2-api:$REVISION" "brewlite-a2-web:$REVISION"
+
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli@5.71.0
+
+      - name: Deploy API then Web to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          test -n "$RAILWAY_TOKEN" || { echo "::error::Missing A2 Railway project token"; exit 1; }
+          remote_revision="$(git ls-remote origin refs/heads/main | cut -f1)"
+          test "$remote_revision" = "$REVISION" ||
+            { echo "::error::A newer main revision superseded this deploy"; exit 1; }
+          railway up apps/api --path-as-root --ci \
+            --project "$PROJECT_ID" --environment "$ENVIRONMENT_ID" \
+            --service "$API_SERVICE_ID" --message "BrewLite A2 API $REVISION"
+          railway up apps/web --path-as-root --ci \
+            --project "$PROJECT_ID" --environment "$ENVIRONMENT_ID" \
+            --service "$WEB_SERVICE_ID" --message "BrewLite A2 Web $REVISION"
+
+      - name: Smoke test production
+        run: |
+          node apps/api/scripts/smoke.mjs "$API_ORIGIN"
+          curl --fail --silent --show-error --retry 5 --retry-all-errors --max-time 10 "$WEB_ORIGIN/health"
