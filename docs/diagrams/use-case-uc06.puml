@@ -3,10 +3,10 @@
 left to right direction
 skinparam defaultFontName Arial
 skinparam shadowing false
-title BrewLite - UC-06: Đặt hàng
+title BrewLite - UC-06: Tạo đơn
 actor "Khách hàng" as Customer
 rectangle "HỆ THỐNG BREWLITE - Phạm vi UC-06" {
-  usecase "UC-06: Đặt hàng" as Order
+  usecase "UC-06: Tạo đơn" as Order
   usecase "UC-07: Áp dụng coupon" as Coupon
   Coupon ..> Order : <<extend>>\n[có coupon]
   note bottom of Order

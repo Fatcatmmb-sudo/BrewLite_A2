@@ -1,16 +1,16 @@
-# UC-06: Đặt hàng
+# UC-06: Tạo đơn
 
 Phiên bản 1.1 · 04/11/2026 · [A2-1.3.1 / #5](https://github.com/akira-yami/BrewLite_A2/issues/5).
 
 [Nguồn PlantUML](../diagrams/use-case-uc06.puml) · [SVG](../diagrams/use-case-uc06.svg) · [PNG](../diagrams/use-case-uc06.png).
 
-![UC-06: Đặt hàng](../diagrams/use-case-uc06.svg)
+![UC-06: Tạo đơn](../diagrams/use-case-uc06.svg)
 
 ## 1. Phạm vi và tác nhân
 
 | Thuộc tính | Đặc tả |
 |---|---|
-| Tên chuẩn | UC-06: Đặt hàng, đúng sơ đồ tổng thể của nhóm |
+| Tên chuẩn | UC-06: Tạo đơn, đúng sơ đồ tổng thể của nhóm |
 | Mục tiêu | Tạo order PENDING với giá/snapshot server và giữ đủ nguyên liệu theo công thức món, topping |
 | Actor | Khách hàng (CUSTOMER). Nhân viên quầy và Mock Payment Gateway không tham gia UC-06 |
 | Trigger | Khách chọn Đặt hàng sau khi kiểm tra giỏ |

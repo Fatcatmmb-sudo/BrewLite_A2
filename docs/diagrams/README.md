@@ -3,7 +3,7 @@
 | Phạm vi | Nguồn | Bản xem |
 |---|---|---|
 | Use Case tổng thể | [PlantUML](use-case-overview.puml) | [SVG](use-case-overview.svg) |
-| UC-06 Đặt hàng | [PlantUML](use-case-uc06.puml) | [SVG](use-case-uc06.svg) |
+| UC-06 Tạo đơn | [PlantUML](use-case-uc06.puml) | [SVG](use-case-uc06.svg) |
 | UC-08 Thanh toán | [PlantUML](use-case-uc08.puml) | [SVG](use-case-uc08.svg) |
 | Sequence checkout từ giỏ đến xác nhận và lịch sử | [PlantUML](sequence-checkout.puml) | [SVG](sequence-checkout.svg) |
 | Chi tiết tạo đơn | [PlantUML](sequence-create-order.puml) | [SVG](sequence-create-order.svg) |

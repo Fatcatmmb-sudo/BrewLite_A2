@@ -1,14 +1,14 @@
-# Sequence UC-06: Đặt hàng
+# Sequence UC-06: Tạo đơn
 
 Phiên bản 1.2 · 10/11/2026 · [A2-2.2.1 / #8](https://github.com/akira-yami/BrewLite_A2/issues/8).
 
 [Nguồn PlantUML](../diagrams/sequence-create-order.puml) · [SVG](../diagrams/sequence-create-order.svg) · [PNG](../diagrams/sequence-create-order.png).
 
-![Sequence UC-06: Đặt hàng](../diagrams/sequence-create-order.svg)
+![Sequence UC-06: Tạo đơn](../diagrams/sequence-create-order.svg)
 
 ## Phạm vi
 
-Chỉ biểu diễn UC-06: Đặt hàng, đúng tên/ranh giới của [use case tổng thể](../requirements/use-case-overview.md). UC-02: Đăng nhập là tiền điều kiện; UC-07: Áp dụng coupon là nhánh extend. UC-08: Thực hiện thanh toán được đặc tả độc lập ở #6/#9, không xuất hiện thành lifeline hoặc request payment trong sequence này. Không merge hai UC thành một use case; luồng người dùng có thể tiếp tục UC-08 sau khi UC-06 đã kết thúc.
+Chỉ biểu diễn UC-06: Tạo đơn, đúng tên/ranh giới của [use case tổng thể](../requirements/use-case-overview.md). UC-02: Đăng nhập là tiền điều kiện; UC-07: Áp dụng coupon là nhánh extend. UC-08: Thực hiện thanh toán được đặc tả độc lập ở #6/#9, không xuất hiện thành lifeline hoặc request payment trong sequence này. Không merge hai UC thành một use case; luồng người dùng có thể tiếp tục UC-08 sau khi UC-06 đã kết thúc.
 
 ## Lifeline và nguồn code đối chiếu
 

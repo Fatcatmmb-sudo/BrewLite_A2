@@ -4,7 +4,7 @@ autonumber
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam maxMessageSize 280
-title BrewLite - UC-06: Đặt hàng (sequence tạo đơn)
+title BrewLite - Sequence UC-06: Tạo đơn
 actor "Khách hàng" as C
 boundary "Next.js UI" as UI
 control "NestJS API\nOrdersController" as API
@@ -75,7 +75,7 @@ else Kết quả chưa xác định / mất response
   UI --> C: Giữ giỏ, không tự POST lại; tra cứu UC-09 trước khi đặt lại
 end
 legend bottom
-  UC-06: Đặt hàng chỉ tạo Order PENDING và giữ nguyên liệu.
+  UC-06: Tạo đơn chỉ tạo Order PENDING và giữ nguyên liệu.
   Không có Payment Service/Gateway, không tạo payment/consume/EARN.
   ProductVariant không lưu stock/version; availableServings là số tính từ BOM.
   ReservationItem lưu lượng đã giữ, dùng hoàn kho kể cả công thức đổi sau đó.

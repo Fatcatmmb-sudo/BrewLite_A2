@@ -26,4 +26,4 @@ Các nhánh hết hạn và đối soát dùng khóa đơn. Xem [UC-08](../../re
 
 Integration trên PostgreSQL thật bắt buộc: BOM X=10, tồn X=50/20 request; fault sau reserve; same-key 20 request/replay/restart; khác payload; khác key cùng order; sai chủ; decline retry; timeout; crash sau gateway success trước finalize; expiry/cancel/payment race; PAID cancel/prepare race; một coupon consume và một EARN. Có thiết kế/constraint không thay bằng chứng các phép thử này đã chạy.
 
-Cập nhật 04/11/2026: UC-06: Đặt hàng và UC-08: Thực hiện thanh toán là use case độc lập. Phần payment của ADR này chỉ áp dụng UC-08, không gộp vào sequence UC-06. [ADR-006](006-a1-recipe-inventory.md) điều chỉnh giả định kho.
+Cập nhật 04/11/2026: UC-06: Tạo đơn và UC-08: Thực hiện thanh toán là use case độc lập. Phần payment của ADR này chỉ áp dụng UC-08, không gộp vào sequence UC-06. [ADR-006](006-a1-recipe-inventory.md) điều chỉnh giả định kho.

@@ -9,9 +9,9 @@ Phiên bản 1.0 · 03/11/2026 · [A2-4.1 / #17](https://github.com/akira-yami/B
 | Issue | Phụ trách theo issue | Đầu ra / dependency |
 |---|---|---|
 | [#1](https://github.com/akira-yami/BrewLite_A2/issues/1), [#2](https://github.com/akira-yami/BrewLite_A2/issues/2), [#3](https://github.com/akira-yami/BrewLite_A2/issues/3), [#4](https://github.com/akira-yami/BrewLite_A2/issues/4) | Khang | Context/FR/NFR/UC tổng quát có trong baseline, review lại khi đổi scope |
-| [#5](https://github.com/akira-yami/BrewLite_A2/issues/5), [#6](https://github.com/akira-yami/BrewLite_A2/issues/6) | Khang (cả hai issue; nội dung yêu cầu phối hợp Kiệt) | Hai UC độc lập: #5 UC-06: Đặt hàng; #6 UC-08: Thực hiện thanh toán; mỗi UC có phạm vi/luồng riêng theo sơ đồ tổng thể |
+| [#5](https://github.com/akira-yami/BrewLite_A2/issues/5), [#6](https://github.com/akira-yami/BrewLite_A2/issues/6) | Khang (cả hai issue; nội dung yêu cầu phối hợp Kiệt) | Hai UC độc lập: #5 UC-06: Tạo đơn; #6 UC-08: Thực hiện thanh toán; mỗi UC có phạm vi/luồng riêng theo sơ đồ tổng thể |
 | [#7](https://github.com/akira-yami/BrewLite_A2/issues/7) | Khải | Activity checkout: chưa login/hết hàng/payment fail, source/export |
-| [#8](https://github.com/akira-yami/BrewLite_A2/issues/8), [#9](https://github.com/akira-yami/BrewLite_A2/issues/9) | Khang / Kiệt | Hai sequence theo UC: #8 chỉ UC-06: Đặt hàng; #9 riêng UC-08: Thực hiện thanh toán |
+| [#8](https://github.com/akira-yami/BrewLite_A2/issues/8), [#9](https://github.com/akira-yami/BrewLite_A2/issues/9) | Khang / Kiệt | Hai sequence theo UC: #8 chỉ UC-06: Tạo đơn; #9 riêng UC-08: Thực hiện thanh toán |
 | [#10](https://github.com/akira-yami/BrewLite_A2/issues/10) | Khang | Class domain đủ lớp/thuộc tính/quan hệ/multiplicity/enum |
 | [#11](https://github.com/akira-yami/BrewLite_A2/issues/11) | Khải | Nguồn/export 2 UC + activity + sequence + class + deployment; link/enum nhất quán |
 | [#12](https://github.com/akira-yami/BrewLite_A2/issues/12) | Khang | Kiến trúc phân lớp/C4, Next/Nest/PostgreSQL/mock, trade-off và ADR |
