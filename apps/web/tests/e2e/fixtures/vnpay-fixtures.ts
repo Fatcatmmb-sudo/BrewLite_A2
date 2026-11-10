@@ -12,7 +12,7 @@ export const test = base.extend<VnpayFixtures>({
   // Simulate the hosted payment gateway's browser round-trip. IPN is sent
   // separately through the signed test-only callback endpoint. Never navigate
   // to an external merchant in deterministic CI tests.
-  page: async ({ page }, provide) => {
+  page: async ({ page }, use) => {
     if (!process.env.E2E_EXTERNAL_BASE_URL) {
       // Record the real payment response before checkout navigates to VNPay.
       // Otherwise Chromium discards response.json() after leaving the page.
@@ -44,14 +44,14 @@ export const test = base.extend<VnpayFixtures>({
         });
       });
     }
-    await provide(page);
+    await use(page);
   },
-  apiUrl: async ({}, provide) => {
+  apiUrl: async ({}, use) => {
     const url = process.env.E2E_API_URL ?? 'http://localhost:3101/api/v1';
-    await provide(url);
+    await use(url);
   },
 
-  vnpayHelper: async ({ apiUrl }, provide) => {
+  vnpayHelper: async ({ apiUrl }, use) => {
     // Load VNPAY credentials from env
     const local = !process.env.E2E_EXTERNAL_BASE_URL;
     const hashSecret = process.env.VNPAY_HASH_SECRET ?? (local ? testVnpayCredentials.hashSecret : undefined);
@@ -65,13 +65,13 @@ export const test = base.extend<VnpayFixtures>({
 
     // Create helper instance
     const helper = new VnpayTestHelper(apiUrl, hashSecret, tmnCode);
-    await provide(helper);
+    await use(helper);
   },
 
-  testUser: async ({ request, apiUrl }, provide) => {
+  testUser: async ({ request, apiUrl }, use) => {
     // Create test user for this test
     const user = await createTestUser(request, apiUrl);
-    await provide(user);
+    await use(user);
     // No cleanup - preserve audit trail
   },
 });

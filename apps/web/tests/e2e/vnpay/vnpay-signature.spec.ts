@@ -8,6 +8,7 @@ test.describe('VNPAY Signature Validation', () => {
     request,
     vnpayHelper,
     testUser,
+    apiUrl,
   }) => {
     await setupCartWithProduct(page, testUser.accessToken);
     await proceedToCheckout(page);
@@ -69,6 +70,7 @@ test.describe('VNPAY Signature Validation', () => {
 
   test('tampered params fail signature verification', async ({
     page,
+    request,
     vnpayHelper,
     testUser,
   }) => {

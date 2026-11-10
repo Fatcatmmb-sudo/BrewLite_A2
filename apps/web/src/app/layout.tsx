@@ -26,7 +26,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" className={`h-full antialiased ${playfair.variable} ${jakarta.variable}`}>
+    <html
+      lang="vi"
+      suppressHydrationWarning
+      className={`h-full antialiased ${playfair.variable} ${jakarta.variable}`}
+    >
       <body className="flex min-h-full flex-col font-sans bg-[#FBF8F2] text-[#1E1915]">
         <Providers>{children}</Providers>
       </body>
