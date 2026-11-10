@@ -7,10 +7,10 @@
   "entries": [
     {
       "source": "database/BrewLite.puml",
-      "sha256": "419a470e5d60d2b5b9564c2c30427573f43abbd3f8a92ae1ed04e4ffd9ffa1cc",
+      "sha256": "16b00c9ad953efb1df8b89b57e3c25eda4d55ad5a8afdd29f785a0c64240eaee",
       "outputs": {
-        "database/BrewLite.svg": "f8cb59097ac1918cd590bdecd4a5d4ce8b6b70b83032e1540c3b20d1e2b75b35",
-        "database/BrewLite.png": "9945e908ef38ef53293b15d0a059e1ab4c016dfe509c9e43dbd2c6cb95618510"
+        "database/BrewLite.svg": "6bb722b6e529d033155e5a374fa3f7b270c1387f0e3bb28a2ddad3098c382a6a",
+        "database/BrewLite.png": "44789364608a48f7e93ac6955d4915fe2f8a86a1ac1b700c37e3fdf82e4285db"
       }
     }
   ]

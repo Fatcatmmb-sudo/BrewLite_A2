@@ -1,6 +1,6 @@
 @startuml BrewLite
 ' Source of truth: apps/api/prisma/schema.prisma
-' Physical PostgreSQL ERD. Generated/reviewed 2026-11-04.
+' Physical PostgreSQL ERD. Reviewed 2026-11-10.
 !pragma layout smetana
 left to right direction
 hide circle
@@ -21,8 +21,8 @@ skinparam class {
 }
 title
 BrewLite | PostgreSQL ERD
-18 tables - ingredient-based inventory
-Schema: apps/api/prisma/schema.prisma | 04 Nov 2026
+21 tables - ingredient inventory and payment recovery
+Schema: apps/api/prisma/schema.prisma | 10 Nov 2026
 end title
 
 entity "products" as Product <<Catalog>> #E6F1FF {
@@ -176,10 +176,62 @@ entity "payments" as Payment <<Payment and benefits>> #F0E9FA {
   * status : PaymentStatus
   * amount : bigint
   gateway_transaction_id : varchar(100) <<UQ>>
+  gateway_reference : varchar(100) <<UQ>>
+  payment_url : varchar(2048)
   failure_code : varchar(100)
   processed_at : timestamptz(6)
   * created_at : timestamptz(6)
   * updated_at : timestamptz(6)
+}
+
+entity "payment_recovery_requests" as PaymentRecoveryRequest <<Payment recovery>> #FBE7EA {
+  * id : uuid <<PK>>
+  * payment_id : uuid <<FK>>
+  * idempotency_key : varchar(100)
+  * request_hash : char(64)
+  * provider_request_id : varchar(32) <<UQ>>
+  * actor_user_id : uuid <<FK>>
+  * incident_reference : varchar(120)
+  * correlation_id : varchar(100)
+  * status : PaymentRecoveryRequestStatus
+  provider_outcome : varchar(64)
+  provider_response_code : varchar(10)
+  provider_transaction_no : varchar(100)
+  error_code : varchar(100)
+  * lease_expires_at : timestamptz(6)
+  * created_at : timestamptz(6)
+  * updated_at : timestamptz(6)
+  UQ (payment_id, idempotency_key)
+}
+
+entity "payment_recovery_audits" as PaymentRecoveryAudit <<Payment recovery>> #FBE7EA {
+  * id : uuid <<PK>>
+  recovery_request_id : uuid <<FK>>
+  * payment_id : uuid <<FK>>
+  actor_user_id : uuid <<FK>>
+  * actor_type : PaymentRecoveryActorType
+  gateway_reference : varchar(100)
+  * correlation_id : varchar(100)
+  * incident_reference : varchar(120)
+  * before_state : PaymentStatus
+  * after_state : PaymentStatus
+  * provider_outcome : varchar(64)
+  details : jsonb
+  * created_at : timestamptz(6)
+}
+
+entity "payment_recovery_resolutions" as PaymentRecoveryResolution <<Payment recovery>> #FBE7EA {
+  * id : uuid <<PK>>
+  * payment_id : uuid <<FK>>
+  * idempotency_key : varchar(100)
+  * request_hash : char(64)
+  * decision : PaymentRecoveryDecision
+  * evidence_reference : varchar(120)
+  * incident_reference : varchar(120)
+  * correlation_id : varchar(100)
+  * actor_user_id : uuid <<FK>>
+  * created_at : timestamptz(6)
+  UQ (payment_id, idempotency_key)
 }
 
 entity "coupons" as Coupon <<Payment and benefits>> #F0E9FA {
@@ -242,6 +294,13 @@ ProductVariant ||--o{ InventoryReservation : product_variant_id
 InventoryReservation ||--o{ InventoryReservationItem : reservation_id
 Ingredient ||--o{ InventoryReservationItem : ingredient_id
 Order ||--o{ Payment : order_id
+Payment ||--o{ PaymentRecoveryRequest : payment_id
+Payment ||--o{ PaymentRecoveryAudit : payment_id
+Payment ||--o{ PaymentRecoveryResolution : payment_id
+User ||--o{ PaymentRecoveryRequest : actor_user_id
+User |o--o{ PaymentRecoveryAudit : actor_user_id
+User ||--o{ PaymentRecoveryResolution : actor_user_id
+PaymentRecoveryRequest |o--o{ PaymentRecoveryAudit : recovery_request_id
 Coupon ||--o{ CouponRedemption : coupon_id
 User ||--o{ CouponRedemption : user_id
 Order ||--o| CouponRedemption : order_id
@@ -256,11 +315,14 @@ legend bottom left
   Stock and optimistic version belong to ingredients, never finished drinks.
   SQL CHECK constraints and partial unique indexes are documented separately.
   Enums:
-  UserRole: CUSTOMER | BARISTA
+  UserRole: CUSTOMER | BARISTA | PAYMENT_OPERATOR
   ProductSize: S | M | L
   OrderStatus: PENDING | PAYMENT_FAILED | PAID | PREPARING | READY | COMPLETED | CANCELLED
-  PaymentMethod: E_WALLET | CARD
-  PaymentStatus: PROCESSING | SUCCEEDED | FAILED
+  PaymentMethod: E_WALLET | CARD | VNPAY
+  PaymentStatus: PROCESSING | SUCCEEDED | FAILED | MANUAL_REVIEW | REFUNDED
+  PaymentRecoveryDecision: REFUND_CONFIRMED | NO_CHARGE_CONFIRMED
+  PaymentRecoveryRequestStatus: IN_PROGRESS | COMPLETED | UNKNOWN
+  PaymentRecoveryActorType: USER | SYSTEM
   IngredientUnit: G | ML | PCS
   ToppingType: PREPACKAGED | PREPARED
   ReservationStatus: ACTIVE | CONSUMED | RELEASED | EXPIRED

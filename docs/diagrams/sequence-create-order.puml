@@ -23,7 +23,7 @@ break JWT hoặc role/DTO không hợp lệ
 end
 API -> Orders: createOrder(principal.id, dto)
 Orders -> Orders: Chuẩn hóa/gộp dòng, null khác 0, trim note
-loop Attempt đầu hoặc retry conflict tạm thời (A1: tối đa 3 attempt)
+loop Attempt đầu hoặc retry conflict tạm thời (tối đa 3 attempt)
   Orders -> DB: BEGIN Serializable
   alt Luồng thành công của attempt
     Orders -> DB: Kiểm tra active CUSTOMER; đọc variant/product/topping\nRecipeItem + ToppingRecipeItem + Ingredient
@@ -60,14 +60,12 @@ loop Attempt đầu hoặc retry conflict tạm thời (A1: tối đa 3 attempt)
     Orders -> DB: ROLLBACK order/items/reservation/items/coupon/history\nhoàn nguyên stockQuantity/version của mọi ingredient
     DB --> Orders: Đã rollback
     Orders -> Orders: Lỗi nghiệp vụ: không retry\nConflict version/serialization/deadlock: retry toàn tx khi còn lượt\nHết lượt: INVENTORY_CONFLICT
-  else Mất ACK COMMIT / chưa xác định kết quả
-    Orders -> Orders: Dừng retry; log orderId/requestId để đối chiếu
   end
 end
 alt Commit được xác nhận
   Orders --> API: Snapshot đã commit + totals + reservationExpiresAt
-  API --> UI: 201 Created: Order PENDING, orderId/orderNumber\n{data, meta.requestId} + X-Request-Id
-  UI --> C: Hiển thị đơn đã đặt; chưa xóa giỏ, kết thúc UC-06
+  API --> UI: 201 Created: Order PENDING, data.id/orderNumber\n{data} + X-Request-Id
+  UI --> C: Hiển thị đơn đã đặt; lưu phiên checkout để chuyển sang thanh toán
 else Lỗi xác định
   Orders --> API: Lỗi sau rollback
   API --> UI: 400 validation/option, 409 OUT_OF_STOCK/INVENTORY_CONFLICT\n422 coupon hoặc 500 chung; requestId, không lộ stack
