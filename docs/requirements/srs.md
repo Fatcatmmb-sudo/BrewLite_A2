@@ -13,7 +13,7 @@ SRS được chia theo trách nhiệm để review từng issue:
 
 - **Must**: bắt buộc để nghiệm thu MVP cuối A2; **Should**: cần có, có thể hoãn nếu có lý do và rủi ro được review; **Could**: mở rộng khi còn nguồn lực; **Won't**: chủ ý không làm trong MVP.
 - Giữ FR-01..10 và UC-01..10 theo baseline tham khảo để không đổi nghĩa khi truy vết. FR-11..15 tách phần ưu tiên bổ sung.
-- Role tài khoản chỉ gồm `CUSTOMER` và `BARISTA`. Khách chưa đăng nhập thực hiện phần public của actor Khách hàng. Mock Payment Gateway là actor tích hợp, không có JWT role.
+- Khách chưa đăng nhập thực hiện phần public của actor Khách hàng. Web có luồng dành cho `CUSTOMER` và `BARISTA`. VNPay là actor tích hợp.
 - Tiền là số nguyên VND; thời gian lưu UTC; API tương đối dưới `/api/v1`. SRS quy định kết quả nghiệp vụ, hợp đồng endpoint chi tiết sẽ được chốt khi thiết kế.
 
 ## 1. Danh mục yêu cầu và ưu tiên
@@ -82,6 +82,8 @@ SRS được chia theo trách nhiệm để review từng issue:
 
 ### FR-07 - Thanh toán
 
+FR-07 và các mã AT bên dưới giữ phạm vi Ví/Thẻ mô phỏng của đề bài. Checkout A2 dùng VNPay, còn Ví/Thẻ mock được duy trì trong bộ test API. Hành vi triển khai, API và các nhánh đối soát được mô tả tại [UC-08 hiện tại](uc-08-thanh-toan.md).
+
 - **AT-FR-07.1:** Chủ đơn chọn `E_WALLET` hoặc `CARD`, gửi `orderId`, `method`, header `Idempotency-Key`; amount lấy từ order server. Thiếu key/sai method trả 400. Chỉ thanh toán khi đơn và reservation hợp lệ.
 - **AT-FR-07.2:** Gateway thành công lưu Payment `SUCCEEDED`, Order `PAID`, consume reservation/coupon, ghi history và cộng điểm đúng một lần, cùng transaction. Gateway được gọi ngoài transaction DB dài.
 - **AT-FR-07.3:** Cùng key và payload đã hoàn tất trả kết quả attempt đã lưu, không charge/ghi kép. Attempt đang `PROCESSING` trả 409 `PAYMENT_IN_PROGRESS`; cùng key khác order/method/hash trả 409 `IDEMPOTENCY_KEY_REUSED`. Key mới cũng không được tạo thành công thứ hai cho đơn đã paid.
@@ -147,4 +149,4 @@ Nguồn code cố định: [A1 @7beb0cb](https://github.com/akira-yami/BrewLite_
 
 Phân biệt đơn giá hiển thị với field lưu: OrderItem.unitPrice là giá variant; OrderItemTopping.unitPrice và quantity lưu riêng (runtime đặt quantity=1 mỗi phần topping/ly). lineTotal=(OrderItem.unitPrice + tổng topping.unitPrice x topping.quantity) x item.quantity. Không cộng topping hai lần khi dựng response.
 
-UC-06: Đặt hàng kết thúc ở PENDING + reservation/history, chưa có Payment hoặc EARN. UC-08: Thực hiện thanh toán là use case riêng, không include/extend với UC-06; UC-07: Áp dụng coupon extend UC-06. Tên UC đầy đủ theo bảng [use case tổng quát](use-case-overview.md), không đổi tên/actor sơ đồ gốc. Các sửa đổi FR-02/06 giữ mã AC để bảo toàn truy vết, đổi fixture từ tồn thành phẩm sang nguyên liệu tương đương.
+UC-06: Đặt hàng kết thúc ở PENDING + reservation/history, chưa có Payment hoặc EARN. UC-08: Thực hiện thanh toán là use case riêng, không include/extend với UC-06; UC-07: Áp dụng coupon extend UC-06. Tên và tác nhân hiện tại theo [Use Case tổng thể](use-case-overview.md). Các sửa đổi FR-02/06 giữ mã AC để bảo toàn truy vết, đổi fixture từ tồn thành phẩm sang nguyên liệu tương đương.
