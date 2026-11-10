@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1580" height="1880" viewBox="0 0 1580 1880" style="background:#FFFFFF; font-family: Arial, sans-serif;">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#222222"/>
+    </marker>
+  </defs>
+  <text x="790" y="34" text-anchor="middle" font-size="18" font-weight="bold" fill="#111111">BrewLite - Activity Diagram: Luồng End-to-End Đặt hàng (UC-06) và Thanh toán (UC-08)</text>
+  <rect x="40" y="52" width="340" height="1798" fill="#FFFDF9" stroke="#444444" stroke-width="1.5"/>
+  <rect x="40" y="52" width="340" height="38" fill="#F3E8D6" stroke="#444444" stroke-width="1.5"/>
+  <text x="210" y="76" text-anchor="middle" font-size="14" font-weight="bold" fill="#111111">Khách hàng (CUSTOMER)</text>
+  <rect x="380" y="52" width="380" height="1798" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+  <rect x="380" y="52" width="380" height="38" fill="#F3E8D6" stroke="#444444" stroke-width="1.5"/>
+  <text x="570" y="76" text-anchor="middle" font-size="14" font-weight="bold" fill="#111111">Next.js Web / PWA (apps/web)</text>
+  <rect x="760" y="52" width="460" height="1798" fill="#FFFDF9" stroke="#444444" stroke-width="1.5"/>
+  <rect x="760" y="52" width="460" height="38" fill="#F3E8D6" stroke="#444444" stroke-width="1.5"/>
+  <text x="990" y="76" text-anchor="middle" font-size="14" font-weight="bold" fill="#111111">NestJS API &amp; PostgreSQL (apps/api)</text>
+  <rect x="1220" y="52" width="320" height="1798" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+  <rect x="1220" y="52" width="320" height="38" fill="#F3E8D6" stroke="#444444" stroke-width="1.5"/>
+  <text x="1380" y="76" text-anchor="middle" font-size="14" font-weight="bold" fill="#111111">Mock Payment Gateway (UC-08)</text>
+  <polyline points="210,129 210,163" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="350,195 485,195" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="485,195 430,195 430,262 232,262 232,287" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="281" y="242" width="140.29999999999998" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="285" y="255" font-size="11.5" font-weight="bold" fill="#1F2937">[Không đủ / Inactive]</text>
+  <polyline points="109,315 83,315" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="570,233 570,281" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="576" y="247" width="58.4" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="580" y="260" font-size="11.5" font-weight="bold" fill="#1F2937">[Hợp lệ]</text>
+  <polyline points="570,349 570,368 210,368 210,393" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="350,425 480,425" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="570,465 570,516" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="576" y="482" width="171.79999999999998" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="580" y="495" font-size="11.5" font-weight="bold" fill="#1F2937">[Chưa login / Hết hạn JWT]</text>
+  <polyline points="420,545 350,545" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="210,574 210,592 780,592 780,545 810,545" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="990,574 990,645 592,645" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="756" y="623" width="197" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="760" y="636" font-size="11.5" font-weight="bold" fill="#1F2937">[Cấp JWT thành công - giữ giỏ]</text>
+  <polyline points="660,425 735,425 735,645 592,645" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="406" y="609" width="134" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="410" y="622" font-size="11.5" font-weight="bold" fill="#1F2937">[Đã có JWT CUSTOMER]</text>
+  <polyline points="570,667 570,697" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="730,730 790,730" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="990,769 990,820" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="990,910 990,961" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="801" y="925" width="386" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="805" y="938" font-size="11.5" font-weight="bold" fill="#1F2937">[Hết hàng (409 OUT_OF_STOCK) / Coupon lỗi (422) / DTO (400)]</text>
+  <polyline points="800,995 725,995" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="415,995 355,995" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="109,995 83,995" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="1095,865 1205,865 1205,1110 1185,1110" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="1211" y="972" width="165.5" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="1215" y="985" font-size="11.5" font-weight="bold" fill="#1F2937">[Đủ nguyên liệu &amp; Hợp lệ]</text>
+  <polyline points="795,1110 730,1110" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="410,1110 210,1110 210,1198" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="210,1242 210,1272" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="352,1305 410,1305" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="730,1305 795,1305" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="1185,1305 1245,1305" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="1380,1339 1380,1375 990,1375 990,1397" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="990,1483 990,1528" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="996" y="1495" width="171.79999999999998" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="1000" y="1508" font-size="11.5" font-weight="bold" fill="#1F2937">[Payment FAILED / Từ chối]</text>
+  <polyline points="795,1565 725,1565" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="415,1565 302,1565" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="118,1565 58,1565 58,1220 188,1220" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="58" y="1377" width="392.3" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="62" y="1390" font-size="11.5" font-weight="bold" fill="#1F2937">[Thử lại: tạo Idempotency-Key mới, không tạo đơn/reserve lại]</text>
+  <polyline points="210,1606 210,1644 570,1644 570,1656" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="291" y="1625" width="178.1" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="295" y="1638" font-size="11.5" font-weight="bold" fill="#1F2937">[Hủy đơn / Quá hạn giữ tồn]</text>
+  <polyline points="395,1690 225,1690" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="1087,1440 1202,1440 1202,1690 1175,1690" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <rect x="1211" y="1552" width="127.7" height="18" rx="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  <text x="1215" y="1565" font-size="11.5" font-weight="bold" fill="#1F2937">[Payment SUCCEEDED]</text>
+  <polyline points="980,1731 980,1795 730,1795" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="410,1795 355,1795" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <polyline points="109,1795 83,1795" fill="none" stroke="#222222" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <circle cx="210" cy="115" r="14" fill="#111111" stroke="#111111" stroke-width="2"/>
+  <rect x="70" y="163" width="280" height="64" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="210" y="183.5" text-anchor="middle" font-size="12"  fill="#111111">Xem menu &amp; chọn sản phẩm</text>
+  <text x="210" y="199" text-anchor="middle" font-size="12"  fill="#111111">(UC-03: Xem menu / UC-04: Chi tiết)</text>
+  <text x="210" y="214.5" text-anchor="middle" font-size="12"  fill="#111111">Chọn 1 size (S/M/L), topping, đường/đá, note, SL</text>
+  <polygon points="570,157 655,195 570,233 485,195" fill="#FFF8DC" stroke="#222222" stroke-width="1.6"/>
+  <text x="570" y="185" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">Active &amp; còn</text>
+  <text x="570" y="199" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">availableServings</text>
+  <text x="570" y="213" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">&gt; 0?</text>
+  <rect x="109" y="287" width="246" height="56" rx="14" ry="14" fill="#FDE8E8" stroke="#222222" stroke-width="1.5"/>
+  <text x="232" y="311.25" text-anchor="middle" font-size="12"  fill="#111111">Báo món/topping tạm hết</text>
+  <text x="232" y="326.75" text-anchor="middle" font-size="12"  fill="#111111">hoặc ngừng bán; chọn lại món</text>
+  <circle cx="68" cy="315" r="15" fill="#FFFFFF" stroke="#111111" stroke-width="2"/>
+  <circle cx="68" cy="315" r="9.5" fill="#111111"/>
+  <rect x="415" y="281" width="310" height="68" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="303.5" text-anchor="middle" font-size="12"  fill="#111111">Thêm/gộp dòng vào giỏ (UC-05)</text>
+  <text x="570" y="319" text-anchor="middle" font-size="12"  fill="#111111">Tạm tính = (giá size + topping) x quantity</text>
+  <text x="570" y="334.5" text-anchor="middle" font-size="12"  fill="#111111">Lưu bền vững vào localStorage</text>
+  <rect x="70" y="393" width="280" height="64" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="210" y="413.5" text-anchor="middle" font-size="12"  fill="#111111">Kiểm tra giỏ, nhập mã coupon tùy chọn</text>
+  <text x="210" y="429" text-anchor="middle" font-size="12"  fill="#111111">(UC-07: Áp dụng coupon)</text>
+  <text x="210" y="444.5" text-anchor="middle" font-size="12"  fill="#111111">Bấm nút Đặt hàng (Checkout)</text>
+  <polygon points="570,385 660,425 570,465 480,425" fill="#FFF8DC" stroke="#222222" stroke-width="1.6"/>
+  <text x="570" y="415" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">Có phiên JWT</text>
+  <text x="570" y="429" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">CUSTOMER</text>
+  <text x="570" y="443" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">hợp lệ?</text>
+  <rect x="420" y="516" width="300" height="58" rx="14" ry="14" fill="#FEF3C7" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="541.25" text-anchor="middle" font-size="12"  fill="#111111">Giữ nguyên giỏ trong localStorage</text>
+  <text x="570" y="556.75" text-anchor="middle" font-size="12"  fill="#111111">Chuyển hướng tới màn hình Đăng nhập</text>
+  <rect x="70" y="516" width="280" height="58" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="210" y="541.25" text-anchor="middle" font-size="12"  fill="#111111">Đăng nhập (UC-02: Đăng nhập)</text>
+  <text x="210" y="556.75" text-anchor="middle" font-size="12"  fill="#111111">hoặc Đăng ký CUSTOMER (UC-01)</text>
+  <rect x="810" y="516" width="360" height="58" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="990" y="541.25" text-anchor="middle" font-size="12"  fill="#111111">POST /api/v1/auth/login (hoặc /register)</text>
+  <text x="990" y="556.75" text-anchor="middle" font-size="12"  fill="#111111">Xác thực bcrypt &amp; cấp Bearer JWT (CUSTOMER)</text>
+  <polygon points="570,623 592,645 570,667 548,645" fill="#FFF8DC" stroke="#222222" stroke-width="1.6"/>
+  <rect x="410" y="697" width="320" height="66" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="718.5" text-anchor="middle" font-size="12" font-weight="bold" fill="#111111">[Bắt đầu UC-06: Đặt hàng]</text>
+  <text x="570" y="734" text-anchor="middle" font-size="12"  fill="#111111">Khóa nút &amp; gửi POST /api/v1/orders + JWT</text>
+  <text x="570" y="749.5" text-anchor="middle" font-size="12"  fill="#111111">(items, couponCode?; không gửi giá/userId)</text>
+  <rect x="790" y="691" width="400" height="78" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="990" y="710.75" text-anchor="middle" font-size="12"  fill="#111111">Kiểm tra JWT/CUSTOMER, chuẩn hóa DTO (1..20 dòng)</text>
+  <text x="990" y="726.25" text-anchor="middle" font-size="12"  fill="#111111">Mở transaction Serializable (retry tối đa 3 lần)</text>
+  <text x="990" y="741.75" text-anchor="middle" font-size="12"  fill="#111111">Đọc Catalog + RecipeItem + ToppingRecipeItem + Ingredient</text>
+  <text x="990" y="757.25" text-anchor="middle" font-size="12"  fill="#111111">Cộng tổng nhu cầu từng Ingredient trên toàn đơn</text>
+  <polygon points="990,820 1095,865 990,910 885,865" fill="#FFF8DC" stroke="#222222" stroke-width="1.6"/>
+  <text x="990" y="855" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">Đủ Ingredient</text>
+  <text x="990" y="869" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">toàn đơn &amp;</text>
+  <text x="990" y="883" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">Coupon hợp lệ?</text>
+  <rect x="800" y="961" width="380" height="68" rx="14" ry="14" fill="#FDE8E8" stroke="#222222" stroke-width="1.5"/>
+  <text x="990" y="983.5" text-anchor="middle" font-size="12" font-weight="bold" fill="#111111">ROLLBACK toàn bộ transaction (hoàn nguyên</text>
+  <text x="990" y="999" text-anchor="middle" font-size="12"  fill="#111111">stockQuantity/version, không ghi Order dở dang)</text>
+  <text x="990" y="1014.5" text-anchor="middle" font-size="12"  fill="#111111">Trả lỗi 409 OUT_OF_STOCK / 422 Coupon / 400 DTO</text>
+  <rect x="415" y="963" width="310" height="64" rx="14" ry="14" fill="#FDE8E8" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="991.25" text-anchor="middle" font-size="12"  fill="#111111">Hiển thị lỗi hết nguyên liệu / coupon sai</text>
+  <text x="570" y="1006.75" text-anchor="middle" font-size="12"  fill="#111111">Giữ nguyên giỏ hàng để khách chỉnh sửa</text>
+  <rect x="109" y="966" width="246" height="58" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="232" y="991.25" text-anchor="middle" font-size="12"  fill="#111111">Sửa món / giảm số lượng</text>
+  <text x="232" y="1006.75" text-anchor="middle" font-size="12"  fill="#111111">hoặc đổi mã coupon trong giỏ</text>
+  <circle cx="68" cy="995" r="15" fill="#FFFFFF" stroke="#111111" stroke-width="2"/>
+  <circle cx="68" cy="995" r="9.5" fill="#111111"/>
+  <rect x="795" y="1067" width="390" height="86" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="990" y="1090.75" text-anchor="middle" font-size="12"  fill="#111111">UPDATE Ingredient (stockQuantity -= need, version += 1)</text>
+  <text x="990" y="1106.25" text-anchor="middle" font-size="12"  fill="#111111">INSERT Order (PENDING), OrderItem, OrderItemTopping snapshot</text>
+  <text x="990" y="1121.75" text-anchor="middle" font-size="12"  fill="#111111">INSERT InventoryReservation (ACTIVE) + ReservationItem snapshot</text>
+  <text x="990" y="1137.25" text-anchor="middle" font-size="12" font-weight="bold" fill="#111111">INSERT CouponRedemption (RESERVED), History &amp; COMMIT (201)</text>
+  <rect x="410" y="1076" width="320" height="68" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="1098.5" text-anchor="middle" font-size="12" font-weight="bold" fill="#111111">[Kết thúc UC-06] Nhận Order PENDING</text>
+  <text x="570" y="1114" text-anchor="middle" font-size="12"  fill="#111111">Hiển thị orderId &amp; hạn giữ tồn (expiresAt)</text>
+  <text x="570" y="1129.5" text-anchor="middle" font-size="12"  fill="#111111">Chưa xóa giỏ hàng (vì chưa thanh toán)</text>
+  <polygon points="210,1198 232,1220 210,1242 188,1220" fill="#FFF8DC" stroke="#222222" stroke-width="1.6"/>
+  <rect x="67.5" y="1272" width="285" height="66" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="210" y="1293.5" text-anchor="middle" font-size="12" font-weight="bold" fill="#111111">[Bắt đầu UC-08: Thực hiện thanh toán]</text>
+  <text x="210" y="1309" text-anchor="middle" font-size="12"  fill="#111111">Chọn phương thức Ví / Thẻ (E_WALLET / CARD)</text>
+  <text x="210" y="1324.5" text-anchor="middle" font-size="12"  fill="#111111">Bấm Thanh toán cho orderId đã tạo</text>
+  <rect x="410" y="1272" width="320" height="66" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="1293.5" text-anchor="middle" font-size="12"  fill="#111111">Sinh Idempotency-Key cho lần thử thanh toán</text>
+  <text x="570" y="1309" text-anchor="middle" font-size="12"  fill="#111111">POST /api/v1/payments + Bearer JWT</text>
+  <text x="570" y="1324.5" text-anchor="middle" font-size="12"  fill="#111111">+ Idempotency-Key + { orderId, method }</text>
+  <rect x="795" y="1271" width="390" height="68" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="990" y="1293.5" text-anchor="middle" font-size="12"  fill="#111111">Kiểm tra chủ đơn (ownership) &amp; Idempotency-Key/hash</text>
+  <text x="990" y="1309" text-anchor="middle" font-size="12"  fill="#111111">Transaction ngắn khóa Order &amp; tạo Payment</text>
+  <text x="990" y="1324.5" text-anchor="middle" font-size="12"  fill="#111111">trạng thái PROCESSING (chống thanh toán lặp)</text>
+  <rect x="1245" y="1271" width="270" height="68" rx="14" ry="14" fill="#FCF0DF" stroke="#222222" stroke-width="1.5"/>
+  <text x="1380" y="1293.5" text-anchor="middle" font-size="12"  fill="#111111">Xử lý giao dịch giả lập</text>
+  <text x="1380" y="1309" text-anchor="middle" font-size="12"  fill="#111111">(ngoài DB transaction)</text>
+  <text x="1380" y="1324.5" text-anchor="middle" font-size="12"  fill="#111111">Trả SUCCEEDED hoặc FAILED</text>
+  <polygon points="990,1397 1087.5,1440 990,1483 892.5,1440" fill="#FFF8DC" stroke="#222222" stroke-width="1.6"/>
+  <text x="990" y="1430" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">Kết quả từ</text>
+  <text x="990" y="1444" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">Mock Payment</text>
+  <text x="990" y="1458" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">Gateway?</text>
+  <rect x="795" y="1528" width="390" height="74" rx="14" ry="14" fill="#FEF3C7" stroke="#222222" stroke-width="1.5"/>
+  <text x="990" y="1553.5" text-anchor="middle" font-size="12"  fill="#111111">Cập nhật Payment -&gt; FAILED, Order -&gt; PAYMENT_FAILED</text>
+  <text x="990" y="1569" text-anchor="middle" font-size="12"  fill="#111111">Không cộng điểm loyalty; GIỮ NGUYÊN Reservation</text>
+  <text x="990" y="1584.5" text-anchor="middle" font-size="12"  fill="#111111">(ACTIVE) &amp; Coupon (RESERVED) đến hạn expiresAt</text>
+  <rect x="415" y="1533" width="310" height="64" rx="14" ry="14" fill="#FEF3C7" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="1561.25" text-anchor="middle" font-size="12"  fill="#111111">Báo thanh toán thất bại (PAYMENT_FAILED)</text>
+  <text x="570" y="1576.75" text-anchor="middle" font-size="12"  fill="#111111">Giữ nguyên giỏ hàng; cho phép Thử lại / Hủy</text>
+  <polygon points="210,1524 302.5,1565 210,1606 117.5,1565" fill="#FFF8DC" stroke="#222222" stroke-width="1.6"/>
+  <text x="210" y="1555" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">Thử lại trước</text>
+  <text x="210" y="1569" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">khi hết hạn</text>
+  <text x="210" y="1583" text-anchor="middle" font-size="11.5" font-weight="bold" fill="#111111">giữ tồn?</text>
+  <rect x="395" y="1656" width="350" height="68" rx="14" ry="14" fill="#FDE8E8" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="1678.5" text-anchor="middle" font-size="12"  fill="#111111">Hủy đơn hoặc hết hạn: Order -&gt; CANCELLED</text>
+  <text x="570" y="1694" text-anchor="middle" font-size="12"  fill="#111111">Reservation -&gt; RELEASED/EXPIRED; hoàn nguyên</text>
+  <text x="570" y="1709.5" text-anchor="middle" font-size="12"  fill="#111111">Ingredient.stockQuantity theo snapshot đúng 1 lần</text>
+  <circle cx="210" cy="1690" r="15" fill="#FFFFFF" stroke="#111111" stroke-width="2"/>
+  <circle cx="210" cy="1690" r="9.5" fill="#111111"/>
+  <rect x="785" y="1649" width="390" height="82" rx="14" ry="14" fill="#DCFCE7" stroke="#222222" stroke-width="1.5"/>
+  <text x="980" y="1670.75" text-anchor="middle" font-size="12"  fill="#111111">Transaction: Payment -&gt; SUCCEEDED, Order -&gt; PAID</text>
+  <text x="980" y="1686.25" text-anchor="middle" font-size="12"  fill="#111111">InventoryReservation -&gt; CONSUMED, Coupon -&gt; CONSUMED</text>
+  <text x="980" y="1701.75" text-anchor="middle" font-size="12"  fill="#111111">Ghi đúng 1 LoyaltyTransaction (EARN) + cộng loyaltyBalance</text>
+  <text x="980" y="1717.25" text-anchor="middle" font-size="12"  fill="#111111">Ghi OrderStatusHistory (PENDING/PAYMENT_FAILED -&gt; PAID)</text>
+  <rect x="410" y="1763" width="320" height="64" rx="14" ry="14" fill="#DCFCE7" stroke="#222222" stroke-width="1.5"/>
+  <text x="570" y="1791.25" text-anchor="middle" font-size="12" font-weight="bold" fill="#111111">[Kết thúc UC-08] Xóa món đã mua khỏi giỏ local</text>
+  <text x="570" y="1806.75" text-anchor="middle" font-size="12"  fill="#111111">Chuyển sang màn hình Xác nhận đơn hàng</text>
+  <rect x="109" y="1763" width="246" height="64" rx="14" ry="14" fill="#DCFCE7" stroke="#222222" stroke-width="1.5"/>
+  <text x="232" y="1783.5" text-anchor="middle" font-size="12"  fill="#111111">Xem xác nhận &amp; lịch sử đơn (UC-09)</text>
+  <text x="232" y="1799" text-anchor="middle" font-size="12"  fill="#111111">Theo dõi trạng thái: PAID -&gt; PREPARING</text>
+  <text x="232" y="1814.5" text-anchor="middle" font-size="12"  fill="#111111">-&gt; READY -&gt; COMPLETED (UC-10)</text>
+  <circle cx="68" cy="1795" r="15" fill="#FFFFFF" stroke="#111111" stroke-width="2"/>
+  <circle cx="68" cy="1795" r="9.5" fill="#111111"/>
+</svg>
