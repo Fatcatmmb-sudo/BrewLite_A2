@@ -1,7 +1,0 @@
-[build]
-dockerfilePath = "Dockerfile.railway"
-
-[deploy]
-preDeployCommand = ["npm run prisma:deploy"]
-healthcheckPath = "/api/v1/health"
-healthcheckTimeout = 180

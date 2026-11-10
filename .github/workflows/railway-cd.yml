@@ -76,10 +76,10 @@ jobs:
           remote_revision="$(git ls-remote origin refs/heads/main | cut -f1)"
           test "$remote_revision" = "$REVISION" ||
             { echo "::error::A newer main revision superseded this deploy"; exit 1; }
-          railway up apps/api --path-as-root --ci \
+          railway up --ci \
             --project "$PROJECT_ID" --environment "$ENVIRONMENT_ID" \
             --service "$API_SERVICE_ID" --message "BrewLite A2 API $REVISION"
-          railway up apps/web --path-as-root --ci \
+          railway up --ci \
             --project "$PROJECT_ID" --environment "$ENVIRONMENT_ID" \
             --service "$WEB_SERVICE_ID" --message "BrewLite A2 Web $REVISION"
 

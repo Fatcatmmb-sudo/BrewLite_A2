@@ -6,8 +6,8 @@ Workflow Railway CD nhận commit của lần PR CI thành công sau push lên `
 
 ## Cấu hình một lần
 
-1. Tạo hoặc chọn environment riêng cho A2. Tạo hai service rỗng `api` và `web` dành cho upload qua Railway CLI, cùng PostgreSQL có volume. PostgreSQL dùng mạng nội bộ và không tạo public domain hoặc TCP proxy.
-2. Tạo domain HTTPS cho API (port 3001) và Web (port 3000). Mỗi lần CLI upload, thư mục app là root và chứa `railway.toml` cùng `Dockerfile.railway`.
+1. Tạo hoặc chọn environment riêng cho A2, cùng các service `api`, `web` và PostgreSQL có volume. PostgreSQL dùng mạng nội bộ và không tạo public domain hoặc TCP proxy. Nếu đã nối nguồn GitHub để deploy ban đầu, ghim nguồn vào commit bootstrap để push không kích hoạt deploy song song với CD.
+2. Tạo domain HTTPS cho API (port 3001) và Web (port 3000). CLI upload từ gốc repo. Trong Railway, đặt Root Directory của API là `/apps/api` và Web là `/apps/web`. Cả hai dùng `Dockerfile.railway`. Đặt pre-deploy command API là `npm run prisma:deploy`, health check API `/api/v1/health` và Web `/health`.
 3. Đặt biến API trên Railway gồm `DATABASE_URL` tham chiếu PostgreSQL private, `JWT_SECRET` ngẫu nhiên riêng cho A2 (ít nhất 32 byte), `WEB_ORIGIN` là HTTPS origin của Web A2, `NODE_ENV=production` và `PORT=3001`. Đặt biến Web `NEXT_PUBLIC_API_URL=<API origin>/api/v1` và `PORT=3000`. Next.js đọc URL API lúc build.
 4. Tạo GitHub Actions environment `a2-production`. Đặt secret `RAILWAY_TOKEN` bằng project token giới hạn vào environment Railway của A2. Đặt các biến sau trong GitHub Actions environment.
 
@@ -22,4 +22,13 @@ Workflow Railway CD nhận commit của lần PR CI thành công sau push lên `
 
 5. Sau khi cấu hình và merge workflow vào `main`, xem run CD sau PR CI. Lưu SHA, ID deployment, log migration và kết quả smoke. Chuẩn bị dữ liệu catalog và cấu hình VNPay Sandbox của A2 trước demo checkout. Smoke hiện chỉ kiểm tra health và HTTP catalog.
 
-[Railway CLI và token](https://docs.railway.com/cli/deploying) · [Cấu hình Railway bằng mã nguồn](https://docs.railway.com/config-as-code/reference)
+## Minh chứng deploy ban đầu
+
+Ngày 10/11/2026, Railway triển khai trực tiếp commit `b3ec642` từ nhánh PR #91 vào [project BrewLite A2](https://railway.com/project/a07749a5-2382-4497-a7fd-63d79b5e523c), environment `a2-production`. Web và API có domain riêng. PostgreSQL có volume 500 MB và chỉ mở mạng nội bộ, không có public domain hoặc TCP proxy.
+
+- [Web](https://web-a2-production.up.railway.app/menu) và [Web health](https://web-a2-production.up.railway.app/health) trả HTTP 200. Bundle menu trỏ tới API A2.
+- [API health](https://api-a2-production.up.railway.app/api/v1/health) trả HTTP 200. Log ghi nhận migration thành công, catalog có 30 sản phẩm và CORS cho phép Web A2.
+- Smoke API đạt 4/4 lúc 11:43 UTC+7. GitHub Actions đã có sáu biến đích, còn cần Project Token để chạy workflow CD từ `main`.
+- VNPay ở A2 đang tắt vì thông tin Sandbox local trùng merchant A1.
+
+[Railway CLI và token](https://docs.railway.com/cli/deploying) · [Railway monorepo](https://docs.railway.com/deployments/monorepo)
