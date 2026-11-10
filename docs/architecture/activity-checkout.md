@@ -10,10 +10,10 @@ Phiên bản 1.0 · 10/11/2026 · Phụ trách: Khải · [A2-2.1 / #7](https://
 
 ## 1. Phạm vi và ranh giới Use Case
 
-Sơ đồ mô hình hóa luồng nghiệp vụ end-to-end từ xem menu, chọn tùy chọn món, quản lý giỏ hàng, kiểm tra phiên đăng nhập, đặt đơn đến thanh toán mô phỏng và xem xác nhận đơn hàng, tuân thủ chặt chẽ [SRS](../requirements/srs.md), [Use-case tổng quát](../requirements/use-case-overview.md) và [UC-06: Đặt hàng](../requirements/uc-06-dat-hang.md):
+Sơ đồ mô hình hóa luồng nghiệp vụ end-to-end từ xem menu, chọn tùy chọn món, quản lý giỏ hàng, kiểm tra phiên đăng nhập, đặt đơn đến thanh toán mô phỏng và xem xác nhận đơn hàng, tuân thủ chặt chẽ [SRS](../requirements/srs.md), [Use-case tổng quát](../requirements/use-case-overview.md) và [UC-06: Tạo đơn](../requirements/uc-06-tao-don.md):
 
 - **Tách biệt ranh giới giữa hai Use Case trọng tâm**:
-  - **UC-06: Đặt hàng** bắt đầu khi khách gửi yêu cầu tạo đơn (`POST /api/v1/orders`) và kết thúc khi đơn được tạo ở trạng thái `PENDING` kèm giữ chỗ nguyên liệu (`InventoryReservation` `ACTIVE` + `InventoryReservationItem` snapshot) và mã giảm giá (`CouponRedemption` `RESERVED` nếu có). Tại thời điểm kết thúc UC-06, hệ thống **chưa gọi cổng thanh toán** và **chưa xóa giỏ hàng**.
+  - **UC-06: Tạo đơn** bắt đầu khi khách gửi yêu cầu tạo đơn (`POST /api/v1/orders`) và kết thúc khi đơn được tạo ở trạng thái `PENDING` kèm giữ chỗ nguyên liệu (`InventoryReservation` `ACTIVE` + `InventoryReservationItem` snapshot) và mã giảm giá (`CouponRedemption` `RESERVED` nếu có). Tại thời điểm kết thúc UC-06, hệ thống **chưa gọi cổng thanh toán** và **chưa xóa giỏ hàng**.
   - **UC-08: Thực hiện thanh toán** là use case độc lập sau UC-06, sử dụng `orderId` đã có cùng `Idempotency-Key` (`POST /api/v1/payments`) để tương tác với **Mock Payment Gateway**.
 - **Không gộp enum trạng thái**:
   - `OrderStatus`: `PENDING`, `PAYMENT_FAILED`, `PAID`, `PREPARING`, `READY`, `COMPLETED`, `CANCELLED`.

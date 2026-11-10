@@ -11,7 +11,7 @@ Hồ sơ đối chiếu lịch sử ngày 04/11/2026. Bộ sơ đồ A2 hiện t
 | UC-03 | Xem menu |
 | UC-04 | Xem chi tiết sản phẩm + size + topping |
 | UC-05 | Quản lý giỏ hàng |
-| UC-06 | Đặt hàng |
+| UC-06 | Tạo đơn |
 | UC-07 | Áp dụng coupon |
 | UC-08 | Thực hiện thanh toán |
 | UC-09 | Xem xác nhận và lịch sử đơn hàng |
@@ -23,7 +23,7 @@ Khách hàng liên kết UC-01/02/03/05/06/07/08/09; Nhân viên quầy liên k�
 
 | Phát hiện | Điều chỉnh | Tạo phẩm / PR |
 |---|---|---|
-| Đặc tả và sequence gộp đặt/thanh toán | UC-06: Đặt hàng riêng, kết thúc ở 201 PENDING; không gateway/payment/EARN. UC-08: Thực hiện thanh toán thuộc #6/#9 riêng | PR #50 đặc tả/source/export UC-06; PR #51 sequence-create-order/source/export |
+| Đặc tả và sequence gộp đặt/thanh toán | UC-06: Tạo đơn riêng, kết thúc ở 201 PENDING; không gateway/payment/EARN. UC-08: Thực hiện thanh toán thuộc #6/#9 riêng | PR #50 đặc tả/source/export UC-06; PR #51 sequence-create-order/source/export |
 | Tên UC văn bản lệch tên trên ảnh tổng thể | Chuẩn hóa bảng UC với 10 tên bên trên | [Use case tổng quát](requirements/use-case-overview.md); tài liệu mới #50/#51 |
 | Task 1/3 vẫn nói kho variant, loại BOM khỏi scope | Ingredient.stockQuantity/version; RecipeItem/ToppingRecipeItem; reservation item snapshot; giữ mã FR/NFR/AC | [Scope](requirements/context-and-scope.md), [SRS](requirements/srs.md), [NFR](requirements/non-functional-requirements.md), [kiến trúc](architecture/system-architecture.md), ADR-002/004/[006](architecture/adr/006-a1-recipe-inventory.md) trong PR #52 |
 | Class cũ thiếu công thức/kho, tự đổi tên model và enum | Theo đủ 18 model/11 enum của schema A1; Coupon (Promotion trong đề), FK cardinality thật, nullable order ledger, enum EXPIRED | [Class domain](architecture/class-domain.md), source/SVG/PNG trong PR #52 |

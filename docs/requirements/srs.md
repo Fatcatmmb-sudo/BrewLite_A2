@@ -149,4 +149,4 @@ Nguồn code cố định: [A1 @7beb0cb](https://github.com/akira-yami/BrewLite_
 
 Phân biệt đơn giá hiển thị với field lưu: OrderItem.unitPrice là giá variant; OrderItemTopping.unitPrice và quantity lưu riêng (runtime đặt quantity=1 mỗi phần topping/ly). lineTotal=(OrderItem.unitPrice + tổng topping.unitPrice x topping.quantity) x item.quantity. Không cộng topping hai lần khi dựng response.
 
-UC-06: Đặt hàng kết thúc ở PENDING + reservation/history, chưa có Payment hoặc EARN. UC-08: Thực hiện thanh toán là use case riêng, không include/extend với UC-06; UC-07: Áp dụng coupon extend UC-06. Tên và tác nhân hiện tại theo [Use Case tổng thể](use-case-overview.md). Các sửa đổi FR-02/06 giữ mã AC để bảo toàn truy vết, đổi fixture từ tồn thành phẩm sang nguyên liệu tương đương.
+UC-06: Tạo đơn kết thúc ở PENDING + reservation/history, chưa có Payment hoặc EARN. UC-08: Thực hiện thanh toán là use case riêng, không include/extend với UC-06; UC-07: Áp dụng coupon extend UC-06. Tên và tác nhân hiện tại theo [Use Case tổng thể](use-case-overview.md). Các sửa đổi FR-02/06 giữ mã AC để bảo toàn truy vết, đổi fixture từ tồn thành phẩm sang nguyên liệu tương đương.

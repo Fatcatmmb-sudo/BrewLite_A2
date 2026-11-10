@@ -91,7 +91,7 @@ PostgreSQL + Prisma; migration versioned trong Git, bổ sung SQL cho CHECK/part
 
 Migration one-shot chạy trước API, fail thì không start release mới; không sửa migration đã áp dụng. Seed development/test phải lặp an toàn, không tự cấp tài khoản demo trên production. PostgreSQL có persistent volume/disk; restart không xóa volume. [ADR-002](adr/002-postgresql-prisma.md) ghi lựa chọn; thiết kế chi tiết thuộc [#13](https://github.com/akira-yami/BrewLite_A2/issues/13), triển khai migration/seed thuộc [#35](https://github.com/akira-yami/BrewLite_A2/issues/35).
 
-### 5.1. UC-06: Đặt hàng
+### 5.1. UC-06: Tạo đơn
 
 1. JWT/CUSTOMER và DTO hợp lệ; chuẩn hóa 1..20 dòng, quantity 1..20, đọc catalog/BOM/nguyên liệu cùng transaction Serializable.
 2. Đọc RecipeItem và ToppingRecipeItem của mọi topping, nhân số ly và cộng theo ingredientId toàn giỏ. Tồn/version ở Ingredient, không ở ProductVariant. Thiếu BOM/inactive ingredient không bán được; availableServings chỉ là thông tin tính toán.

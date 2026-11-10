@@ -13,7 +13,7 @@ rectangle "BrewLite" {
   usecase "UC-03 Xem menu" as UC03
   usecase "UC-04 Xem chi tiết và tùy chọn món" as UC04
   usecase "UC-05 Quản lý giỏ hàng" as UC05
-  usecase "UC-06 Đặt hàng" as UC06
+  usecase "UC-06 Tạo đơn" as UC06
   usecase "UC-07 Áp dụng coupon" as UC07
   usecase "UC-08 Thực hiện thanh toán" as UC08
   usecase "UC-09 Xem xác nhận và lịch sử" as UC09

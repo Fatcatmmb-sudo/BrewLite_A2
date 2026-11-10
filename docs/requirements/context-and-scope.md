@@ -95,4 +95,4 @@ Review xác nhận đủ sáu nhóm stakeholder; phân biệt MVP cuối kỳ v�
 
 Tài liệu liên quan theo issue: [SRS chức năng #2](https://github.com/akira-yami/BrewLite_A2/issues/2), [NFR #3](https://github.com/akira-yami/BrewLite_A2/issues/3), [use case tổng quát #4](https://github.com/akira-yami/BrewLite_A2/issues/4). Bốn issue này không thay thế đặc tả use case trọng tâm của A2 mục 3.3 hoặc các tạo phẩm Task 2-5.
 
-Cập nhật 04/11/2026 theo yêu cầu đồng bộ A1: UC-06: Đặt hàng và UC-08: Thực hiện thanh toán tách biệt; công thức/kho nguyên liệu thuộc phạm vi lõi. Xem [ADR-006](../architecture/adr/006-a1-recipe-inventory.md).
+Cập nhật 04/11/2026 theo yêu cầu đồng bộ A1: UC-06: Tạo đơn và UC-08: Thực hiện thanh toán tách biệt; công thức/kho nguyên liệu thuộc phạm vi lõi. Xem [ADR-006](../architecture/adr/006-a1-recipe-inventory.md).

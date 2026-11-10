@@ -6,6 +6,14 @@
   "sourceNormalization": "UTF-8, CRLF -> LF",
   "entries": [
     {
+      "source": "docs/diagrams/activity-checkout.puml",
+      "sha256": "7b9f3abe5baefbf6965be7a8ab56fc3a273ea8d15399987877b1ca67f2058013",
+      "outputs": {
+        "docs/diagrams/activity-checkout.svg": "dccc65f688661c21b6fa7d33f7e87205faf27b29937379709bd99106550b711d",
+        "docs/diagrams/activity-checkout.png": "84166bd36998e5f5de45a66d29d48f6ff72fb5b92b58382f3251ba8769f79b9e"
+      }
+    },
+    {
       "source": "docs/diagrams/class-domain.puml",
       "sha256": "406b7533763d8ba99aadea5d9ab7272ccbcf66d08996875f05cf571938e67c70",
       "outputs": {
@@ -31,10 +39,10 @@
     },
     {
       "source": "docs/diagrams/sequence-create-order.puml",
-      "sha256": "0afa787178add1edba55c55e93509e5eafad84a31bbf4d8ea291f316012b8b28",
+      "sha256": "c38458eabd43f7001bac4b0fefa29feba388c3929785d2a1bc9d2df6e8c0f8f6",
       "outputs": {
-        "docs/diagrams/sequence-create-order.svg": "78f19c953895d8993173a13fb810d249e0be469d8a02ec2c5a77e3a63a978e3c",
-        "docs/diagrams/sequence-create-order.png": "4dc9390c1f7b93e82d4cccabec97e72b14dbf6521c415b8f90cfdec5efae520c"
+        "docs/diagrams/sequence-create-order.svg": "c4802ba38be59be10da9b6d107bbd7524afd8e0fcd16fddd122e7f3fdd37fb2e",
+        "docs/diagrams/sequence-create-order.png": "b0adf8cff96eda8e2a4962564b17a06d316b7fde384baca2d58c08d23b3e4153"
       }
     },
     {
@@ -47,18 +55,18 @@
     },
     {
       "source": "docs/diagrams/use-case-overview.puml",
-      "sha256": "b602ca579dd4179ab8e58e886dcbc793754d209696cde2de4e77c7c927c218dd",
+      "sha256": "6937976ea3569f284461186c3a21d96c8741e1318cecbfd41189f3d9ca5613eb",
       "outputs": {
-        "docs/diagrams/use-case-overview.svg": "71d43b51b375e88b455ec03aa616148a90c8c7764b898b092fde6f6af0e64d85",
-        "docs/diagrams/use-case-overview.png": "2718d0906e392f5a074e09d125ea8829630be027b18bcd95cde5629e8f9aec60"
+        "docs/diagrams/use-case-overview.svg": "8cdf5997f86d59837e962f0b588fcd9519a325d3d8f2f2f586058522c827854e",
+        "docs/diagrams/use-case-overview.png": "868c869dd1739b74ad467a1176749ba3a460cd4a5874aae27e543c861de4cf9e"
       }
     },
     {
       "source": "docs/diagrams/use-case-uc06.puml",
-      "sha256": "164cd37e7f13b9abe1fe53b624b2d77be9833f0a54a46e513dce7ca6e1d79550",
+      "sha256": "55245c7389766946179fd628a1f7641da4b1043da8ecb93e44d5e4e4876ff05d",
       "outputs": {
-        "docs/diagrams/use-case-uc06.svg": "8e953d698b140bff082f7706f42a26611672ebf9649e978d6dccc27ba1b668e5",
-        "docs/diagrams/use-case-uc06.png": "baaed02931e1c2bbe16d07444ce4ec0b0275103157930ddbb358b7be3a2ff06b"
+        "docs/diagrams/use-case-uc06.svg": "150a71b64b25a9f6676889d18bf55bc61c22a06fd443a48f1c6464c827d82b17",
+        "docs/diagrams/use-case-uc06.png": "87bb48853cebf745b5c33b6b8cfd1556caa5bbd9aafccebacb981bf8c18b2161"
       }
     },
     {

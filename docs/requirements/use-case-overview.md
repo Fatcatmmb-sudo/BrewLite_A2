@@ -19,7 +19,7 @@
 | UC-01 Đăng ký, UC-02 Đăng nhập | FR-05 |
 | UC-03 Xem menu, UC-04 Xem chi tiết và tùy chọn món | FR-01, FR-02, FR-03 |
 | UC-05 Quản lý giỏ hàng | FR-04 |
-| [UC-06 Đặt hàng](uc-06-dat-hang.md), UC-07 Áp dụng coupon | FR-06, FR-10 |
+| [UC-06 Tạo đơn](uc-06-tao-don.md), UC-07 Áp dụng coupon | FR-06, FR-10 |
 | [UC-08 Thực hiện thanh toán](uc-08-thanh-toan.md) | FR-07, FR-10 |
 | UC-09 Xem xác nhận và lịch sử | FR-08, FR-11 |
 | UC-10 Cập nhật trạng thái đơn | FR-09, FR-12 |

@@ -6,7 +6,7 @@
 
 ## Bối cảnh
 
-SRS/kiến trúc cũ mô tả stock/version ở ProductVariant và loại kho nguyên liệu khỏi phạm vi. Code A1 hiện dùng Ingredient, RecipeItem/ToppingRecipeItem, InventoryReservationItem. Sơ đồ tổng thể đã tách UC-06: Đặt hàng và UC-08: Thực hiện thanh toán; tài liệu/sequence gộp trước đây không phản ánh ranh giới đó.
+SRS/kiến trúc cũ mô tả stock/version ở ProductVariant và loại kho nguyên liệu khỏi phạm vi. Code A1 hiện dùng Ingredient, RecipeItem/ToppingRecipeItem, InventoryReservationItem. Sơ đồ tổng thể đã tách UC-06: Tạo đơn và UC-08: Thực hiện thanh toán; tài liệu/sequence gộp trước đây không phản ánh ranh giới đó.
 
 ## Quyết định
 
