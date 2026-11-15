@@ -40,7 +40,10 @@ function orderRow(status: string) {
 }
 
 describe('OrdersService - Barista (EXT-UC10)', () => {
-  const tx = { marker: 'tx' };
+  const tx = {
+    marker: 'tx',
+    refundRequest: { findFirst: vi.fn().mockResolvedValue(null) },
+  };
   let repository: any;
   let users: any;
   let prisma: any;

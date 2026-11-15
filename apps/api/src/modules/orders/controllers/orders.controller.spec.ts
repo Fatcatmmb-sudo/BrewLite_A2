@@ -66,4 +66,14 @@ describe('OrdersController (Unit Test)', () => {
     expect(result).toEqual({ data: mockDetail });
   });
 
+  it('requestRefund - khách hàng gửi yêu cầu hoàn tiền thành công', async () => {
+    const mockUser = { id: 'u-1', role: 'CUSTOMER' as any };
+    const mockRefund = { id: 'rf-1', orderId: 'o-1', status: 'PENDING' };
+    serviceMock.requestRefund = vi.fn().mockResolvedValue(mockRefund);
+
+    const result = await controller.requestRefund('o-1', mockUser, { reason: 'Khách đổi ý' });
+
+    expect(serviceMock.requestRefund).toHaveBeenCalledWith('o-1', 'u-1', 'Khách đổi ý');
+    expect(result).toEqual({ data: mockRefund });
+  });
 });
