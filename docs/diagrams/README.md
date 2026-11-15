@@ -13,7 +13,7 @@
 | Deployment production | [PlantUML](deployment-production.puml) | [SVG](deployment-production.svg) |
 | ERD PostgreSQL | [PlantUML](../../database/BrewLite.puml) | [SVG](../../database/BrewLite.svg) |
 
-Checkout dùng khung `ref` để dẫn đến hai sequence riêng. Sequence UC-06 mô tả giao dịch tạo đơn và giữ nguyên liệu. Sequence UC-08 mô tả API thanh toán, gửi lại cùng key và callback VNPay.
+Checkout dùng khung `ref` để dẫn đến hai sequence riêng. Sequence UC-06 mô tả transaction tạo đơn và giữ nguyên liệu. Sequence UC-08 mô tả replay theo key, thử lại chủ động có điều kiện bằng key mới và xử lý callback VNPay, gồm thành công đến muộn.
 
 Từ gốc repo, dùng JAR PlantUML 1.2026.8 từ bản phát hành GitHub. Script kiểm tra SHA-256 của JAR trước khi xuất SVG, PNG và cập nhật manifest.
 

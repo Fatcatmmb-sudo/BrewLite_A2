@@ -22,6 +22,17 @@ package "Danh mục và kho" {
   class RecipeItem {
     quantity: Int
   }
+  class Topping {
+    type: ToppingType
+    price: BigInt
+  }
+  class ProductTopping {
+    productId: UUID
+    toppingId: UUID
+  }
+  class ToppingRecipeItem {
+    quantity: Int
+  }
   class Ingredient {
     stockQuantity: Int
     version: Int
@@ -30,6 +41,9 @@ package "Danh mục và kho" {
     quantity: Int
     status: ReservationStatus
     expiresAt: DateTime
+  }
+  class InventoryReservationItem {
+    quantity: Int
   }
 }
 
@@ -47,6 +61,15 @@ package "Đơn hàng và ưu đãi" {
   class OrderItem {
     quantity: Int
     unitPrice: BigInt
+  }
+  class OrderItemTopping {
+    toppingNameSnapshot: String
+    unitPrice: BigInt
+    quantity: Int
+  }
+  class OrderStatusHistory {
+    fromStatus: OrderStatus?
+    toStatus: OrderStatus
   }
   class "Coupon (Promotion)" as Coupon {
     code: String
@@ -90,11 +113,21 @@ package "Thanh toán và đối soát" {
 Product "1" -- "0..*" ProductVariant
 ProductVariant "1" -- "0..*" RecipeItem
 Ingredient "1" -- "0..*" RecipeItem
+Product "1" -- "0..*" ProductTopping
+Topping "1" -- "0..*" ProductTopping
+Topping "1" -- "0..*" ToppingRecipeItem
+Ingredient "1" -- "0..*" ToppingRecipeItem
 ProductVariant "1" -- "0..*" OrderItem
 ProductVariant "1" -- "0..*" InventoryReservation
 User "1" -- "0..*" Order
 Order "1" -- "0..*" OrderItem
+OrderItem "1" -- "0..*" OrderItemTopping
+Topping "1" -- "0..*" OrderItemTopping
+Order "1" -- "0..*" OrderStatusHistory
+User "0..1" -- "0..*" OrderStatusHistory
 Order "1" -- "0..*" InventoryReservation
+InventoryReservation "1" -- "0..*" InventoryReservationItem
+Ingredient "1" -- "0..*" InventoryReservationItem
 Order "1" -- "0..*" Payment
 Coupon "1" -- "0..*" CouponRedemption
 Order "1" -- "0..1" CouponRedemption
@@ -105,6 +138,9 @@ Payment "1" -- "0..*" PaymentRecoveryRequest
 Payment "1" -- "0..*" PaymentRecoveryAudit
 Payment "1" -- "0..*" PaymentRecoveryResolution
 PaymentRecoveryRequest "0..1" -- "0..*" PaymentRecoveryAudit
+User "1" -- "0..*" PaymentRecoveryRequest
+User "0..1" -- "0..*" PaymentRecoveryAudit
+User "1" -- "0..*" PaymentRecoveryResolution
 
 legend bottom
   |= Enum |= Giá trị |
@@ -115,6 +151,6 @@ legend bottom
   | ReservationStatus | ACTIVE, CONSUMED, RELEASED, EXPIRED |
   | CouponRedemptionStatus | RESERVED, CONSUMED, RELEASED, EXPIRED |
   | LoyaltyTransactionType | EARN, REDEEM, ADJUSTMENT, REVERSAL |
-  Các bảng hỗ trợ, quan hệ actor đối soát và enum đầy đủ nằm ở ERD PostgreSQL.
+  Xem ERD PostgreSQL để tra cột, khóa, ràng buộc và danh sách enum đầy đủ.
 endlegend
 @enduml

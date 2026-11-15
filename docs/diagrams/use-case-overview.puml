@@ -5,7 +5,7 @@ title BrewLite A2 - Use Case tổng thể
 skinparam defaultFontName Arial
 skinparam shadowing false
 actor "Khách hàng" as Customer
-actor "Nhân viên quầy" as Staff
+actor "Nhân viên quầy\n(BARISTA)" as Staff
 actor "VNPay" as Gateway
 rectangle "BrewLite" {
   usecase "UC-01 Đăng ký" as UC01
@@ -20,7 +20,11 @@ rectangle "BrewLite" {
   usecase "UC-10 Cập nhật trạng thái đơn" as UC10
   usecase "UC-11 Xem và đổi điểm lấy voucher" as UC11
   usecase "UC-12 Xem công thức món" as UC12
-  usecase "UC-13 Quản lý tồn nguyên liệu" as UC13
+  usecase "UC-13 Xem tồn nguyên liệu" as UC13
+  usecase "UC-14 Gửi yêu cầu hoàn tiền" as UC14
+  usecase "UC-15 Duyệt yêu cầu hoàn tiền\n[khi đơn còn PAID]" as UC15
+  usecase "UC-16 Nhập kho nguyên liệu" as UC16
+  usecase "UC-17 Xem biến động kho" as UC17
 }
 Customer -- UC01
 Customer -- UC02
@@ -31,10 +35,14 @@ Customer -- UC07
 Customer -- UC08
 Customer -- UC09
 Customer -- UC11
+Customer -- UC14
 Staff -- UC02
 Staff -- UC10
 Staff -- UC12
 Staff -- UC13
+Staff -- UC15
+Staff -- UC16
+Staff -- UC17
 Gateway -- UC08
 UC04 ..> UC03 : <<extend>>
 UC07 ..> UC06 : <<extend>>

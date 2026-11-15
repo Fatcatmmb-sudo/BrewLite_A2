@@ -78,7 +78,7 @@ Khi chờ thanh toán, Web dùng key lưu trong phiên checkout để tra trạn
 | `GET /orders/me`, `GET /orders/:id` | Khách xem đơn của mình | Ownership kể cả khi biết ID; danh sách chỉ của principal |
 | `POST /payments`, `GET /payments/status` | Chủ đơn khởi tạo/tra thanh toán | JWT, `Idempotency-Key`, amount từ DB |
 | `GET /payments/vnpay/ipn`, `GET /payments/vnpay/return` | VNPay callback và browser return | Chữ ký, mã giao dịch, số tiền, xử lý lặp |
-| `GET /staff/recipes`, `GET /staff/inventory`, `PATCH /staff/inventory/:id/stock` | Công thức và tồn nguyên liệu | Role BARISTA |
+| `GET /staff/recipes`, `GET /staff/inventory`, `PATCH /staff/inventory/:id/stock` | Xem công thức và tồn nguyên liệu. PATCH cập nhật số lượng trả 403. | Role BARISTA |
 | `GET /loyalty/me`, `POST /loyalty/redeem` | Xem điểm và đổi voucher | Role CUSTOMER |
 | `POST /orders/:id/cancel`, `PATCH /staff/orders/:id/status` | Chủ đơn hủy; Barista cập nhật pha chế | Ownership/RBAC, state machine, phân xử race với payment/expiry |
 | `GET /health` | Readiness | Kiểm tra DB có timeout, 200/503, không lộ config |
@@ -105,7 +105,7 @@ Migration one-shot chạy trước API, fail thì không start release mới; kh
 1. API xác thực chủ đơn, tính request hash từ orderId, method và amount. Cùng key và hash trả lại dữ liệu đã lưu, gồm URL của attempt VNPay đang xử lý.
 2. Attempt mới khóa đơn, kiểm tra trạng thái/hạn và ghi `PROCESSING` cùng URL. API trả HTTP 200 để Web chuyển sang VNPay.
 3. IPN xác minh callback và chốt trong transaction. Return hợp lệ ở Sandbox cũng có thể chốt. Thành công consume giữ chỗ/coupon và cộng `floor(total / 10)` điểm cùng commit. Thành công muộn có thể vào `MANUAL_REVIEW`.
-4. Thất bại xác định cho phép thử lại đơn còn hạn bằng key mới. Web tra trạng thái bằng key cũ trong lúc chờ kết quả. Đối soát có thẩm quyền được ghi audit.
+4. Web tra trạng thái bằng key hiện có. Khi khách chọn **Thanh toán lại** trên đơn còn hạn, Web gửi key mới và `retryAttempt: true`. Trong cùng transaction, API có thể đánh dấu attempt VNPay cũ đang `PROCESSING` là `FAILED`, ghi audit và tạo attempt mới. Attempt `MANUAL_REVIEW` chặn thao tác này. IPN thành công đến muộn cho attempt đã bị thay thế cần đối soát.
 
 [Sequence checkout](../diagrams/sequence-checkout.svg) · [Sequence thanh toán](../diagrams/sequence-payment.svg) · [Đặc tả UC-08](../requirements/uc-08-thanh-toan.md).
 
@@ -153,3 +153,5 @@ Khi triển khai: unit cho giá/state machine/coupon; HTTP cho DTO/JWT/role/owne
 ## 9. Baseline công thức/kho và ranh giới UC
 
 A2 kế thừa mô hình kho Ingredient và công thức món/topping từ baseline A1. [Class domain](class-domain.md) và [ERD](../../database/BrewLite.svg) bám schema hiện tại. UC-06 tạo đơn và giữ nguyên liệu, UC-08 xử lý thanh toán trên đơn đã tạo.
+
+Thiết kế quyền duyệt hoàn tiền, nhập kho và xem biến động được mô tả trong [nghiệp vụ quầy](../requirements/staff-operations.md).

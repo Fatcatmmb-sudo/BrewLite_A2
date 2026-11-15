@@ -23,6 +23,8 @@ Các route backend dưới đây có prefix `/api/v1`. Đọc [test plan](testin
 | FR-13 | UC-02, refresh token theo kế hoạch | Auth dùng access JWT | TC-FR-13 |
 | FR-14 | UC-09, realtime theo kế hoạch | Web đọc trạng thái qua GET | TC-FR-14 |
 | FR-15 | Giới hạn thu tiền thật trong phạm vi đề | Kiểm chứng cấu hình VNPay Sandbox và mock test | TC-FR-15 |
+| FR-16 | UC-14/15, [Use Case thanh toán](diagrams/use-case-uc08.svg) | [Thiết kế hoàn tiền trước pha chế](requirements/staff-operations.md) | Quyền, tranh chấp trạng thái và xử lý lặp |
+| FR-17 | UC-16/17, [Use Case tổng thể](diagrams/use-case-overview.svg) | [Thiết kế nhập kho và biến động](requirements/staff-operations.md) | Cộng tồn nguyên tử, lịch sử và phân quyền |
 
 Task 2.1 dùng [Activity checkout](diagrams/activity-checkout.svg) cho FR-01 đến FR-08, gồm các nhánh chưa đăng nhập, hết hàng và thanh toán thất bại. Task 2.2 gồm [Sequence tạo đơn](diagrams/sequence-create-order.svg), [Sequence thanh toán](diagrams/sequence-payment.svg) và [Sequence checkout](diagrams/sequence-checkout.svg). [Class domain](diagrams/class-domain.svg) và [ERD](../database/BrewLite.svg) thể hiện các quan hệ dữ liệu.
 

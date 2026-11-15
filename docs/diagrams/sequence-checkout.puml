@@ -36,9 +36,13 @@ alt Đã thanh toán
     UI --> Customer: Hiển thị lịch sử đơn
   end
 else Thất bại xác định
-  UI --> Customer: Hiện lỗi và cho thử lại nếu đơn còn hạn
+  UI --> Customer: Hiện lỗi và giữ thông tin đơn
 else Chưa có kết quả cuối
-  UI --> Customer: Hiện trạng thái đang xử lý hoặc cần đối soát
+  UI --> Customer: Tra theo key hiện có; hiển thị đang xử lý hoặc cần đối soát
+end
+opt Khách chọn Thanh toán lại ở chi tiết đơn còn hạn
+  Customer -> UI: Thanh toán lại trên cùng orderId
+  ref over Customer, UI, API: UC-08 với key mới và retryAttempt=true
 end
 legend bottom
   Khung ref dẫn đến luồng chi tiết UC-06 và UC-08.
