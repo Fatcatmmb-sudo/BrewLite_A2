@@ -279,51 +279,74 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
   });
 
   // --------------------------------------------------
-  // 5. Kiểm tra BARISTA nhập kho thành công
+  // 5. Kiểm tra BARISTA nhập một phiếu gồm nhiều nguyên liệu
   // --------------------------------------------------
 
-  it('BARISTA nhập kho thành công và ghi lịch sử chính xác', async () => {
-    const item = await create(1000);
+  it('BARISTA nhập nhiều nguyên liệu thành công và ghi lịch sử chính xác', async () => {
+    const item1 = await create(1000);
+    const item2 = await create(2000);
 
     const result = await request(app.getHttpServer())
-      .post(`/api/v1/staff/inventory/${item.id}/receipts`)
+      .post('/api/v1/staff/inventory/receipts')
       .set(bearer(staff))
-      .send({ quantity: 10 })
+      .send({
+        supplier: 'Nhà cung cấp kiểm thử',
+        note: 'Phiếu nhập nhiều nguyên liệu',
+        items: [
+          { ingredientId: item1.id, quantity: 10 },
+          { ingredientId: item2.id, quantity: 50 },
+        ],
+      })
       .expect(201);
 
     expect(result.body.data).toMatchObject({
-      ingredientId: item.id,
       receivedByUserId: staffId,
-      quantity: 10,
-      stockBefore: 1000,
-      stockAfter: 1010,
+      supplier: 'Nhà cung cấp kiểm thử',
+      note: 'Phiếu nhập nhiều nguyên liệu',
     });
 
     expect(result.body.data.receiptId).toBeDefined();
     expect(result.body.data.createdAt).toBeDefined();
+    expect(result.body.data.items).toHaveLength(2);
 
-    // Kiểm tra tồn kho thực tế trong PostgreSQL.
-    const updated = await prisma.ingredient.findUniqueOrThrow({
-      where: { id: item.id },
+    expect(result.body.data.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ingredientId: item1.id,
+          quantityAdded: 10,
+          stockBefore: 1000,
+          stockAfter: 1010,
+        }),
+        expect.objectContaining({
+          ingredientId: item2.id,
+          quantityAdded: 50,
+          stockBefore: 2000,
+          stockAfter: 2050,
+        }),
+      ]),
+    );
+
+    const updated1 = await prisma.ingredient.findUniqueOrThrow({
+      where: { id: item1.id },
     });
 
-    expect(updated.stockQuantity).toBe(1010);
-    expect(updated.version).toBe(1);
-
-    // Kiểm tra lịch sử nhập kho thực tế.
-    const receipts = await prisma.inventoryReceipt.findMany({
-      where: { ingredientId: item.id },
+    const updated2 = await prisma.ingredient.findUniqueOrThrow({
+      where: { id: item2.id },
     });
 
-    expect(receipts).toHaveLength(1);
+    expect(updated1.stockQuantity).toBe(1010);
+    expect(updated1.version).toBe(1);
+    expect(updated2.stockQuantity).toBe(2050);
+    expect(updated2.version).toBe(1);
 
-    expect(receipts[0]).toMatchObject({
-      ingredientId: item.id,
-      receivedByUserId: staffId,
-      quantity: 10,
-      stockBefore: 1000,
-      stockAfter: 1010,
+    // Kiểm tra phiếu cha và hai dòng chi tiết trong database.
+    const receipt = await prisma.inventoryReceipt.findUniqueOrThrow({
+      where: { id: result.body.data.receiptId },
+      include: { items: true },
     });
+
+    expect(receipt.receivedByUserId).toBe(staffId);
+    expect(receipt.items).toHaveLength(2);
   });
 
   // --------------------------------------------------
@@ -333,16 +356,13 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
   it('Từ chối số lượng nhập không hợp lệ và không thay đổi tồn kho', async () => {
     const item = await create(1000);
 
-    for (const quantity of [
-      0,
-      -1,
-      1.5,
-      2147483648,
-    ]) {
+    for (const quantity of [0, -1, 1.5, 2147483648]) {
       await request(app.getHttpServer())
-        .post(`/api/v1/staff/inventory/${item.id}/receipts`)
+        .post('/api/v1/staff/inventory/receipts')
         .set(bearer(staff))
-        .send({ quantity })
+        .send({
+          items: [{ ingredientId: item.id, quantity }],
+        })
         .expect(400);
     }
 
@@ -353,11 +373,11 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
     expect(updated.stockQuantity).toBe(1000);
     expect(updated.version).toBe(0);
 
-    const receipts = await prisma.inventoryReceipt.findMany({
+    const receiptItems = await prisma.inventoryReceiptItem.findMany({
       where: { ingredientId: item.id },
     });
 
-    expect(receipts).toHaveLength(0);
+    expect(receiptItems).toHaveLength(0);
   });
 
   // --------------------------------------------------
@@ -368,9 +388,11 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
     const item = await create(2147483640);
 
     await request(app.getHttpServer())
-      .post(`/api/v1/staff/inventory/${item.id}/receipts`)
+      .post('/api/v1/staff/inventory/receipts')
       .set(bearer(staff))
-      .send({ quantity: 10 })
+      .send({
+        items: [{ ingredientId: item.id, quantity: 10 }],
+      })
       .expect(400);
 
     const updated = await prisma.ingredient.findUniqueOrThrow({
@@ -380,11 +402,11 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
     expect(updated.stockQuantity).toBe(2147483640);
     expect(updated.version).toBe(0);
 
-    const receipts = await prisma.inventoryReceipt.findMany({
+    const receiptItems = await prisma.inventoryReceiptItem.findMany({
       where: { ingredientId: item.id },
     });
 
-    expect(receipts).toHaveLength(0);
+    expect(receiptItems).toHaveLength(0);
   });
 
   // --------------------------------------------------
@@ -394,19 +416,21 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
   it('Từ chối CUSTOMER và yêu cầu đăng nhập khi nhập kho', async () => {
     const item = await create(1000);
 
-    const path = `/api/v1/staff/inventory/${item.id}/receipts`;
+    const payload = {
+      items: [{ ingredientId: item.id, quantity: 10 }],
+    };
 
-    // Không có JWT.
+    const path = '/api/v1/staff/inventory/receipts';
+
     await request(app.getHttpServer())
       .post(path)
-      .send({ quantity: 10 })
+      .send(payload)
       .expect(401);
 
-    // Có JWT CUSTOMER nhưng không đủ quyền.
     await request(app.getHttpServer())
       .post(path)
       .set(bearer(customer))
-      .send({ quantity: 10 })
+      .send(payload)
       .expect(403);
 
     const updated = await prisma.ingredient.findUniqueOrThrow({
@@ -416,11 +440,11 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
     expect(updated.stockQuantity).toBe(1000);
     expect(updated.version).toBe(0);
 
-    const receipts = await prisma.inventoryReceipt.findMany({
+    const receiptItems = await prisma.inventoryReceiptItem.findMany({
       where: { ingredientId: item.id },
     });
 
-    expect(receipts).toHaveLength(0);
+    expect(receiptItems).toHaveLength(0);
   });
 
   // --------------------------------------------------
@@ -428,14 +452,14 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
   // --------------------------------------------------
 
   it('Từ chối nhập kho khi nguyên liệu không tồn tại hoặc đã ngừng hoạt động', async () => {
-    // Nguyên liệu không tồn tại.
     await request(app.getHttpServer())
-      .post(`/api/v1/staff/inventory/${randomUUID()}/receipts`)
+      .post('/api/v1/staff/inventory/receipts')
       .set(bearer(staff))
-      .send({ quantity: 10 })
+      .send({
+        items: [{ ingredientId: randomUUID(), quantity: 10 }],
+      })
       .expect(404);
 
-    // Nguyên liệu đã ngừng hoạt động.
     const inactive = await create(1000);
 
     await prisma.ingredient.update({
@@ -444,9 +468,11 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
     });
 
     await request(app.getHttpServer())
-      .post(`/api/v1/staff/inventory/${inactive.id}/receipts`)
+      .post('/api/v1/staff/inventory/receipts')
       .set(bearer(staff))
-      .send({ quantity: 10 })
+      .send({
+        items: [{ ingredientId: inactive.id, quantity: 10 }],
+      })
       .expect(404);
 
     const updated = await prisma.ingredient.findUniqueOrThrow({
@@ -456,23 +482,23 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
     expect(updated.stockQuantity).toBe(1000);
     expect(updated.version).toBe(0);
 
-    const receipts = await prisma.inventoryReceipt.findMany({
+    const receiptItems = await prisma.inventoryReceiptItem.findMany({
       where: { ingredientId: inactive.id },
     });
 
-    expect(receipts).toHaveLength(0);
+    expect(receiptItems).toHaveLength(0);
   });
 
   // --------------------------------------------------
   // 10. Kiểm tra rollback khi ghi lịch sử nhập kho thất bại
   // --------------------------------------------------
 
-  it('Rollback tồn kho nếu ghi lịch sử nhập kho thất bại', async () => {
-    const item = await create(1000);
+  it('Rollback toàn bộ tồn kho nếu ghi phiếu nhập thất bại', async () => {
+    const item1 = await create(1000);
+    const item2 = await create(2000);
 
     const repository = app.get(InventoryRepository);
 
-    // Giả lập lỗi khi ghi lịch sử nhập kho.
     const receiptSpy = vi
       .spyOn(repository, 'createInventoryReceipt')
       .mockRejectedValueOnce(
@@ -481,28 +507,41 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
 
     try {
       await request(app.getHttpServer())
-        .post(`/api/v1/staff/inventory/${item.id}/receipts`)
+        .post('/api/v1/staff/inventory/receipts')
         .set(bearer(staff))
-        .send({ quantity: 50 })
+        .send({
+          items: [
+            { ingredientId: item1.id, quantity: 50 },
+            { ingredientId: item2.id, quantity: 100 },
+          ],
+        })
         .expect(500);
     } finally {
       receiptSpy.mockRestore();
     }
 
-    // Kiểm tra transaction đã rollback cập nhật tồn kho.
-    const updated = await prisma.ingredient.findUniqueOrThrow({
-      where: { id: item.id },
+    const updated1 = await prisma.ingredient.findUniqueOrThrow({
+      where: { id: item1.id },
     });
 
-    expect(updated.stockQuantity).toBe(1000);
-    expect(updated.version).toBe(0);
-
-    // Không được tồn tại lịch sử nhập kho.
-    const receipts = await prisma.inventoryReceipt.findMany({
-      where: { ingredientId: item.id },
+    const updated2 = await prisma.ingredient.findUniqueOrThrow({
+      where: { id: item2.id },
     });
 
-    expect(receipts).toHaveLength(0);
+    // Cả hai nguyên liệu phải được rollback.
+    expect(updated1.stockQuantity).toBe(1000);
+    expect(updated1.version).toBe(0);
+
+    expect(updated2.stockQuantity).toBe(2000);
+    expect(updated2.version).toBe(0);
+
+    const receiptItems = await prisma.inventoryReceiptItem.findMany({
+      where: {
+        ingredientId: { in: [item1.id, item2.id] },
+      },
+    });
+
+    expect(receiptItems).toHaveLength(0);
   });
 
   // --------------------------------------------------
@@ -514,19 +553,17 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
 
     const quantities = [10, 20];
 
-    // Gửi hai yêu cầu gần như đồng thời.
     const results = await Promise.all(
       quantities.map((quantity) =>
         request(app.getHttpServer())
-          .post(`/api/v1/staff/inventory/${item.id}/receipts`)
+          .post('/api/v1/staff/inventory/receipts')
           .set(bearer(staff))
-          .send({ quantity }),
+          .send({
+            items: [{ ingredientId: item.id, quantity }],
+          }),
       ),
     );
 
-    // Chỉ chấp nhận hai kết quả hợp lệ:
-    // 201: nhập kho thành công.
-    // 409: phiên bản tồn kho đã thay đổi.
     for (const result of results) {
       expect([201, 409]).toContain(result.status);
     }
@@ -535,15 +572,14 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
       (result) => result.status === 201,
     );
 
+    expect(successfulResults.length).toBeGreaterThanOrEqual(1);
+
     const expectedAdded = successfulResults.reduce(
-      (total, result) => total + result.body.data.quantity,
+      (total, result) =>
+        total + result.body.data.items[0].quantityAdded,
       0,
     );
 
-    // Phải có ít nhất một yêu cầu nhập kho thành công.
-    expect(successfulResults.length).toBeGreaterThanOrEqual(1);
-
-    // Kiểm tra tồn kho thực tế.
     const updated = await prisma.ingredient.findUniqueOrThrow({
       where: { id: item.id },
     });
@@ -551,21 +587,30 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
     expect(updated.stockQuantity).toBe(1000 + expectedAdded);
     expect(updated.version).toBe(successfulResults.length);
 
-    // Kiểm tra lịch sử nhập kho.
     const receipts = await prisma.inventoryReceipt.findMany({
-      where: { ingredientId: item.id },
+      where: {
+        items: {
+          some: { ingredientId: item.id },
+        },
+      },
+      include: { items: true },
     });
 
     expect(receipts).toHaveLength(successfulResults.length);
 
     const actualAdded = receipts.reduce(
-      (total, receipt) => total + receipt.quantity,
+      (total, receipt) =>
+        total +
+        receipt.items.reduce(
+          (itemTotal, receiptItem) =>
+            itemTotal + receiptItem.quantityAdded,
+          0,
+        ),
       0,
     );
 
     expect(actualAdded).toBe(expectedAdded);
 
-    // Tất cả lịch sử phải thuộc Barista đang đăng nhập.
     expect(
       receipts.every((receipt) => receipt.receivedByUserId === staffId),
     ).toBe(true);
@@ -582,25 +627,24 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
     });
 
     try {
-      // Không được xem danh sách tồn kho.
       await request(app.getHttpServer())
         .get('/api/v1/staff/inventory')
         .set(bearer(staff))
         .expect(401);
 
-      // Không được xem hàng đợi.
       await request(app.getHttpServer())
         .get('/api/v1/staff/orders')
         .set(bearer(staff))
         .expect(401);
 
-      // Không được nhập kho.
       const item = await create(1000);
 
       await request(app.getHttpServer())
-        .post(`/api/v1/staff/inventory/${item.id}/receipts`)
+        .post('/api/v1/staff/inventory/receipts')
         .set(bearer(staff))
-        .send({ quantity: 10 })
+        .send({
+          items: [{ ingredientId: item.id, quantity: 10 }],
+        })
         .expect(401);
 
       const unchanged = await prisma.ingredient.findUniqueOrThrow({
@@ -610,7 +654,6 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
       expect(unchanged.stockQuantity).toBe(1000);
       expect(unchanged.version).toBe(0);
     } finally {
-      // Luôn khôi phục tài khoản để không ảnh hưởng test khác.
       await prisma.user.update({
         where: { id: staffId },
         data: { isActive: true },

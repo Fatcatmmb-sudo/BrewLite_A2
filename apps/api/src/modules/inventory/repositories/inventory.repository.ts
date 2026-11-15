@@ -1,3 +1,4 @@
+
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service.js';
 import {
@@ -20,6 +21,7 @@ export class InventoryRepository {
           ? { gt: 0, lte: threshold }
           : { gt: threshold },
     }));
+
     return this.prisma.ingredient.findMany({
       where: {
         AND: [
@@ -48,7 +50,7 @@ export class InventoryRepository {
     return (tx ?? this.prisma).ingredient.findUnique({ where: { id } });
   }
 
-  // Đọc variant cùng công thức (BOM) và tồn kho/version hiện tại của từng nguyên liệu.
+  // Đọc variant cùng công thức (BOM) và tồn kho/version hiện tại.
   async findVariantWithRecipe(tx: Prisma.TransactionClient, variantId: string) {
     return tx.productVariant.findUnique({
       where: { id: variantId },
@@ -73,7 +75,7 @@ export class InventoryRepository {
     });
   }
 
-  // Trừ nguyên liệu có điều kiện: version phải khớp và tồn kho phải đủ.
+  // Trừ nguyên liệu có điều kiện version và tồn kho.
   async reserveIngredient(
     tx: Prisma.TransactionClient,
     ingredientId: string,
@@ -123,8 +125,7 @@ export class InventoryRepository {
     });
   }
 
-  // Chỉ chuyển trạng thái nếu reservation vẫn ACTIVE
-  // và điều kiện hết hạn phù hợp với thao tác.
+  // Chỉ chuyển trạng thái nếu reservation vẫn ACTIVE.
   async transitionActiveReservation(
     tx: Prisma.TransactionClient,
     reservationId: string,
@@ -148,7 +149,7 @@ export class InventoryRepository {
     });
   }
 
-  // Hoàn nguyên liệu đã giữ vào kho và tăng version.
+  // Hoàn nguyên nguyên liệu đã giữ vào kho và tăng version.
   async restoreIngredient(
     tx: Prisma.TransactionClient,
     ingredientId: string,
@@ -162,7 +163,8 @@ export class InventoryRepository {
       },
     });
   }
-    // Cộng số lượng nguyên liệu và tăng version.
+
+  // Cộng số lượng nguyên liệu và tăng version.
   // Chỉ cập nhật nếu version vẫn đúng với lúc đọc dữ liệu.
   async receiveIngredientStock(
     tx: Prisma.TransactionClient,
@@ -183,19 +185,81 @@ export class InventoryRepository {
     });
   }
 
-  // Ghi lịch sử nhập kho.
+  // Tạo một phiếu nhập kho gồm nhiều dòng nguyên liệu.
+  // Phiếu và các dòng chi tiết được tạo trong cùng transaction.
   async createInventoryReceipt(
     tx: Prisma.TransactionClient,
     data: {
-      ingredientId: string;
       receivedByUserId: string;
-      quantity: number;
-      stockBefore: number;
-      stockAfter: number;
+      supplier: string | null;
+      note: string | null;
+      items: Array<{
+        ingredientId: string;
+        quantityAdded: number;
+        stockBefore: number;
+        stockAfter: number;
+      }>;
     },
   ) {
     return tx.inventoryReceipt.create({
-      data,
+      data: {
+        receivedByUserId: data.receivedByUserId,
+        supplier: data.supplier,
+        note: data.note,
+        items: {
+          create: data.items,
+        },
+      },
+      include: {
+        receivedBy: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+        items: {
+          include: {
+            ingredient: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                unit: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  // Lấy lịch sử 50 phiếu nhập kho mới nhất.
+  async listInventoryReceipts(tx: Prisma.TransactionClient) {
+    return tx.inventoryReceipt.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50,
+      include: {
+        receivedBy: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+        items: {
+          include: {
+            ingredient: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                unit: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 }

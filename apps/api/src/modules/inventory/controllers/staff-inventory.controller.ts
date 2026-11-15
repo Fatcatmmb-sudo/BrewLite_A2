@@ -43,6 +43,30 @@ export class StaffInventoryController {
     return this.inventory.listIngredients(user.id, query);
   }
 
+  // GET /api/v1/staff/inventory/receipts
+  // Xem lịch sử các phiếu nhập kho.
+  @Get('receipts')
+  async receiptHistory(
+    @CurrentUser() user: { id: string },
+  ) {
+    return {
+      data: await this.inventory.listReceipts(user.id),
+    };
+  }
+
+  // POST /api/v1/staff/inventory/receipts
+  // Tạo một phiếu nhập gồm nhiều nguyên liệu.
+  @Post('receipts')
+  @HttpCode(HttpStatus.CREATED)
+  async receiveStock(
+    @CurrentUser() user: { id: string },
+    @Body() dto: ReceiveStockDto,
+  ) {
+    return {
+      data: await this.inventory.receiveStock(user.id, dto),
+    };
+  }
+
   // GET /api/v1/staff/inventory/:id
   // Xem chi tiết một nguyên liệu.
   @Get(':id')
@@ -52,24 +76,6 @@ export class StaffInventoryController {
   ) {
     return {
       data: await this.inventory.getIngredient(user.id, id),
-    };
-  }
-
-  // POST /api/v1/staff/inventory/:id/receipts
-  // Barista nhập thêm số lượng nguyên liệu.
-  @Post(':id/receipts')
-  @HttpCode(HttpStatus.CREATED)
-  async receiveStock(
-    @CurrentUser() user: { id: string },
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: ReceiveStockDto,
-  ) {
-    return {
-      data: await this.inventory.receiveStock(
-        user.id,
-        id,
-        dto.quantity,
-      ),
     };
   }
 

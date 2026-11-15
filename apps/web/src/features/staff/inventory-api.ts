@@ -27,16 +27,46 @@ export interface Ingredient {
   updatedAt: string;
 }
 
-export interface InventoryReceipt {
-  receiptId: string;
+// Một nguyên liệu trong phiếu nhập kho.
+export interface InventoryReceiptItem {
   ingredientId: string;
-  receivedByUserId: string;
-  quantity: number;
+  code: string;
+  name: string;
+  unit: "G" | "ML" | "PCS";
+  quantityAdded: number;
   stockBefore: number;
   stockAfter: number;
-  createdAt: string;
 }
 
+// Một phiếu nhập kho có thể chứa nhiều nguyên liệu.
+export interface InventoryReceipt {
+  receiptId: string;
+  receivedByUserId: string;
+  supplier: string | null;
+  note: string | null;
+  createdAt: string;
+  items: InventoryReceiptItem[];
+}
+
+// Dữ liệu gửi lên khi tạo phiếu nhập kho.
+export interface ReceiveInventoryStockPayload {
+  items: Array<{
+    ingredientId: string;
+    quantity: number;
+  }>;
+  supplier?: string;
+  note?: string;
+}
+
+function handleUnauthorized(token: string, status: number) {
+  if (status === 401) {
+    authSession.invalidate(token);
+  }
+}
+
+/**
+ * Lấy danh sách nguyên liệu trong kho.
+ */
 export async function getInventoryApi(
   token: string,
   options: { q?: string; status?: string; cursor?: string } = {},
@@ -53,7 +83,7 @@ export async function getInventoryApi(
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (response.status === 401) authSession.invalidate(token);
+  handleUnauthorized(token, response.status);
 
   const json = await response.json().catch(() => null);
 
@@ -78,28 +108,25 @@ export async function getInventoryApi(
 }
 
 /**
- * Ghi nhận nhập thêm nguyên liệu vào kho.
- * Backend đồng thời cập nhật tồn kho và lưu lịch sử nhập.
+ * Tạo phiếu nhập kho gồm nhiều nguyên liệu.
  */
 export async function receiveInventoryStockApi(
   token: string,
-  ingredientId: string,
-  quantity: number,
+  payload: ReceiveInventoryStockPayload,
 ): Promise<InventoryReceipt> {
   const response = await fetch(
-    `${API_BASE_URL}/staff/inventory/${encodeURIComponent(ingredientId)}/receipts`,
+    `${API_BASE_URL}/staff/inventory/receipts`,
     {
       method: "POST",
-      cache: "no-store",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ quantity }),
+      body: JSON.stringify(payload),
     },
   );
 
-  if (response.status === 401) authSession.invalidate(token);
+  handleUnauthorized(token, response.status);
 
   const json = await response.json().catch(() => null);
 
@@ -113,7 +140,7 @@ export async function receiveInventoryStockApi(
     );
   }
 
-  if (!json || !json.data) {
+  if (!json?.data || !Array.isArray(json.data.items)) {
     throw new InventoryApiError(
       "Phản hồi nhập kho từ máy chủ không hợp lệ.",
       response.status,
@@ -121,4 +148,37 @@ export async function receiveInventoryStockApi(
   }
 
   return json.data as InventoryReceipt;
+}
+
+/**
+ * Lấy lịch sử các phiếu nhập kho.
+ */
+export async function getInventoryReceiptsApi(
+  token: string,
+): Promise<InventoryReceipt[]> {
+  const response = await fetch(
+    `${API_BASE_URL}/staff/inventory/receipts`,
+    {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  handleUnauthorized(token, response.status);
+
+  const json = await response.json().catch(() => null);
+
+  if (!response.ok || !Array.isArray(json?.data)) {
+    throw new InventoryApiError(
+      json?.error?.message ??
+        json?.message ??
+        "Không thể tải lịch sử nhập kho.",
+      response.status,
+      json?.error?.code,
+    );
+  }
+
+  return json.data as InventoryReceipt[];
 }

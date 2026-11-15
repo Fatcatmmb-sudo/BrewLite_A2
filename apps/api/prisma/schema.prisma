@@ -213,27 +213,39 @@ model Ingredient {
   recipeItems        RecipeItem[]
   toppingRecipeItems ToppingRecipeItem[]
   reservationItems   InventoryReservationItem[]
-  receipts           InventoryReceipt[]
+  receiptItems InventoryReceiptItem[]
 
   @@map("ingredients")
 }
 
-// Lịch sử nhập nguyên liệu vào kho.
 model InventoryReceipt {
   id               String   @id @default(uuid()) @db.Uuid
-  ingredientId     String   @map("ingredient_id") @db.Uuid
   receivedByUserId String   @map("received_by_user_id") @db.Uuid
-  quantity         Int
-  stockBefore      Int      @map("stock_before")
-  stockAfter       Int      @map("stock_after")
+  supplier         String?  @db.VarChar(150)
+  note             String?
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
-  receivedBy User       @relation("InventoryReceiptReceivedBy", fields: [receivedByUserId], references: [id], onDelete: Restrict)
+  receivedBy User                   @relation("InventoryReceiptReceivedBy", fields: [receivedByUserId], references: [id], onDelete: Restrict)
+  items      InventoryReceiptItem[]
 
-  @@index([ingredientId, createdAt(sort: Desc)])
   @@index([receivedByUserId, createdAt(sort: Desc)])
   @@map("inventory_receipts")
+}
+
+model InventoryReceiptItem {
+  id            String @id @default(uuid()) @db.Uuid
+  receiptId     String @map("receipt_id") @db.Uuid
+  ingredientId  String @map("ingredient_id") @db.Uuid
+  quantityAdded Int    @map("quantity_added")
+  stockBefore   Int    @map("stock_before")
+  stockAfter    Int    @map("stock_after")
+
+  receipt    InventoryReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  ingredient Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+
+  @@index([ingredientId])
+  @@index([receiptId])
+  @@map("inventory_receipt_items")
 }
 
 // Công thức của một size sản phẩm.
