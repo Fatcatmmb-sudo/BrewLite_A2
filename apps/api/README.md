@@ -21,7 +21,7 @@ Các biến môi trường chính:
 ```dotenv
 PORT=3001
 WEB_ORIGIN=http://localhost:3000
-DATABASE_URL=postgresql://brewlite:change_me_local_only@localhost:5432/brewlite?schema=public
+DATABASE_URL=postgresql://brewlite:123456@localhost:5432/brewlite?schema=public
 JWT_SECRET=<secret ngẫu nhiên vừa tạo>
 JWT_ISSUER=brewlite-api
 JWT_AUDIENCE=brewlite-web
@@ -93,7 +93,7 @@ Build/typecheck tự generate client; `src/generated/prisma` được bỏ qua t
 Tạo **database test mới, rỗng** có tên bắt đầu bằng `brewlite_foundation_smoke_test`, rồi chạy:
 
 ```powershell
-$env:SMOKE_DATABASE_URL = 'postgresql://brewlite:change_me_local_only@localhost:5432/brewlite_foundation_smoke_test?schema=public'
+$env:SMOKE_DATABASE_URL = 'postgresql://brewlite:123456@localhost:5432/brewlite_foundation_smoke_test?schema=public'
 npm run test:migration
 ```
 
