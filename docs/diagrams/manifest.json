@@ -7,34 +7,34 @@
   "entries": [
     {
       "source": "docs/diagrams/activity-checkout.puml",
-      "sha256": "7f7f4cb75fdc1c02146d18178a53056781e4d07fcd97f5d9e01c5bc8c03a582c",
+      "sha256": "3aab466a2541e0a2340e5fb12dc3505ad1726c839559f8b8e5c461c479d22a8f",
       "outputs": {
-        "docs/diagrams/activity-checkout.svg": "54c4732c52ca8e3b8305906a8f1979d47272bc21e7847f6556b8206fae2ad7c9",
-        "docs/diagrams/activity-checkout.png": "124e9a1d8f312e214bdd87911cfdcd02abbe89588ad80562566806c2f9008142"
+        "docs/diagrams/activity-checkout.svg": "291ec4412f077d3785995fc0e7a16a92bc42036d0b7b3c2d1b02b763e9765d38",
+        "docs/diagrams/activity-checkout.png": "90c7b2ed19830faf70d2d4c59bb04cb2f1bd64f7ba9bdbf20ef28b43cb326e18"
       }
     },
     {
       "source": "docs/diagrams/class-domain.puml",
-      "sha256": "406b7533763d8ba99aadea5d9ab7272ccbcf66d08996875f05cf571938e67c70",
+      "sha256": "9609eabe7aabd8b536a0cfeb3baf256b2da2e71772294f9b9a65fcd3dfba9c95",
       "outputs": {
-        "docs/diagrams/class-domain.svg": "f4e1286d41439b6c9737fce77fce31f621bcc686f54829057bfbb0850f4b5bf5",
-        "docs/diagrams/class-domain.png": "6be05fca51a88aee509afb1f4eb36b0c1e3615a1d9602ed0bc7c05c438708547"
+        "docs/diagrams/class-domain.svg": "6bc3e78fb51bc3ec6eb78b5335a6e5023c0d31974d9c4111d057f96a65921c14",
+        "docs/diagrams/class-domain.png": "83b3b057c7fd9fb2692e349fcb4e99e0416cc8ed6436d6a89138971f12595a0b"
       }
     },
     {
       "source": "docs/diagrams/deployment-production.puml",
-      "sha256": "e58af37c5f0d734d19ed2031528946ca901f1af257921932053664e1aaccf76d",
+      "sha256": "4f52ec1d814c594c787e9fb9c3c14e5b89d3f828eaf44911c2e2f93a6459cc31",
       "outputs": {
-        "docs/diagrams/deployment-production.svg": "687a2f2813441f62cd0ae79e4c2a1fcb247398a54677b848a976674eceac7e2e",
-        "docs/diagrams/deployment-production.png": "81d01a612c87e6933a1c3502c3b9da38d68839534498baf8f8d413fbe1bfb3a3"
+        "docs/diagrams/deployment-production.svg": "c14100fd69dcf0b94749851e77ce4cddcc735130b6375485235aec0be3e2f9be",
+        "docs/diagrams/deployment-production.png": "93b07d283d5585e0f4c06e0791216d60a21ea26088d3e1c9d51aa7357a0fbe2d"
       }
     },
     {
       "source": "docs/diagrams/sequence-checkout.puml",
-      "sha256": "c067ee3daf83004f96ce47eaa222e13be30acbb3bbfe70682e3a45403c560d8b",
+      "sha256": "5845639539a104c40a341a44db5b672ddf521b8f091ff2e31e5d9c6f0dbd28f1",
       "outputs": {
-        "docs/diagrams/sequence-checkout.svg": "dd4553800af195cbf4c689b1684896bb01affc271d2c484f542d08771f291fae",
-        "docs/diagrams/sequence-checkout.png": "2953e3691b064c2b500ddb1e06a30baed673436b7e8babc44e9c6288440a49df"
+        "docs/diagrams/sequence-checkout.svg": "1fc416a0a1208750e8abd7ab7b4b6475d5f3556798d2b186ab66daa5ff936b68",
+        "docs/diagrams/sequence-checkout.png": "884e730f9a125c5804f711f421dd6ae165ff616c63f591d9305fb47830d2737b"
       }
     },
     {
@@ -47,18 +47,18 @@
     },
     {
       "source": "docs/diagrams/sequence-payment.puml",
-      "sha256": "0e33b6382fa0664e3991abc8bbf21d7e8c0b6b3990197698f88dffd7845f985c",
+      "sha256": "26031bd4272c1f436361ede4cbcf47d7a0f621ac0772847c2d5b2816ccded3f4",
       "outputs": {
-        "docs/diagrams/sequence-payment.svg": "a2707705b4994130067068460b402a967903fe73710f93be19829e2adacf7b02",
-        "docs/diagrams/sequence-payment.png": "f1434a7140123af789ae8dfa1a5663ae423b43ab881facbc5f9b94a7569c3cbe"
+        "docs/diagrams/sequence-payment.svg": "103a7dc534932fd223e2a885948e053663eb851ab6c117efa422d6b041940177",
+        "docs/diagrams/sequence-payment.png": "0a46202d6fdb537fad29aeae65190655a8ab1ed7bd22527ae828edbb0d8f5aaf"
       }
     },
     {
       "source": "docs/diagrams/use-case-overview.puml",
-      "sha256": "6937976ea3569f284461186c3a21d96c8741e1318cecbfd41189f3d9ca5613eb",
+      "sha256": "7e51d87aa07abd29ef7fa99642d4e88f2dc80aa6dd9f8b1771d37ba5495c6f6c",
       "outputs": {
-        "docs/diagrams/use-case-overview.svg": "8cdf5997f86d59837e962f0b588fcd9519a325d3d8f2f2f586058522c827854e",
-        "docs/diagrams/use-case-overview.png": "868c869dd1739b74ad467a1176749ba3a460cd4a5874aae27e543c861de4cf9e"
+        "docs/diagrams/use-case-overview.svg": "b062906f0e7a0e48c921c1bb530dbc5e8bb6cee147817600822e95b768e4ca1e",
+        "docs/diagrams/use-case-overview.png": "db45da0137be08b49b8715e9644bb5cada1c105a1d692ca845d1e1c4508d1c4a"
       }
     },
     {
@@ -71,10 +71,10 @@
     },
     {
       "source": "docs/diagrams/use-case-uc08.puml",
-      "sha256": "1fd4044b1805c992de98d340126ce36ed96e9a067fe27d72032b44800ded398c",
+      "sha256": "8fc39f62a1cd917dc16a43276b575e600e9c3eece414a3e16cdf9a2bf7e4a8bb",
       "outputs": {
-        "docs/diagrams/use-case-uc08.svg": "3076943a0bf9381b5cbcec9e3c273a48b246f12afdb024c956c62d9279359047",
-        "docs/diagrams/use-case-uc08.png": "4a70bcbe08ecb17fe0184ea0c3241d258802d2b1e09b9d97cad748f91bc67fc1"
+        "docs/diagrams/use-case-uc08.svg": "7f962f0c835862d724e76b2f997c36668f78a6cb554c97443bbb1969991299fb",
+        "docs/diagrams/use-case-uc08.png": "87a2232e59cbeb1a0dfab7ae237a54b8a295cab67439663c764ca8a2b435158e"
       }
     }
   ]

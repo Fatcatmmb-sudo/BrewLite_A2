@@ -5,19 +5,29 @@ title BrewLite A2 - UC-08 Thực hiện thanh toán
 skinparam defaultFontName Arial
 skinparam shadowing false
 actor "Khách hàng" as Customer
+actor "Nhân viên quầy\n(BARISTA)" as Staff
 actor "VNPay" as Gateway
 rectangle "BrewLite" {
   usecase "UC-08 Thực hiện thanh toán" as Pay
   usecase "Xem trạng thái giao dịch" as Status
   usecase "Thử lại thanh toán" as Retry
-  Retry ..> Pay : <<extend>>\n[thất bại xác định, đơn còn hạn]
+  usecase "UC-14 Gửi yêu cầu hoàn tiền" as RefundRequest
+  usecase "UC-15 Duyệt yêu cầu hoàn tiền" as RefundApproval
+  Retry ..> Pay : <<extend>>\n[đơn còn hạn và đủ điều kiện thử lại]
 }
 Customer -- Pay
 Customer -- Status
 Customer -- Retry
+Customer -- RefundRequest
+Staff -- RefundApproval
 Gateway -- Pay : Thanh toán và callback
+note bottom of RefundApproval
+  Đơn còn PAID và có yêu cầu đang chờ.
+  Khi đã PREPARING, yêu cầu duyệt bị từ chối.
+  Phê duyệt ghi quyết định của nhân viên quầy.
+end note
 note bottom of Pay
   Đơn của khách còn hạn; cần JWT và Idempotency-Key.
-  Kết quả gồm thành công, thất bại hoặc đang xử lý.
+  Kết quả có thể đang xử lý hoặc cần đối soát.
 end note
 @enduml
