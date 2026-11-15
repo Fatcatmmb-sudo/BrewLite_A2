@@ -65,3 +65,10 @@ npm --prefix apps/web run test:e2e
 ```bat
 npm --prefix THU_MUC_APP run TEN_SCRIPT -- TEN_FILE -t "DOAN_TEN_CA" > "test-evidence\TEN_LOG.log" 2>&1
 ```
+
+```
+npm --prefix apps/api run test --auth.service.spec.ts > "test-evidence\kiem_tra_dang_nhap.log" 2>&1
+```
+```
+npm --prefix apps/api run test:integration --orders.integration-spec.ts > "test-evidence\hai_nguoi_dat_cung_don.log" 2>&1
+```

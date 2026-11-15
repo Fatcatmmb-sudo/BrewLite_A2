@@ -1,131 +1,66 @@
 @startuml
-!pragma layout smetana
-title BrewLite - Activity Diagram: Luồng End-to-End Đặt hàng (UC-06) và Thanh toán (UC-08)
+title BrewLite A2 - Activity checkout
 skinparam defaultFontName Arial
-skinparam defaultFontSize 13
+skinparam defaultFontSize 16
 skinparam shadowing false
-skinparam backgroundColor white
-skinparam ActivityBackgroundColor #FCF0DF
-skinparam ActivityBorderColor #222222
-skinparam ActivityDiamondBackgroundColor #FFF8DC
-skinparam ActivityDiamondBorderColor #222222
-skinparam SwimlaneTitleFontSize 14
-skinparam SwimlaneBorderColor #444444
-skinparam NoteBackgroundColor #F7F4F7
-skinparam NoteBorderColor #222222
 
 |Khách hàng|
 start
-:Xem danh sách món trên menu\n(UC-03: Xem menu);
-:Chọn món, xem chi tiết, chọn 1 size (S/M/L),\ntopping hợp lệ, mức đường/đá (null hoặc 0..100),\nghi chú (<= 500 ký tự) và số lượng (1..20)\n(UC-04: Xem chi tiết sản phẩm + size + topping);
-
-|Next.js Web / PWA|
-if (Món/topping không khả dụng\nhoặc không đủ nguyên liệu?) then (Không đủ / Inactive)
+:Xem menu và chọn size, topping,\nđường/đá, số lượng và ghi chú (UC-03/04);
+|Next.js Web|
+:Kiểm tra tùy chọn khả dụng;\ngộp và lưu giỏ local (UC-05);
+if (Chưa có phiên CUSTOMER?) then (Có)
+  :Giữ giỏ và chuyển đến đăng nhập;
   |Khách hàng|
-  :Nhận thông báo món/topping tạm hết\nhoặc không khả dụng, chọn lại tùy chọn;
-  stop
-else (Hợp lệ)
-  |Next.js Web / PWA|
-  :Thêm hoặc gộp dòng cùng tùy chọn vào giỏ;\nprovisional lineTotal = (giá size + tổng topping) x quantity;\nlưu giỏ bền vững vào localStorage\n(UC-05: Quản lý giỏ hàng);
+  :Đăng nhập hoặc đăng ký (UC-01/02);
+  |Next.js Web|
+  :Khôi phục checkout sau xác thực;
 endif
-
 |Khách hàng|
-:Kiểm tra giỏ hàng, tùy chọn nhập mã coupon\n(UC-07: Áp dụng coupon) và bấm **Đặt hàng**;
-
-|Next.js Web / PWA|
-if (Thiếu phiên đăng nhập JWT CUSTOMER hợp lệ?) then (Chưa đăng nhập / Hết hạn JWT [A1])
-  :Giữ nguyên giỏ hàng trong localStorage;\nchuyển hướng sang màn hình Đăng nhập;
-  |Khách hàng|
-  :Thực hiện đăng nhập (UC-02: Đăng nhập)\nhoặc đăng ký CUSTOMER mới (UC-01: Đăng ký);
-  |NestJS API & PostgreSQL|
-  :Xác thực thông tin tài khoản (POST /api/v1/auth/login);\ncấp Bearer access JWT với role CUSTOMER;
-  |Next.js Web / PWA|
-  :Lưu phiên JWT và khôi phục lại màn hình Checkout\ncùng dữ liệu giỏ hàng đã giữ (merge);
-else (Đã có phiên CUSTOMER hợp lệ)
-endif
-
-|Next.js Web / PWA|
-:Khóa nút gửi và gọi POST /api/v1/orders + Bearer JWT\n(items, couponCode?; không gửi giá/userId/status)\n**Bắt đầu UC-06: Đặt hàng**;
-
-|NestJS API & PostgreSQL|
-:Kiểm tra JWT, role CUSTOMER, chuẩn hóa DTO (1..20 dòng,\nquantity 1..20, sugar/ice null khác 0, trim note);\nmở transaction **Read Committed** (tối đa 3 attempt nếu conflict);
-:Đọc catalog active, quy đổi công thức RecipeItem (món)\n+ ToppingRecipeItem (topping) x quantity;\ncộng tổng nhu cầu từng Ingredient trên toàn đơn;
-
-if (DTO/option/coupon không hợp lệ\nhoặc thiếu nguyên liệu?) then (Hết hàng [409 OUT_OF_STOCK] /\nConflict [409] / Coupon lỗi [422] / DTO [400])
-  :ROLLBACK toàn bộ transaction\n(hoàn nguyên Ingredient.stockQuantity & version,\nkhông ghi Order / Reservation / Coupon dở dang);\ntrả mã lỗi 400 / 409 / 422 kèm requestId;
-  |Next.js Web / PWA|
-  :Hiển thị thông báo lỗi (hết nguyên liệu / mã giảm giá sai);\n**giữ nguyên giỏ hàng** để khách sửa món hoặc thử lại;
-  |Khách hàng|
-  :Điều chỉnh số lượng, đổi món/topping\nhoặc bỏ mã coupon trong giỏ hàng;
+:Xác nhận giỏ, có thể nhập coupon (UC-07);
+|Next.js Web|
+:Gửi giỏ và coupon qua POST /orders;
+|NestJS và PostgreSQL|
+:UC-06: kiểm tra JWT, DTO và catalog;\ntính giá server và tổng BOM món/topping;
+:Tạo đơn PENDING cùng snapshot;\ngiữ nguyên liệu/coupon và ghi lịch sử;
+if (Giao dịch tạo đơn thành công?) then (Không)
+  :Rollback nếu đã mở transaction;\ntrả lỗi DTO, coupon, hết hàng hoặc xung đột;
+  |Next.js Web|
+  :Giữ giỏ để khách sửa;\nnếu mất phản hồi, tra lịch sử trước khi đặt lại;
   stop
-else (Đủ nguyên liệu & Hợp lệ)
-  |NestJS API & PostgreSQL|
-  :Khóa coupon nếu có; INSERT Order PENDING,\nOrderItem và OrderItemTopping snapshot;\nUPDATE Ingredient theo ID tăng dần\nchỉ khi isActive và stockQuantity >= need;\ntrừ tồn và tăng version;
-  :INSERT InventoryReservation (status = **ACTIVE**)\n+ InventoryReservationItem (snapshot lượng nguyên liệu),\nCouponRedemption (**RESERVED** nếu có),\nOrderStatusHistory (NULL -> PENDING) và **COMMIT**;
-  :Trả 201 Created (orderId, orderNumber, total,\nreservationExpiresAt) **Kết thúc UC-06**;
+else (Có)
+  |NestJS và PostgreSQL|
+  :Commit và trả 201 PENDING\nkèm orderId, tổng tiền và hạn giữ chỗ;
 endif
-
-|Next.js Web / PWA|
-:Hiển thị đơn đã đặt ở trạng thái **PENDING**\n(chưa xóa giỏ hàng vì chưa thanh toán);
-
-|Khách hàng|
-:Tiếp tục thanh toán cho orderId đã tạo\n**Bắt đầu UC-08: Thực hiện thanh toán**;
-
-|Next.js Web / PWA|
-:Sinh Idempotency-Key cho lần thử thanh toán;\ngửi POST /api/v1/payments + JWT + Idempotency-Key\n{orderId, method: VNPAY};
-
-|NestJS API & PostgreSQL|
-:Kiểm tra chủ đơn (ownership) trước replay, kiểm tra key/hash;\ntransaction ngắn khóa Order, tạo Payment PROCESSING và URL ký;
-
-|Next.js Web / PWA|
-:Chuyển khách sang URL VNPay;
-
-|VNPay Sandbox|
-:Khách thực hiện thanh toán; gửi IPN hoặc Return;
-
-|NestJS API & PostgreSQL|
-:Xác minh callback, mã giao dịch và số tiền;
-if (Kết quả chưa xác định hoặc cần đối soát?) then (Có)
-  |Next.js Web / PWA|
-  :Tra cứu theo cùng key hoặc theo dõi chi tiết đơn;
-  stop
-else (Đã xác định)
-endif
-|NestJS API & PostgreSQL|
-if (Thanh toán thất bại?) then (Payment FAILED)
-  :Transaction cập nhật Payment -> **FAILED**,\nOrder -> **PAYMENT_FAILED**, ghi OrderStatusHistory;\n**không** cộng điểm loyalty; **giữ nguyên** InventoryReservation\n(**ACTIVE**) và CouponRedemption (**RESERVED**) đến hạn;
-  |Next.js Web / PWA|
-  :Hiển thị thông báo thanh toán thất bại;\nlưu snapshot đơn để thử lại, giữ các món khác trong giỏ;
-  |Khách hàng|
-  if (Khách hủy đơn hoặc hết hạn giữ tồn?) then (Hủy hoặc hết hạn)
-    |NestJS API & PostgreSQL|
-    :Chuyển Order -> **CANCELLED**;\nInventoryReservation -> **RELEASED** / **EXPIRED**;\nCouponRedemption -> **RELEASED** / **EXPIRED**;\nhoàn nguyên Ingredient.stockQuantity theo\nInventoryReservationItem snapshot đúng 1 lần;
-    |Next.js Web / PWA|
-    :Hiển thị đơn đã hủy / hết hạn giữ chỗ;
-    stop
-  else (Thử thanh toán lại [Retry với Idempotency-Key mới])
-    |NestJS API & PostgreSQL|
-    :Đơn được phép tạo attempt mới (chuyển về **PENDING**\ntrước attempt mới; không tạo Order mới,\nkhông giữ nguyên liệu lần hai);
+|Next.js Web|
+repeat
+  :UC-08: sinh key mới cho attempt;\nPOST /payments trên cùng orderId,\nkèm retryAttempt=true khi thử lại chủ động;
+  |NestJS và PostgreSQL|
+  :Kiểm tra chủ đơn và replay theo key;\nkhi mở attempt mới, khóa đơn và kiểm tra hạn;
+  :Xử lý attempt đang hoạt động;\náp dụng quy tắc thay thế trong sequence UC-08;
+  if (Có URL tiếp tục thanh toán?) then (Có)
+    |Next.js Web|
+    :Chuyển khách sang VNPay;
+    |VNPay Sandbox|
+    :Xử lý giao dịch;\ngửi IPN và đưa khách về qua Return;
+    |NestJS và PostgreSQL|
+    :Xác minh callback và chốt kết quả nếu đủ điều kiện;
   endif
-  stop
-else (Thành công)
-endif
-
-|NestJS API & PostgreSQL|
-:Transaction cập nhật Payment -> **SUCCEEDED**,\nOrder -> **PAID**, InventoryReservation -> **CONSUMED**,\nCouponRedemption -> **CONSUMED** (nếu có),\nghi OrderStatusHistory (PENDING/PAYMENT_FAILED -> PAID)\nvà cộng điểm một lần khi số điểm dương;
-:Lưu kết quả để Web tra cứu\n**Kết thúc UC-08**;
-
-|Next.js Web / PWA|
-:Xóa các món đã thanh toán khỏi giỏ hàng localStorage;\nchuyển hướng sang trang Xác nhận & Chi tiết đơn hàng;
-
-|Khách hàng|
-:Xem xác nhận đơn hàng (**PAID**), mã đơn, snapshot món/giá\nvà theo dõi tiến độ pha chế trong lịch sử đơn\n(UC-09: Xem xác nhận và lịch sử đơn hàng:\nPAID -> PREPARING -> READY -> COMPLETED bởi Barista UC-10);
+  |Next.js Web|
+  :Tra trạng thái dùng key hiện có;\nhiển thị kết quả hoặc trạng thái cần theo dõi;
+  if (Đơn đã PAID?) then (Có)
+    :Hoàn tất checkout và hiển thị xác nhận;\nkhách theo dõi lịch sử (UC-09);
+    stop
+  endif
+  |Khách hàng|
+repeat while (Chọn Thanh toán lại và đơn còn hạn?) is (Có) not (Không)
+|NestJS và PostgreSQL|
+:Nếu đơn đủ điều kiện hủy/hết hạn,\nchuyển CANCELLED và hoàn tồn theo snapshot;
 stop
 
 legend bottom
-  - Ranh giới Use Case: **UC-06: Đặt hàng** tạo Order PENDING và giữ nguyên liệu (Reservation ACTIVE); **UC-08: Thực hiện thanh toán** là UC độc lập sử dụng orderId sau UC-06.
-  - Nhánh chưa đăng nhập: Giữ nguyên giỏ hàng local, thực hiện **UC-02: Đăng nhập** rồi merge quay lại Checkout.
-  - Nhánh hết hàng (409 OUT_OF_STOCK): Kiểm tra tổng nhu cầu Ingredient qua RecipeItem + ToppingRecipeItem toàn đơn; rollback nguyên tử, giữ giỏ hàng.
-  - Nhánh thanh toán thất bại (PAYMENT_FAILED): Không trừ tồn kho lần 2, giữ Reservation ACTIVE đến reservationExpiresAt để khách retry bằng Idempotency-Key mới; nếu hủy/quá hạn thì hoàn kho đúng 1 lần theo InventoryReservationItem snapshot.
+  PROCESSING hoặc MANUAL_REVIEW: hiển thị trạng thái tra được.
+  MANUAL_REVIEW chặn mở attempt mới. Thành công muộn chuyển đối soát.
+  Đơn PAID có thể chuyển PREPARING → READY → COMPLETED qua UC-10.
 endlegend
 @enduml
