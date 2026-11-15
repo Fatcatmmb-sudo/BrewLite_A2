@@ -9,7 +9,7 @@
 | Tác nhân | Vai trò |
 |---|---|
 | Khách hàng | Xem menu, tùy chỉnh món và dùng giỏ. Sau khi đăng nhập, khách đặt hàng, thanh toán, xem đơn và đổi điểm. |
-| Nhân viên quầy | `BARISTA` đăng nhập, xem hàng đợi, đổi trạng thái đơn, xem công thức và điều chỉnh tồn nguyên liệu. |
+| Nhân viên quầy | `BARISTA` đăng nhập, xử lý đơn, xem công thức và tồn kho. Thiết kế mở rộng gồm duyệt yêu cầu hoàn tiền trước pha chế, nhập kho và xem biến động. |
 | VNPay | Cung cấp trang thanh toán, gửi IPN và hỗ trợ QueryDr khi được cấu hình. |
 
 ## Truy vết
@@ -24,6 +24,8 @@
 | UC-09 Xem xác nhận và lịch sử | FR-08, FR-11 |
 | UC-10 Cập nhật trạng thái đơn | FR-09, FR-12 |
 | UC-11 Xem và đổi điểm lấy voucher | Mở rộng FR-10, `/loyalty` |
-| UC-12 Xem công thức món, UC-13 Quản lý tồn nguyên liệu | Mở rộng nghiệp vụ quầy, `/barista/recipes` và `/barista/inventory` |
+| UC-12 Xem công thức món, UC-13 Xem tồn nguyên liệu | Nghiệp vụ quầy, `/barista/recipes` và `/barista/inventory` |
+| UC-14 Gửi yêu cầu hoàn tiền, UC-15 Duyệt yêu cầu hoàn tiền | FR-16, [thiết kế nghiệp vụ quầy](staff-operations.md) |
+| UC-16 Nhập kho nguyên liệu, UC-17 Xem biến động kho | FR-17, [thiết kế nghiệp vụ quầy](staff-operations.md) |
 
 UC-04 mở rộng UC-03 khi khách chọn món. UC-07 mở rộng UC-06 khi khách có coupon. UC-06 tạo đơn `PENDING` trước khi khách thực hiện UC-08. Khách có thể hủy đơn của mình theo quy tắc vòng đời trong FR-09. Mock Ví/Thẻ nằm trong bộ test API.

@@ -10,10 +10,14 @@ control "PaymentsService" as Pay
 database "PostgreSQL" as DB
 participant "VNPay" as VN
 
-Customer -> UI: Thanh toán đơn đã tạo
-UI -> API: POST /payments + Bearer JWT + Idempotency-Key\n{orderId, method: VNPAY}
+Customer -> UI: Thanh toán đơn đã tạo hoặc chọn Thanh toán lại
+note over UI, API
+  Thử lại từ chi tiết đơn: cùng orderId, key mới,
+  retryAttempt=true. Tra trạng thái: sử dụng key hiện có.
+end note
+UI -> API: POST /payments + Bearer JWT + Idempotency-Key\n{orderId, method: VNPAY, retryAttempt?}
 API -> API: Kiểm tra DTO/key, CUSTOMER và chủ đơn\nLấy amount từ Order.total
-API -> Pay: processPayment(orderId, userId, method, amount, key)
+API -> Pay: processPayment(orderId, userId, method, amount, key, retryAttempt)
 Pay -> Pay: Hash SHA-256 của orderId, method và amount
 break VNPay chưa cấu hình
   API --> UI: 503 VNPAY_NOT_CONFIGURED
@@ -26,10 +30,19 @@ else Key đã có, hash khác
   API --> UI: 409 IDEMPOTENCY_KEY_REUSED
 else Attempt mới
   Pay -> DB: BEGIN, khóa đơn, kiểm tra lại key/trạng thái/hạn
-  break Đã PAID, hết hạn, không hợp lệ hoặc có attempt PROCESSING
+  break Đã PAID, hết hạn hoặc trạng thái đơn không hợp lệ
     API --> UI: 409, không tạo attempt mới
   end
-  opt Retry sau thất bại, đơn còn hạn
+  break MANUAL_REVIEW hoặc attempt đang xử lý không đủ điều kiện thay thế
+    API --> UI: 409 PAYMENT_IN_PROGRESS
+  end
+  opt retryAttempt=true và attempt cũ PROCESSING, cả hai dùng VNPay
+    Pay -> DB: Đổi attempt cũ sang FAILED có điều kiện\nSUPERSEDED_BY_CUSTOMER_RETRY + ghi audit
+    break Attempt cũ vừa đổi trạng thái
+      API --> UI: 409 PAYMENT_IN_PROGRESS (rollback)
+    end
+  end
+  opt Đơn PAYMENT_FAILED còn hạn
     Pay -> DB: PAYMENT_FAILED → PENDING + lịch sử
   end
   Pay -> Pay: Tạo URL thanh toán và gatewayReference
@@ -46,11 +59,11 @@ group IPN từ VNPay
     API --> VN: RspCode lỗi, không chốt đơn
   else Kết quả hợp lệ
     Pay -> DB: Transaction, khóa đơn và kiểm tra lại payment
-    alt Thành công khi đơn còn PENDING
+    alt Thành công khi attempt PROCESSING và đơn đủ điều kiện
       Pay -> DB: SUCCEEDED + PAID + lịch sử\nConsume giữ chỗ/coupon + EARN floor(total / 10)
     else Thất bại khi attempt còn PROCESSING
       Pay -> DB: FAILED; nếu đơn PENDING, ghi PAYMENT_FAILED
-    else Thành công muộn cần đối soát
+    else Thành công muộn (gồm attempt đã bị thay thế)
       Pay -> DB: MANUAL_REVIEW + audit
     else Callback lặp
       Pay -> DB: Giữ kết quả đã chốt

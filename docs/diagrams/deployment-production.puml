@@ -14,7 +14,7 @@ frame "LOCAL" {
 }
 frame "CI / BUILD" {
   node "GitHub Actions" as CI {
-    artifact "PR CI và Railway CD" as Workflows
+    artifact "PR quality gate\nRailway CD: build image theo SHA,\nrailway up --ci và smoke" as Workflows
   }
   node "Registry Railway" as Registry
 }
@@ -47,8 +47,10 @@ Ops ..> Web
 Ops ..> API
 Browser ..> VN : redirect HTTPS
 VN ..> Edge : IPN HTTPS
+API ..> VN : HTTPS QueryDr (nếu cấu hình)
+Prisma ..> DB : migration pre-deploy
 legend bottom
   Web và API lấy nguồn BrewLite_A2/main, dùng Dockerfile.railway tương ứng.
-  Deployment quan sát ngày 10/11/2026 tại 2d868b6. CI/CD và smoke được truy vết riêng.
+  Topology theo snapshot 10/11/2026; Quy trình tự động triển khai 53b9321 ngày 14/11/2026.
 endlegend
 @enduml
