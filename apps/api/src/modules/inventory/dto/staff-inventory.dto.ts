@@ -43,3 +43,10 @@ export class StaffInventoryQueryDto {
   @Max(100)
   limit?: number;
 }
+export class ReceiveStockDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  quantity!: number;
+}

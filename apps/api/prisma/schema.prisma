@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -96,6 +97,42 @@ enum LoyaltyTransactionType {
   REVERSAL
 }
 
+enum SLADocumentStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum SLAFeedbackType {
+  COMMENT
+  CONCERN
+  SUGGESTION
+  BLOCKING_ISSUE
+}
+
+enum SLAIncidentSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SLASignatureType {
+  DIGITAL
+  EMAIL_CONFIRMATION
+  MANUAL
+}
+
+enum SLAWorkflowStatus {
+  PENDING_REVIEW
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 model User {
   id             String   @id @default(uuid()) @db.Uuid
   username       String   @unique @db.VarChar(100)
@@ -106,13 +143,19 @@ model User {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  orders                      Order[]
-  paymentRecoveryRequests     PaymentRecoveryRequest[] @relation("PaymentRecoveryActor")
-  paymentRecoveryAudits       PaymentRecoveryAudit[]   @relation("PaymentRecoveryAuditActor")
-  paymentRecoveryResolutions  PaymentRecoveryResolution[] @relation("PaymentRecoveryResolutionActor")
-  couponRedemptions           CouponRedemption[]
-  loyaltyTransactions         LoyaltyTransaction[]
-  changedOrderStatusHistories OrderStatusHistory[] @relation("OrderStatusChangedBy")
+  orders                       Order[]
+  paymentRecoveryRequests      PaymentRecoveryRequest[] @relation("PaymentRecoveryActor")
+  paymentRecoveryAudits        PaymentRecoveryAudit[] @relation("PaymentRecoveryAuditActor")
+  paymentRecoveryResolutions   PaymentRecoveryResolution[] @relation("PaymentRecoveryResolutionActor")
+  couponRedemptions            CouponRedemption[]
+  loyaltyTransactions          LoyaltyTransaction[]
+  changedOrderStatusHistories  OrderStatusHistory[] @relation("OrderStatusChangedBy")
+  inventoryReceipts            InventoryReceipt[] @relation("InventoryReceiptReceivedBy")
+
+  sla_approval_workflows sla_approval_workflows[]
+  sla_approvals          sla_approvals[]
+  sla_documents          sla_documents[]
+  sla_review_feedback    sla_review_feedback[]
 
   @@map("users")
 }
@@ -155,8 +198,7 @@ model ProductVariant {
   @@map("product_variants")
 }
 
-// Nguyên liệu thô. stockQuantity tính theo đơn vị cơ sở của `unit`
-// (G = gram, ML = mililit, PCS = cái), ví dụ 1 gói cà phê 100g = 100.
+// Nguyên liệu thô. stockQuantity tính theo đơn vị cơ sở của unit.
 model Ingredient {
   id            String         @id @default(uuid()) @db.Uuid
   code          String         @unique @db.VarChar(50)
@@ -171,11 +213,30 @@ model Ingredient {
   recipeItems        RecipeItem[]
   toppingRecipeItems ToppingRecipeItem[]
   reservationItems   InventoryReservationItem[]
+  receipts           InventoryReceipt[]
 
   @@map("ingredients")
 }
 
-// Công thức (BOM): một ly của variant này cần `quantity` đơn vị cơ sở nguyên liệu.
+// Lịch sử nhập nguyên liệu vào kho.
+model InventoryReceipt {
+  id               String   @id @default(uuid()) @db.Uuid
+  ingredientId     String   @map("ingredient_id") @db.Uuid
+  receivedByUserId String   @map("received_by_user_id") @db.Uuid
+  quantity         Int
+  stockBefore      Int      @map("stock_before")
+  stockAfter       Int      @map("stock_after")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  receivedBy User       @relation("InventoryReceiptReceivedBy", fields: [receivedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([ingredientId, createdAt(sort: Desc)])
+  @@index([receivedByUserId, createdAt(sort: Desc)])
+  @@map("inventory_receipts")
+}
+
+// Công thức của một size sản phẩm.
 model RecipeItem {
   productVariantId String @map("product_variant_id") @db.Uuid
   ingredientId     String @map("ingredient_id") @db.Uuid
@@ -189,11 +250,6 @@ model RecipeItem {
   @@map("recipe_items")
 }
 
-// Topping cũng không có số lượng tĩnh. Mỗi phần topping tiêu hao nguyên liệu theo
-// công thức (ToppingRecipeItem):
-//  - PREPACKAGED (nhập sẵn): 1 phần = đúng 1 dòng công thức, ví dụ 30g trân châu 3Q.
-//  - PREPARED (chế biến): bán thành phẩm, 1 phần = nhiều nguyên liệu thô
-//    (bột năng, đường đen, sữa tươi...).
 model Topping {
   id        String      @id @default(uuid()) @db.Uuid
   code      String      @unique @db.VarChar(50)
@@ -211,7 +267,7 @@ model Topping {
   @@map("toppings")
 }
 
-// Công thức của 1 phần topping: tiêu hao `quantity` đơn vị cơ sở của nguyên liệu.
+// Công thức của một phần topping.
 model ToppingRecipeItem {
   toppingId    String @map("topping_id") @db.Uuid
   ingredientId String @map("ingredient_id") @db.Uuid
@@ -263,19 +319,19 @@ model Order {
 }
 
 model OrderItem {
-  id                  String @id @default(uuid()) @db.Uuid
-  orderId             String @map("order_id") @db.Uuid
-  productVariantId    String @map("product_variant_id") @db.Uuid
-  productNameSnapshot String @map("product_name_snapshot") @db.VarChar(150)
-  variantNameSnapshot String @map("variant_name_snapshot") @db.VarChar(50)
-  unitPrice           BigInt @map("unit_price")
+  id                  String  @id @default(uuid()) @db.Uuid
+  orderId             String  @map("order_id") @db.Uuid
+  productVariantId    String  @map("product_variant_id") @db.Uuid
+  productNameSnapshot String  @map("product_name_snapshot") @db.VarChar(150)
+  variantNameSnapshot String  @map("variant_name_snapshot") @db.VarChar(50)
+  unitPrice           BigInt  @map("unit_price")
   quantity            Int
-  sugarLevel          Int?   @map("sugar_level")
-  iceLevel            Int?   @map("ice_level")
+  sugarLevel          Int?    @map("sugar_level")
+  iceLevel            Int?    @map("ice_level")
   note                String? @db.VarChar(500)
 
-  order             Order              @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  productVariant    ProductVariant     @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+  order             Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  productVariant    ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
   orderItemToppings OrderItemTopping[]
 
   @@map("order_items")
@@ -311,33 +367,32 @@ model Payment {
   createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  recoveryRequests PaymentRecoveryRequest[]
-  recoveryAudits   PaymentRecoveryAudit[]
+  order               Order                      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  recoveryRequests    PaymentRecoveryRequest[]
+  recoveryAudits      PaymentRecoveryAudit[]
   recoveryResolutions PaymentRecoveryResolution[]
 
   @@index([orderId, createdAt(sort: Desc)])
   @@map("payments")
 }
 
-
 model PaymentRecoveryRequest {
   id                    String                       @id @default(uuid()) @db.Uuid
-  paymentId             String                       @map("payment_id") @db.Uuid
-  idempotencyKey        String                       @map("idempotency_key") @db.VarChar(100)
-  requestHash           String                       @map("request_hash") @db.Char(64)
-  providerRequestId     String                       @unique @map("provider_request_id") @db.VarChar(32)
-  actorUserId           String                       @map("actor_user_id") @db.Uuid
-  incidentReference     String                       @map("incident_reference") @db.VarChar(120)
-  correlationId         String                       @map("correlation_id") @db.VarChar(100)
-  status                PaymentRecoveryRequestStatus @default(IN_PROGRESS)
-  providerOutcome       String?                      @map("provider_outcome") @db.VarChar(64)
-  providerResponseCode  String?                      @map("provider_response_code") @db.VarChar(10)
-  providerTransactionNo String?                      @map("provider_transaction_no") @db.VarChar(100)
-  errorCode             String?                      @map("error_code") @db.VarChar(100)
-  leaseExpiresAt        DateTime                     @map("lease_expires_at") @db.Timestamptz(6)
-  createdAt             DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  paymentId              String                       @map("payment_id") @db.Uuid
+  idempotencyKey         String                       @map("idempotency_key") @db.VarChar(100)
+  requestHash            String                       @map("request_hash") @db.Char(64)
+  providerRequestId      String                       @unique @map("provider_request_id") @db.VarChar(32)
+  actorUserId            String                       @map("actor_user_id") @db.Uuid
+  incidentReference      String                       @map("incident_reference") @db.VarChar(120)
+  correlationId          String                       @map("correlation_id") @db.VarChar(100)
+  status                 PaymentRecoveryRequestStatus @default(IN_PROGRESS)
+  providerOutcome        String?                      @map("provider_outcome") @db.VarChar(64)
+  providerResponseCode   String?                      @map("provider_response_code") @db.VarChar(10)
+  providerTransactionNo  String?                      @map("provider_transaction_no") @db.VarChar(100)
+  errorCode              String?                      @map("error_code") @db.VarChar(100)
+  leaseExpiresAt         DateTime                     @map("lease_expires_at") @db.Timestamptz(6)
+  createdAt              DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   actor   User    @relation("PaymentRecoveryActor", fields: [actorUserId], references: [id], onDelete: Restrict)
@@ -354,15 +409,15 @@ model PaymentRecoveryAudit {
   recoveryRequestId String?                 @map("recovery_request_id") @db.Uuid
   paymentId         String                  @map("payment_id") @db.Uuid
   actorUserId       String?                 @map("actor_user_id") @db.Uuid
-  actorType         PaymentRecoveryActorType @map("actor_type")
-  gatewayReference  String?                 @map("gateway_reference") @db.VarChar(100)
-  correlationId     String                  @map("correlation_id") @db.VarChar(100)
-  incidentReference String                  @map("incident_reference") @db.VarChar(120)
-  beforeState       PaymentStatus           @map("before_state")
-  afterState        PaymentStatus           @map("after_state")
-  providerOutcome   String                  @map("provider_outcome") @db.VarChar(64)
-  details           Json?
-  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  actorType          PaymentRecoveryActorType @map("actor_type")
+  gatewayReference   String?                 @map("gateway_reference") @db.VarChar(100)
+  correlationId      String                  @map("correlation_id") @db.VarChar(100)
+  incidentReference  String                  @map("incident_reference") @db.VarChar(120)
+  beforeState        PaymentStatus           @map("before_state")
+  afterState         PaymentStatus           @map("after_state")
+  providerOutcome    String                  @map("provider_outcome") @db.VarChar(64)
+  details            Json?
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
 
   recoveryRequest PaymentRecoveryRequest? @relation(fields: [recoveryRequestId], references: [id], onDelete: Restrict)
   payment         Payment                 @relation(fields: [paymentId], references: [id], onDelete: Restrict)
@@ -374,16 +429,16 @@ model PaymentRecoveryAudit {
 }
 
 model PaymentRecoveryResolution {
-  id                String                 @id @default(uuid()) @db.Uuid
-  paymentId         String                 @map("payment_id") @db.Uuid
-  idempotencyKey    String                 @map("idempotency_key") @db.VarChar(100)
-  requestHash       String                 @map("request_hash") @db.Char(64)
-  decision          PaymentRecoveryDecision
-  evidenceReference String                 @map("evidence_reference") @db.VarChar(120)
-  incidentReference String                 @map("incident_reference") @db.VarChar(120)
-  correlationId     String                 @map("correlation_id") @db.VarChar(100)
-  actorUserId       String                 @map("actor_user_id") @db.Uuid
-  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                String                  @id @default(uuid()) @db.Uuid
+  paymentId          String                  @map("payment_id") @db.Uuid
+  idempotencyKey     String                  @map("idempotency_key") @db.VarChar(100)
+  requestHash        String                  @map("request_hash") @db.Char(64)
+  decision           PaymentRecoveryDecision
+  evidenceReference  String                  @map("evidence_reference") @db.VarChar(120)
+  incidentReference  String                  @map("incident_reference") @db.VarChar(120)
+  correlationId      String                  @map("correlation_id") @db.VarChar(100)
+  actorUserId        String                  @map("actor_user_id") @db.Uuid
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
 
   payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   actor   User    @relation("PaymentRecoveryResolutionActor", fields: [actorUserId], references: [id], onDelete: Restrict)
@@ -419,8 +474,8 @@ model InventoryReservation {
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  order          Order                      @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  productVariant ProductVariant             @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
   items          InventoryReservationItem[]
 
   @@unique([orderId, productVariantId])
@@ -428,8 +483,7 @@ model InventoryReservation {
   @@map("inventory_reservations")
 }
 
-// Lượng nguyên liệu thực tế đã giữ cho một reservation (snapshot theo công thức
-// lúc đặt) để hoàn đúng số lượng khi hủy/hết hạn, kể cả khi công thức đổi sau đó.
+// Lượng nguyên liệu thực tế đã giữ cho một reservation.
 model InventoryReservationItem {
   id            String @id @default(uuid()) @db.Uuid
   reservationId String @map("reservation_id") @db.Uuid
@@ -501,4 +555,129 @@ model LoyaltyTransaction {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("loyalty_transactions")
+}
+
+// ===============================
+// SLA MODELS
+// Các model này ánh xạ tới các bảng SLA đã tồn tại trong database.
+// ===============================
+
+model sla_approval_workflows {
+  id                 String            @id @db.Uuid
+  document_id        String            @db.Uuid
+  status             SLAWorkflowStatus @default(PENDING_REVIEW)
+  required_approvals Int               @default(2)
+  submitted_by_id    String            @db.Uuid
+  submitted_at       DateTime          @default(now()) @db.Timestamptz(6)
+  completed_at       DateTime?         @db.Timestamptz(6)
+  created_at         DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime          @db.Timestamptz(6)
+
+  sla_documents       sla_documents @relation(fields: [document_id], references: [id], onDelete: Cascade)
+  users               User          @relation(fields: [submitted_by_id], references: [id])
+  sla_approvals       sla_approvals[]
+  sla_review_feedback sla_review_feedback[]
+
+  @@index([document_id])
+  @@index([status])
+  @@index([submitted_by_id])
+}
+
+model sla_approvals {
+  id                   String                 @id @db.Uuid
+  workflow_id          String                 @db.Uuid
+  approver_id          String                 @db.Uuid
+  approved_at          DateTime               @default(now()) @db.Timestamptz(6)
+  signature_type       SLASignatureType
+  signature_value      String                 @db.VarChar(500)
+  signature_timestamp  DateTime               @db.Timestamptz(6)
+  signature_ip_address String?                @db.VarChar(45)
+  comments             String?
+
+  users                  User                   @relation(fields: [approver_id], references: [id])
+  sla_approval_workflows sla_approval_workflows @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+
+  @@unique([workflow_id, approver_id])
+  @@index([approver_id])
+  @@index([workflow_id])
+}
+
+model sla_documents {
+  id                     String            @id @db.Uuid
+  version                String            @db.VarChar(50)
+  title                  String            @db.VarChar(255)
+  status                 SLADocumentStatus @default(DRAFT)
+  executive_summary      String
+  metrics_definitions    Json
+  lifecycle_slas         Json
+  monitoring_config      Json
+  incident_procedures    Json
+  responsibilities       Json
+  dependencies           Json
+  review_config          Json
+  review_period_days     Int               @default(90)
+  validity_period_days   Int               @default(180)
+  approved_at            DateTime?         @db.Timestamptz(6)
+  expires_at             DateTime?         @db.Timestamptz(6)
+  created_by_id          String            @db.Uuid
+  created_at             DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime          @db.Timestamptz(6)
+
+  sla_approval_workflows  sla_approval_workflows[]
+  users                   User @relation(fields: [created_by_id], references: [id])
+  sla_metrics_validations sla_metrics_validations[]
+  sla_test_evidence       sla_test_evidence[]
+
+  @@index([created_by_id])
+  @@index([expires_at])
+  @@index([status])
+}
+
+model sla_metrics_validations {
+  id                 String   @id @db.Uuid
+  document_id        String   @db.Uuid
+  validated_at       DateTime @default(now()) @db.Timestamptz(6)
+  overall_status     String   @db.VarChar(50)
+  metric_validations Json
+  warnings           Json
+  recommendations    Json
+
+  sla_documents sla_documents @relation(fields: [document_id], references: [id], onDelete: Cascade)
+
+  @@index([document_id])
+  @@index([validated_at])
+}
+
+model sla_review_feedback {
+  id            String          @id @db.Uuid
+  workflow_id   String          @db.Uuid
+  reviewer_id   String          @db.Uuid
+  feedback_type SLAFeedbackType
+  section       String?         @db.VarChar(255)
+  content       String
+  resolved      Boolean         @default(false)
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+
+  users                  User                   @relation(fields: [reviewer_id], references: [id])
+  sla_approval_workflows sla_approval_workflows @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+
+  @@index([resolved])
+  @@index([reviewer_id])
+  @@index([workflow_id])
+}
+
+model sla_test_evidence {
+  id            String   @id @db.Uuid
+  document_id   String   @db.Uuid
+  evidence_type String   @db.VarChar(50)
+  source        String   @db.VarChar(1000)
+  description   String
+  collected_at  DateTime @db.Timestamptz(6)
+  metrics       Json
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  sla_documents sla_documents @relation(fields: [document_id], references: [id], onDelete: Cascade)
+
+  @@index([document_id])
+  @@index([evidence_type])
 }

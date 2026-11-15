@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
 import { PrismaService } from '../../../database/prisma.service.js';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { UsersService } from '../../users/users.service.js';
@@ -81,6 +83,89 @@ export class InventoryService {
       status: stockStatus(row.stockQuantity, row.unit),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+    /**
+   * Barista nhập thêm nguyên liệu vào kho.
+   *
+   * Cập nhật tồn kho và ghi lịch sử trong cùng transaction.
+   */
+  async receiveStock(
+    userId: string,
+    ingredientId: string,
+    quantity: number,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Kiểm tra tài khoản vẫn đang hoạt động và có role BARISTA.
+      await this.users.assertActiveBarista(tx, userId);
+
+      // 2. Đọc nguyên liệu hiện tại.
+      const ingredient = await this.repository.findIngredient(
+        ingredientId,
+        tx,
+      );
+
+      if (!ingredient || !ingredient.isActive) {
+        throw new NotFoundException({
+          error: {
+            code: 'INGREDIENT_NOT_FOUND',
+            message: 'Nguyên liệu không tồn tại hoặc đã ngừng hoạt động.',
+          },
+        });
+      }
+
+      // 3. Không để số lượng tồn vượt giới hạn kiểu Int.
+      const MAX_STOCK = 2147483647;
+
+      if (ingredient.stockQuantity > MAX_STOCK - quantity) {
+        throw new BadRequestException({
+          error: {
+            code: 'STOCK_QUANTITY_OVERFLOW',
+            message: 'Số lượng nhập vượt giới hạn tồn kho.',
+          },
+        });
+      }
+
+      const stockBefore = ingredient.stockQuantity;
+      const stockAfter = stockBefore + quantity;
+
+      // 4. Cộng tồn kho và tăng version.
+      const updated = await this.repository.receiveIngredientStock(
+        tx,
+        ingredientId,
+        ingredient.version,
+        quantity,
+      );
+
+      // 5. Nếu version đã thay đổi, không tiếp tục ghi lịch sử.
+      if (updated.count !== 1) {
+        throw new ConflictException({
+          error: {
+            code: 'INVENTORY_VERSION_CONFLICT',
+            message: 'Tồn kho vừa thay đổi. Vui lòng thử lại.',
+          },
+        });
+      }
+
+      // 6. Ghi lịch sử nhập kho trong cùng transaction.
+      const receipt = await this.repository.createInventoryReceipt(tx, {
+        ingredientId,
+        receivedByUserId: userId,
+        quantity,
+        stockBefore,
+        stockAfter,
+      });
+
+      // 7. Trả kết quả cho Controller.
+      return {
+        receiptId: receipt.id,
+        ingredientId: receipt.ingredientId,
+        receivedByUserId: receipt.receivedByUserId,
+        quantity: receipt.quantity,
+        stockBefore: receipt.stockBefore,
+        stockAfter: receipt.stockAfter,
+        createdAt: receipt.createdAt.toISOString(),
+      };
+    });
   }
 
   /**

@@ -162,4 +162,40 @@ export class InventoryRepository {
       },
     });
   }
+    // Cộng số lượng nguyên liệu và tăng version.
+  // Chỉ cập nhật nếu version vẫn đúng với lúc đọc dữ liệu.
+  async receiveIngredientStock(
+    tx: Prisma.TransactionClient,
+    ingredientId: string,
+    expectedVersion: number,
+    quantity: number,
+  ) {
+    return tx.ingredient.updateMany({
+      where: {
+        id: ingredientId,
+        version: expectedVersion,
+        isActive: true,
+      },
+      data: {
+        stockQuantity: { increment: quantity },
+        version: { increment: 1 },
+      },
+    });
+  }
+
+  // Ghi lịch sử nhập kho.
+  async createInventoryReceipt(
+    tx: Prisma.TransactionClient,
+    data: {
+      ingredientId: string;
+      receivedByUserId: string;
+      quantity: number;
+      stockBefore: number;
+      stockAfter: number;
+    },
+  ) {
+    return tx.inventoryReceipt.create({
+      data,
+    });
+  }
 }
