@@ -16,6 +16,24 @@ Snapshot ngày 10/11/2026 của Railway project `brewlite-a2`, environment `a2-p
 
 Browser gọi Web và API qua hai domain HTTPS riêng. `NEXT_PUBLIC_API_URL` chỉ tới API tại lúc build. API lấy DB URL nội bộ và bí mật JWT từ Railway. Các biến `VNPAY_*` cấu hình tích hợp VNPay theo môi trường. Snapshot chỉ lưu tên biến. Web và API có timeout health check 180 giây và runtime logs trên Railway.
 
+## Tài khoản demo trên Railway
+
+Đặt pre-deploy command của service `api` như dưới đây. Lệnh chạy migration trước khi tạo tài khoản demo. `--if-present` cho phép triển khai lại image cũ chưa có script seed.
+
+```sh
+sh -c 'npm run prisma:deploy && npm run db:seed:production-demo --if-present'
+```
+
+Đặt cả ba biến sau trong **api → Variables** của environment `a2-production`.
+
+| Tên đăng nhập | Vai trò | Biến chứa mật khẩu |
+|---|---|---|
+| `demo.customer` | Khách hàng | `DEMO_CUSTOMER_PASSWORD` |
+| `demo.barista` | Barista | `DEMO_BARISTA_PASSWORD` |
+| `demo.operator` | Nhân viên thanh toán | `DEMO_OPERATOR_PASSWORD` |
+
+Mỗi biến dùng một mật khẩu ngẫu nhiên riêng dài 24–72 byte. Bỏ cả ba biến để bỏ qua bước tạo tài khoản trên lần triển khai kế tiếp. Seed tạo các tài khoản còn thiếu trong một transaction và giữ nguyên bản ghi đã có. Nếu cần đổi mật khẩu của tài khoản demo hiện có, cập nhật hash trong cơ sở dữ liệu và biến tương ứng trên Railway trước khi triển khai lại. Chia sẻ thông tin đăng nhập riêng với người chấm.
+
 ## CI và bằng chứng vận hành
 
 [Railway CD](../.github/workflows/railway-cd.yml) build và gắn SHA cho hai Docker image trong CI, rồi dùng `railway up --ci` tải source của revision lên Railway. Railway build và quản lý image của từng service. Workflow có smoke API và Web sau deploy. Trạng thái Railway `SUCCESS` là bằng chứng deployment của revision trên. Xem [hồ sơ thiết lập và smoke](evidence/cd/railway-a2-setup.md) để đối chiếu kết quả của lần chạy được ghi ở đó, và [hướng dẫn rollback](evidence/cd/rollback-guide.md) cho quy trình khôi phục.
