@@ -32,7 +32,9 @@ sh -c 'npm run prisma:deploy && npm run db:seed:production-demo --if-present'
 | `demo.barista` | Barista | `DEMO_BARISTA_PASSWORD` |
 | `demo.operator` | Nhân viên thanh toán | `DEMO_OPERATOR_PASSWORD` |
 
-Mỗi biến dùng một mật khẩu ngẫu nhiên riêng dài 24–72 byte. Bỏ cả ba biến để bỏ qua bước tạo tài khoản trên lần triển khai kế tiếp. Seed tạo các tài khoản còn thiếu trong một transaction và giữ nguyên bản ghi đã có. Nếu cần đổi mật khẩu của tài khoản demo hiện có, cập nhật hash trong cơ sở dữ liệu và biến tương ứng trên Railway trước khi triển khai lại. Chia sẻ thông tin đăng nhập riêng với người chấm.
+Mỗi biến dùng một mật khẩu ngẫu nhiên riêng dài 24–72 byte. Bỏ cả ba biến để bỏ qua ba tài khoản trong bảng trên khi triển khai kế tiếp. Seed tạo các tài khoản còn thiếu trong một transaction và giữ nguyên bản ghi đã có. Nếu cần đổi mật khẩu của tài khoản demo hiện có, cập nhật hash trong cơ sở dữ liệu và biến tương ứng trên Railway trước khi triển khai lại. Chia sẻ thông tin đăng nhập riêng với người chấm.
+
+Để dùng `customer01` và `barista01` với mật khẩu mẫu của đồ án, đặt `SEED_COURSEWORK_DEMO_ACCOUNTS=true` trong cùng service. Biến này chỉ thêm hai tài khoản mẫu khi chạy seed. Nếu cần thu hồi quyền đăng nhập, khóa hai tài khoản trong cơ sở dữ liệu. Seed sẽ giữ nguyên trạng thái khóa.
 
 ## CI và bằng chứng vận hành
 
