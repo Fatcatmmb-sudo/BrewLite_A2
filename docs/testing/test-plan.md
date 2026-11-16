@@ -15,7 +15,7 @@ TC là kế hoạch kiểm chứng. [Ma trận truy vết](../traceability-matri
 
 | Bộ test | Thư mục | Lệnh từ thư mục gốc |
 |---|---|---|
-| API unit | `apps/api/test/unit` và các file `*.spec.ts` trong `apps/api/src` | `npm --prefix apps/api test` |
+| API unit | `apps/api/test/unit` | `npm --prefix apps/api test` |
 | API integration | `apps/api/test/integration` | `npm --prefix apps/api run test:integration` |
 | API E2E | `apps/api/test/e2e` | `npm --prefix apps/api run test:e2e` |
 | Web unit/component | `apps/web/tests/unit` | `npm --prefix apps/web test` |
@@ -144,7 +144,7 @@ Các ca mock bên dưới giữ tiêu chí baseline. Để kiểm chứng luồn
 <a id="tc-fr-11"></a>
 ## TC-FR-11 - Phân trang (AC FR-11, Should)
 
-Nếu nhận vào release: fixture >=45 đơn của A và đơn B; mặc định 20, max 100, thứ tự ổn định ID/timestamp. Duyệt hai trang không trùng/mất trên dataset cố định, không lộ đơn B; tham số sai 400. Chưa có code/test; quyết định đưa vào release phải được ghi.
+[Orders integration](../../apps/api/test/integration/orders.integration-spec.ts) kiểm tra hai đơn có cùng timestamp, thứ tự ổn định theo ID, không lộ đơn giữa các khách và tham số sai trả 400. SRS còn yêu cầu fixture ít nhất 45 đơn và kiểm tra kích thước trang mặc định 20, tối đa 100.
 
 <a id="tc-fr-12"></a>
 ## TC-FR-12 - UI quầy (AC FR-12, Could)

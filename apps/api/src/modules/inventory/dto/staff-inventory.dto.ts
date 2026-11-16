@@ -1,17 +1,17 @@
 
 import { Transform, Type } from 'class-transformer';
 import {
-  ArrayMinSize,
-  IsArray,
-  IsIn,
-  IsInt,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Max,
-  MaxLength,
-  Min,
-  ValidateNested,
+    ArrayMinSize,
+    IsArray,
+    IsIn,
+    IsInt,
+    IsOptional,
+    IsString,
+    IsUUID,
+    Max,
+    MaxLength,
+    Min,
+    ValidateNested,
 } from 'class-validator';
 
 export const STOCK_THRESHOLDS = {
@@ -78,14 +78,6 @@ export class ReceiveStockDto {
   @ValidateNested({ each: true })
   @Type(() => ReceiveStockItemDto)
   items!: ReceiveStockItemDto[];
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(150)
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
-  supplier?: string;
 
   @IsOptional()
   @IsString()
