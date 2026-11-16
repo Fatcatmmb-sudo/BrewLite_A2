@@ -335,6 +335,39 @@ describe('Tạo đơn qua HTTP và PostgreSQL', () => {
     });
   });
 
+  it('TC-FR-06-A: từ chối trường giá và chủ đơn do client gửi trước khi ghi dữ liệu', async () => {
+    const variant = await product();
+    const promotion = await coupon();
+    const body = {
+      items: [{ productVariantId: variant.id, quantity: 1 }],
+      couponCode: promotion.code,
+    };
+    const orderCount = await prisma.order.count({
+      where: { userId: { in: [userId, otherUserId] } },
+    });
+
+    for (const fields of [
+      { userId: otherUserId },
+      { subtotal: 1 },
+      { discountAmount: 39999 },
+      { total: 1 },
+    ]) {
+      const response = await auth(request(app.getHttpServer()).post('/api/v1/orders'))
+        .send({ ...body, ...fields })
+        .expect(400);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    }
+
+    expect(await prisma.order.count({
+      where: { userId: { in: [userId, otherUserId] } },
+    })).toBe(orderCount);
+    expect(await prisma.couponRedemption.count({ where: { couponId: promotion.id } })).toBe(0);
+    expect(await ingredientOf(variant.ingredientId)).toMatchObject({
+      stockQuantity: 200,
+      version: 0,
+    });
+  });
+
   it('Hoàn tác đơn, tồn kho, lượt giữ nguyên liệu và coupon khi lỗi cuối giao dịch', async () => {
     const variant = await product();
     const promotion = await coupon();
@@ -558,6 +591,34 @@ describe('Tạo đơn qua HTTP và PostgreSQL', () => {
     expect(await prisma.orderItem.count({
       where: { productVariantId: variant.id },
     })).toBe(1);
+  });
+
+  it.each([1, 2, 3])('TC-FR-06-D / TC-NFR-04: 20 yêu cầu tranh 5 ly, lượt %i', async () => {
+    const variant = await product(5);
+    const item = { productVariantId: variant.id, quantity: 1 };
+    const results = await Promise.all(Array.from({ length: 20 }, () => post([item])));
+    const accepted = results.filter((result) => result.status === 201);
+    const rejected = results.filter((result) => result.status === 409);
+
+    expect(accepted).toHaveLength(5);
+    expect(rejected).toHaveLength(15);
+    for (const result of rejected) {
+      expect(['OUT_OF_STOCK', 'INVENTORY_CONFLICT']).toContain(result.body.error.code);
+    }
+    expect(await ingredientOf(variant.ingredientId)).toMatchObject({ stockQuantity: 0 });
+    const reservations = await prisma.inventoryReservation.findMany({
+      where: { productVariantId: variant.id },
+      include: { items: true },
+    });
+    expect(reservations).toHaveLength(5);
+    expect(reservations.map((row) => row.orderId).sort()).toEqual(
+      accepted.map((result) => result.body.data.id as string).sort(),
+    );
+    for (const row of reservations) {
+      expect(row).toMatchObject({ status: 'ACTIVE', quantity: 1 });
+      expect(row.items).toMatchObject([{ ingredientId: variant.ingredientId, quantity: GRAMS_PER_CUP }]);
+    }
+    expect(await prisma.orderItem.count({ where: { productVariantId: variant.id } })).toBe(5);
   });
 
   it('Coupon giới hạn chỉ được giữ một lần khi có yêu cầu đồng thời', async () => {

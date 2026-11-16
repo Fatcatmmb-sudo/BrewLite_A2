@@ -1,18 +1,18 @@
 
 import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    NotFoundException,
 } from '@nestjs/common';
 
 import { PrismaService } from '../../../database/prisma.service.js';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { UsersService } from '../../users/users.service.js';
 import {
-  stockStatus,
-  type ReceiveStockDto,
-  type StaffInventoryQueryDto,
+    stockStatus,
+    type ReceiveStockDto,
+    type StaffInventoryQueryDto,
 } from '../dto/staff-inventory.dto.js';
 import { InventoryRepository } from '../repositories/inventory.repository.js';
 
@@ -198,7 +198,6 @@ export class InventoryService {
       // Chỉ tạo phiếu sau khi tất cả nguyên liệu đã cập nhật thành công.
       const receipt = await this.repository.createInventoryReceipt(tx, {
         receivedByUserId: userId,
-        supplier: dto.supplier?.trim() || null,
         note: dto.note?.trim() || null,
         items: receiptItems,
       });
@@ -207,7 +206,6 @@ export class InventoryService {
         receiptId: receipt.id,
         receivedByUserId: receipt.receivedByUserId,
         receivedByUsername: receipt.receivedBy.username,
-        supplier: receipt.supplier,
         note: receipt.note,
         createdAt: receipt.createdAt.toISOString(),
         items: receipt.items.map((item) => ({
@@ -236,7 +234,6 @@ export class InventoryService {
         receiptId: receipt.id,
         receivedByUserId: receipt.receivedByUserId,
         receivedByUsername: receipt.receivedBy.username,
-        supplier: receipt.supplier,
         note: receipt.note,
         createdAt: receipt.createdAt.toISOString(),
         items: receipt.items.map((item) => ({

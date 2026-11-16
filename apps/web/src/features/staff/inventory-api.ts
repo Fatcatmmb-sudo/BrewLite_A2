@@ -42,7 +42,6 @@ export interface InventoryReceiptItem {
 export interface InventoryReceipt {
   receiptId: string;
   receivedByUserId: string;
-  supplier: string | null;
   note: string | null;
   createdAt: string;
   items: InventoryReceiptItem[];
@@ -54,7 +53,6 @@ export interface ReceiveInventoryStockPayload {
     ingredientId: string;
     quantity: number;
   }>;
-  supplier?: string;
   note?: string;
 }
 

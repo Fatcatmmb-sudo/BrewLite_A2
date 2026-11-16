@@ -106,7 +106,7 @@ node scripts/ci-projects.mjs build
 node apps/api/scripts/smoke.mjs http://localhost:3001
 ```
 
-Kiểm thử có PostgreSQL và trình duyệt làm theo [test plan](docs/testing/test-plan.md#e2e-checkout) và [README API](apps/api/README.md). Triển khai theo [Railway CD](docs/evidence/cd/railway-a2-setup.md), quay lui theo [runbook](docs/evidence/cd/rollback-guide.md).
+Xem [hướng dẫn chạy từng bộ test](tests/README.md) để chuẩn bị PostgreSQL, chạy Playwright và lọc từng ca. Triển khai theo [Railway CD](docs/evidence/cd/railway-a2-setup.md), quay lui theo [runbook](docs/evidence/cd/rollback-guide.md).
 
 | Thư mục / tệp | Nội dung |
 |---|---|
@@ -115,7 +115,7 @@ Kiểm thử có PostgreSQL và trình duyệt làm theo [test plan](docs/testin
 | [docs](docs/README.md) | Yêu cầu, sơ đồ, kiến trúc và Scrum |
 | [docs/RELEASE-NOTES-v1.0.0.md](docs/RELEASE-NOTES-v1.0.0.md) | Release notes v1.0.0 — tính năng, CI evidence, quick start |
 | [docs/evidence/cd/rollback-guide.md](docs/evidence/cd/rollback-guide.md) | Hướng dẫn rollback/backup/restore |
-| `tests/` | Ca E2E từ menu tới xác nhận đơn |
+| [tests](tests/README.md) | Hướng dẫn chạy unit, integration, E2E và test phi chức năng |
 | `.github/workflows/` | [PR CI](docs/ci-pull-request.md), quality gate và Railway CD |
 | [.env.example](.env.example) | Mẫu local, chỉ có placeholder; API/Web có working directory riêng |
 | [compose.yaml](compose.yaml) | Web, API, PostgreSQL, migration và seed demo |

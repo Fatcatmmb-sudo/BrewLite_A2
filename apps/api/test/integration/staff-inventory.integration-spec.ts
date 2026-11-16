@@ -290,7 +290,6 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
       .post('/api/v1/staff/inventory/receipts')
       .set(bearer(staff))
       .send({
-        supplier: 'Nhà cung cấp kiểm thử',
         note: 'Phiếu nhập nhiều nguyên liệu',
         items: [
           { ingredientId: item1.id, quantity: 10 },
@@ -301,9 +300,9 @@ describe('Tồn kho nhân viên qua HTTP và PostgreSQL', () => {
 
     expect(result.body.data).toMatchObject({
       receivedByUserId: staffId,
-      supplier: 'Nhà cung cấp kiểm thử',
       note: 'Phiếu nhập nhiều nguyên liệu',
     });
+    expect(result.body.data).not.toHaveProperty('supplier');
 
     expect(result.body.data.receiptId).toBeDefined();
     expect(result.body.data.createdAt).toBeDefined();

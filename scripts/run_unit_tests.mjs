@@ -5,19 +5,19 @@ import { spawnSync } from 'child_process';
 const unitDir = 'apps/api/test/unit';
 const evidenceDir = 'test-evidence';
 
-// All unit test files in apps/api/test/unit
+// Unit suites selected for the existing handover logs.
 const specFiles = [
-  'app-config.spec.ts',
-  'auth.service.spec.ts',
-  'catalog.service.spec.ts',
-  'health.controller.spec.ts',
-  'jwt.spec.ts',
-  'mock-gateway.spec.ts',
-  'order-state.spec.ts',
-  'orders.controller.spec.ts',
-  'payments.controller.spec.ts',
-  'payments.service.spec.ts',
-  'recipe-capacity.spec.ts'
+  'config/app-config.smoke.spec.ts',
+  'modules/auth/services/auth.service.spec.ts',
+  'modules/catalog/catalog.service.spec.ts',
+  'modules/health/health.controller.spec.ts',
+  'modules/auth/jwt.spec.ts',
+  'modules/payments/mock-gateway.spec.ts',
+  'modules/orders/order-state.spec.ts',
+  'modules/orders/orders.controller.spec.ts',
+  'modules/payments/payments.controller.spec.ts',
+  'modules/payments/payments.service.spec.ts',
+  'modules/catalog/recipe-capacity.spec.ts'
 ];
 
 if (!fs.existsSync(evidenceDir)) {
@@ -31,7 +31,7 @@ for (const file of specFiles) {
     continue;
   }
 
-  const logName = file.replace('.spec.ts', '-unit-test.log');
+  const logName = path.basename(file).replace('.smoke.spec.ts', '.spec.ts').replace('.spec.ts', '-unit-test.log');
   const logPath = path.join(evidenceDir, logName);
 
   // If log already exists and has content > 1000 bytes, skip
@@ -72,7 +72,7 @@ for (const file of specFiles) {
     console.log(`[${i + 1}/${titles.length}] Running: ${title}`);
 
     // Command matching formula in tests/REAME.md
-    const cmd = `npm --prefix apps/api run test -- ${file} -t "${title}" >> "${logPath}" 2>&1`;
+    const cmd = `npm --prefix apps/api run test -- test/unit/${file} -t "${title}" >> "${logPath}" 2>&1`;
 
     const res = spawnSync('cmd.exe', ['/c', cmd], {
       cwd: process.cwd(),
