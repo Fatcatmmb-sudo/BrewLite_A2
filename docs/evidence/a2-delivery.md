@@ -21,6 +21,8 @@ Kiểm tra cục bộ ngày 14/11/2026 trên nhánh `codex/a2-release-verificati
 
 [Ảnh chạy local ngày 14/11/2026](testing/local-2026-11-14/README.md) ghi nhận kết quả test API, Web, API E2E và Browser E2E.
 
+[Minh chứng kiểm thử cục bộ ngày 15/11/2026](testing/local-2026-11-15/README.md) bổ sung ảnh của lượt chạy do Thái Kiệt cung cấp. Ảnh ghi API unit 532/532, Web unit 103/103, integration 91/91, API E2E 32/32 và Playwright 25/25, kèm kết quả áp dụng và chạy lại migration. Bộ ảnh được lưu theo lượt chạy, với commit SHA chưa xác định.
+
 Minh chứng bổ sung trong workspace gồm [đo tải NFR-01](perf/nfr-01-load-test-report.md) và [diễn tập rollback bốn lớp](cd/rollback-local-2026-11-14/README.md). Các kết quả này ghi nhận lượt chạy local của từng bộ minh chứng.
 
 [Test plan](../testing/test-plan.md) và [ma trận truy vết](../traceability-matrix.md) nối các ca với FR/NFR.

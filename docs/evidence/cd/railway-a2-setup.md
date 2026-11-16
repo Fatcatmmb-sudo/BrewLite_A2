@@ -7,7 +7,7 @@ Workflow Railway CD nhận commit của lần PR CI thành công sau push lên `
 ## Cấu hình một lần
 
 1. Tạo hoặc chọn environment riêng cho A2, cùng các service `api`, `web` và PostgreSQL có volume. PostgreSQL dùng mạng nội bộ và không tạo public domain hoặc TCP proxy. Nếu đã nối nguồn GitHub để deploy ban đầu, ghim nguồn vào commit bootstrap để push không kích hoạt deploy song song với CD.
-2. Tạo domain HTTPS cho API (port 3001) và Web (port 3000). CLI upload từ gốc repo. Trong Railway, đặt Root Directory của API là `/apps/api` và Web là `/apps/web`. Cả hai dùng `Dockerfile.railway`. Đặt pre-deploy command API là `npm run prisma:deploy`, health check API `/api/v1/health` và Web `/health`.
+2. Tạo domain HTTPS cho API (port 3001) và Web (port 3000). CLI upload từ gốc repo. Trong Railway, đặt Root Directory của API là `/apps/api` và Web là `/apps/web`. Cả hai dùng `Dockerfile.railway`. Đặt [pre-deploy command của API](../../deployment.md#tài-khoản-demo-trên-railway) để chạy migration rồi tạo tài khoản demo nếu được cấu hình. Health check API dùng `/api/v1/health` và Web dùng `/health`.
 3. Đặt biến API trên Railway gồm `DATABASE_URL` tham chiếu PostgreSQL private, `JWT_SECRET` ngẫu nhiên riêng cho A2 (ít nhất 32 byte), `WEB_ORIGIN` là HTTPS origin của Web A2, `NODE_ENV=production` và `PORT=3001`. Đặt biến Web `NEXT_PUBLIC_API_URL=<API origin>/api/v1` và `PORT=3000`. Next.js đọc URL API lúc build.
 4. Tạo GitHub Actions environment `a2-production`. Đặt secret `RAILWAY_TOKEN` bằng project token giới hạn vào environment Railway của A2. Đặt các biến sau trong GitHub Actions environment.
 
