@@ -1,19 +1,22 @@
+
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
 import { PrismaService } from '../../../database/prisma.service.js';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { UsersService } from '../../users/users.service.js';
 import {
   stockStatus,
+  type ReceiveStockDto,
   type StaffInventoryQueryDto,
 } from '../dto/staff-inventory.dto.js';
 import { InventoryRepository } from '../repositories/inventory.repository.js';
 
 // Lỗi riêng khi version tồn kho đã thay đổi.
-// OrdersService sẽ bắt lỗi này để retry transaction tạo đơn.
 export class InventoryVersionConflict extends Error {
   constructor() {
     super('Inventory version changed; please retry');
@@ -41,6 +44,7 @@ export class InventoryService {
     const limit = query.limit ?? 50;
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
+
     return {
       data: page.map((row) => this.ingredientResponse(row)),
       meta: { nextCursor: hasMore ? page.at(-1)!.id : null },
@@ -50,13 +54,16 @@ export class InventoryService {
   async getIngredient(userId: string, id: string) {
     await this.users.assertActiveBarista(this.prisma, userId);
     const row = await this.repository.findIngredient(id);
-    if (!row)
+
+    if (!row) {
       throw new NotFoundException({
         error: {
           code: 'INGREDIENT_NOT_FOUND',
           message: 'Nguyên liệu không tồn tại.',
         },
       });
+    }
+
     return this.ingredientResponse(row);
   }
 
@@ -81,6 +88,168 @@ export class InventoryService {
       status: stockStatus(row.stockQuantity, row.unit),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * Barista nhập kho một phiếu gồm nhiều nguyên liệu.
+   * Cập nhật tồn kho và ghi lịch sử trong cùng transaction.
+   * Nếu bất kỳ dòng nào thất bại, toàn bộ phiếu được rollback.
+   */
+  async receiveStock(userId: string, dto: ReceiveStockDto) {
+    if (!dto.items?.length) {
+      throw new BadRequestException({
+        error: {
+          code: 'EMPTY_RECEIPT',
+          message: 'Phiếu nhập kho phải có ít nhất một nguyên liệu.',
+        },
+      });
+    }
+
+    const ingredientIds = dto.items.map((item) => item.ingredientId);
+
+    if (new Set(ingredientIds).size !== ingredientIds.length) {
+      throw new BadRequestException({
+        error: {
+          code: 'DUPLICATE_INGREDIENT',
+          message: 'Không được nhập trùng nguyên liệu trong một phiếu.',
+        },
+      });
+    }
+
+    const sortedItems = [...dto.items].sort((a, b) =>
+      a.ingredientId.localeCompare(b.ingredientId),
+    );
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.users.assertActiveBarista(tx, userId);
+
+      const receiptItems: Array<{
+        ingredientId: string;
+        quantityAdded: number;
+        stockBefore: number;
+        stockAfter: number;
+      }> = [];
+
+      const MAX_STOCK = 2147483647;
+
+      for (const item of sortedItems) {
+        const { ingredientId, quantity } = item;
+
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+          throw new BadRequestException({
+            error: {
+              code: 'INVALID_STOCK_QUANTITY',
+              message: 'Số lượng nhập phải là số nguyên dương.',
+            },
+          });
+        }
+
+        const ingredient = await this.repository.findIngredient(
+          ingredientId,
+          tx,
+        );
+
+        if (!ingredient || !ingredient.isActive) {
+          throw new NotFoundException({
+            error: {
+              code: 'INGREDIENT_NOT_FOUND',
+              message: 'Nguyên liệu không tồn tại hoặc đã ngừng hoạt động.',
+            },
+          });
+        }
+
+        if (ingredient.stockQuantity > MAX_STOCK - quantity) {
+          throw new BadRequestException({
+            error: {
+              code: 'STOCK_QUANTITY_OVERFLOW',
+              message: `Số lượng nhập của nguyên liệu ${ingredient.name} vượt giới hạn tồn kho.`,
+            },
+          });
+        }
+
+        const stockBefore = ingredient.stockQuantity;
+        const stockAfter = stockBefore + quantity;
+
+        // Cập nhật theo version để phát hiện tồn kho vừa bị thay đổi.
+        const updated = await this.repository.receiveIngredientStock(
+          tx,
+          ingredientId,
+          ingredient.version,
+          quantity,
+        );
+
+        if (updated.count !== 1) {
+          throw new ConflictException({
+            error: {
+              code: 'INVENTORY_VERSION_CONFLICT',
+              message: `Tồn kho nguyên liệu ${ingredient.name} vừa thay đổi. Vui lòng thử lại.`,
+            },
+          });
+        }
+
+        receiptItems.push({
+          ingredientId,
+          quantityAdded: quantity,
+          stockBefore,
+          stockAfter,
+        });
+      }
+
+      // Chỉ tạo phiếu sau khi tất cả nguyên liệu đã cập nhật thành công.
+      const receipt = await this.repository.createInventoryReceipt(tx, {
+        receivedByUserId: userId,
+        supplier: dto.supplier?.trim() || null,
+        note: dto.note?.trim() || null,
+        items: receiptItems,
+      });
+
+      return {
+        receiptId: receipt.id,
+        receivedByUserId: receipt.receivedByUserId,
+        receivedByUsername: receipt.receivedBy.username,
+        supplier: receipt.supplier,
+        note: receipt.note,
+        createdAt: receipt.createdAt.toISOString(),
+        items: receipt.items.map((item) => ({
+          ingredientId: item.ingredientId,
+          code: item.ingredient.code,
+          name: item.ingredient.name,
+          unit: item.ingredient.unit,
+          quantityAdded: item.quantityAdded,
+          stockBefore: item.stockBefore,
+          stockAfter: item.stockAfter,
+        })),
+      };
+    });
+  }
+
+  /**
+   * Lấy lịch sử 50 phiếu nhập kho mới nhất.
+   */
+  async listReceipts(userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.users.assertActiveBarista(tx, userId);
+
+      const receipts = await this.repository.listInventoryReceipts(tx);
+
+      return receipts.map((receipt) => ({
+        receiptId: receipt.id,
+        receivedByUserId: receipt.receivedByUserId,
+        receivedByUsername: receipt.receivedBy.username,
+        supplier: receipt.supplier,
+        note: receipt.note,
+        createdAt: receipt.createdAt.toISOString(),
+        items: receipt.items.map((item) => ({
+          ingredientId: item.ingredientId,
+          code: item.ingredient.code,
+          name: item.ingredient.name,
+          unit: item.ingredient.unit,
+          quantityAdded: item.quantityAdded,
+          stockBefore: item.stockBefore,
+          stockAfter: item.stockAfter,
+        })),
+      }));
+    });
   }
 
   /**
@@ -164,7 +333,7 @@ export class InventoryService {
       return;
     }
 
-    // Trường hợp cũ: các test truyền mảng items trước, Date sau.
+    // Trường hợp mảng items trước, Date sau.
     const items = third;
     const expiresAt = fourth as Date;
 
@@ -179,11 +348,13 @@ export class InventoryService {
       if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
         throw new ConflictException('Invalid reservation quantity');
       }
+
       grouped.set(
         item.productVariantId,
         (grouped.get(item.productVariantId) ?? 0) + item.quantity,
       );
     }
+
     const sortedItems = [...grouped.entries()].sort(([a], [b]) =>
       a.localeCompare(b),
     );
@@ -194,6 +365,7 @@ export class InventoryService {
       quantity: number;
       ingredients: Array<{ ingredientId: string; quantity: number }>;
     }> = [];
+
     const totals = new Map<
       string,
       { quantity: number; version: number; stockQuantity: number }
@@ -218,13 +390,16 @@ export class InventoryService {
         if (!line.ingredient.isActive) {
           throw new ConflictException('Ingredient is no longer available');
         }
+
         const amount = line.quantity * quantity;
         const total = totals.get(line.ingredientId);
+
         totals.set(line.ingredientId, {
           quantity: (total?.quantity ?? 0) + amount,
           version: line.ingredient.version,
           stockQuantity: line.ingredient.stockQuantity,
         });
+
         return { ingredientId: line.ingredientId, quantity: amount };
       });
 

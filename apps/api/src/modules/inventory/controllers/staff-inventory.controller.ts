@@ -1,19 +1,30 @@
+
 import {
+  Body,
   ForbiddenException,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
+
 import { UserRole } from '../../../generated/prisma/client.js';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator.js';
 import { Roles } from '../../auth/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../auth/guards/roles.guard.js';
-import { StaffInventoryQueryDto } from '../dto/staff-inventory.dto.js';
+
+import {
+  ReceiveStockDto,
+  StaffInventoryQueryDto,
+} from '../dto/staff-inventory.dto.js';
+
 import { InventoryService } from '../services/inventory.service.js';
 
 @Controller('staff/inventory')
@@ -22,6 +33,8 @@ import { InventoryService } from '../services/inventory.service.js';
 export class StaffInventoryController {
   constructor(private readonly inventory: InventoryService) {}
 
+  // GET /api/v1/staff/inventory
+  // Lấy danh sách nguyên liệu.
   @Get()
   list(
     @CurrentUser() user: { id: string },
@@ -30,15 +43,44 @@ export class StaffInventoryController {
     return this.inventory.listIngredients(user.id, query);
   }
 
+  // GET /api/v1/staff/inventory/receipts
+  // Xem lịch sử các phiếu nhập kho.
+  @Get('receipts')
+  async receiptHistory(
+    @CurrentUser() user: { id: string },
+  ) {
+    return {
+      data: await this.inventory.listReceipts(user.id),
+    };
+  }
+
+  // POST /api/v1/staff/inventory/receipts
+  // Tạo một phiếu nhập gồm nhiều nguyên liệu.
+  @Post('receipts')
+  @HttpCode(HttpStatus.CREATED)
+  async receiveStock(
+    @CurrentUser() user: { id: string },
+    @Body() dto: ReceiveStockDto,
+  ) {
+    return {
+      data: await this.inventory.receiveStock(user.id, dto),
+    };
+  }
+
+  // GET /api/v1/staff/inventory/:id
+  // Xem chi tiết một nguyên liệu.
   @Get(':id')
   async detail(
     @CurrentUser() user: { id: string },
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return { data: await this.inventory.getIngredient(user.id, id) };
+    return {
+      data: await this.inventory.getIngredient(user.id, id),
+    };
   }
 
-  // Keep an explicit denial for old clients; a hidden UI is not authorization.
+  // Barista không được cập nhật tồn kho bằng API cũ.
+  // Giữ lại để các client cũ vẫn nhận được 403.
   @Patch(':id/stock')
   update() {
     throw new ForbiddenException({
