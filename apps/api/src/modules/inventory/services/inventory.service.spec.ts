@@ -292,7 +292,6 @@ repository.createInventoryReceipt.mockImplementation(
     _tx,
     data: {
       receivedByUserId: string;
-      supplier: string | null;
       note: string | null;
       items: Array<{
         ingredientId: string;
@@ -308,7 +307,6 @@ repository.createInventoryReceipt.mockImplementation(
       id: data.receivedByUserId,
       username: 'barista_test',
     },
-    supplier: data.supplier,
     note: data.note,
     createdAt,
     items: data.items.map((item) => ({
@@ -327,7 +325,6 @@ repository.createInventoryReceipt.mockImplementation(
           { ingredientId: 'bean', quantity: 500 },
           { ingredientId: 'milk', quantity: 1000 },
         ],
-        supplier: 'Nhà cung cấp A',
         note: 'Nhập hàng buổi sáng',
       });
 
@@ -356,7 +353,6 @@ repository.createInventoryReceipt.mockImplementation(
         tx,
         expect.objectContaining({
           receivedByUserId: userId,
-          supplier: 'Nhà cung cấp A',
           note: 'Nhập hàng buổi sáng',
           items: [
             {

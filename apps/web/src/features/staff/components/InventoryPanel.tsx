@@ -2,20 +2,20 @@
 "use client";
 
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
+    useMutation,
+    useQuery,
+    useQueryClient,
 } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
 import {
-  getInventoryApi,
-  getInventoryReceiptsApi,
-  receiveInventoryStockApi,
-  InventoryApiError,
-  type Ingredient,
-  type InventoryReceipt,
-  type ReceiveInventoryStockPayload,
+    getInventoryApi,
+    getInventoryReceiptsApi,
+    InventoryApiError,
+    receiveInventoryStockApi,
+    type Ingredient,
+    type InventoryReceipt,
+    type ReceiveInventoryStockPayload,
 } from "../inventory-api";
 
 import { StaffIcon } from "./StaffIcon";
@@ -78,7 +78,6 @@ export function InventoryPanel({ token }: { token: string }) {
     Record<string, SelectedItem>
   >({});
 
-  const [supplier, setSupplier] = useState("");
   const [note, setNote] = useState("");
 
   const [actionError, setActionError] = useState<string | null>(null);
@@ -112,7 +111,6 @@ export function InventoryPanel({ token }: { token: string }) {
 
     onSuccess: (receipt) => {
       setSelectedItems({});
-      setSupplier("");
       setNote("");
       setShowReceiptForm(false);
 
@@ -207,7 +205,6 @@ export function InventoryPanel({ token }: { token: string }) {
 
     receive.mutate({
       items: payloadItems,
-      supplier: supplier.trim() || undefined,
       note: note.trim() || undefined,
     });
   }
@@ -382,21 +379,7 @@ export function InventoryPanel({ token }: { token: string }) {
                 </div>
               )}
 
-              <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label>
-                  <span className="mb-1 block text-xs font-medium text-[#6D786F]">
-                    Nhà cung cấp (không bắt buộc)
-                  </span>
-                  <input
-                    value={supplier}
-                    onChange={(event) => setSupplier(event.target.value)}
-                    maxLength={150}
-                    disabled={receive.isPending}
-                    placeholder="Tên nhà cung cấp"
-                    className={fieldClass}
-                  />
-                </label>
-
+              <div className="mb-4 grid grid-cols-1 gap-3">
                 <label>
                   <span className="mb-1 block text-xs font-medium text-[#6D786F]">
                     Ghi chú (không bắt buộc)
@@ -426,7 +409,6 @@ export function InventoryPanel({ token }: { token: string }) {
                   disabled={receive.isPending}
                   onClick={() => {
                     setSelectedItems({});
-                    setSupplier("");
                     setNote("");
                     setActionError(null);
                   }}
@@ -710,13 +692,6 @@ function ReceiptHistory({
               <span className="text-[#788276]">Người nhập: </span>
               <span className="break-all font-medium">
                 {receipt.receivedByUserId}
-              </span>
-            </p>
-
-            <p>
-              <span className="text-[#788276]">Nhà cung cấp: </span>
-              <span className="font-medium">
-                {receipt.supplier || "Không có thông tin"}
               </span>
             </p>
 

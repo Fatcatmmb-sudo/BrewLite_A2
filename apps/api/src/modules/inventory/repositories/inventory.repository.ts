@@ -1,11 +1,11 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service.js';
-import {
-  STOCK_THRESHOLDS,
-  type StaffInventoryQueryDto,
-} from '../dto/staff-inventory.dto.js';
 import type { Prisma } from '../../../generated/prisma/client.js';
+import {
+    STOCK_THRESHOLDS,
+    type StaffInventoryQueryDto,
+} from '../dto/staff-inventory.dto.js';
 
 @Injectable()
 export class InventoryRepository {
@@ -191,7 +191,6 @@ export class InventoryRepository {
     tx: Prisma.TransactionClient,
     data: {
       receivedByUserId: string;
-      supplier: string | null;
       note: string | null;
       items: Array<{
         ingredientId: string;
@@ -204,7 +203,6 @@ export class InventoryRepository {
     return tx.inventoryReceipt.create({
       data: {
         receivedByUserId: data.receivedByUserId,
-        supplier: data.supplier,
         note: data.note,
         items: {
           create: data.items,
