@@ -3,7 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  approveRefundApi,
   getStaffQueueApi,
+  rejectRefundApi,
   StaffApiError,
   updateStaffOrderStatusApi,
 } from "../api";
@@ -47,8 +49,33 @@ export function BaristaBoard({ token }: { token: string }) {
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
 
+  const approveRefund = useMutation({
+    mutationFn: (order: StaffOrder) => approveRefundApi(token, order.id),
+    onMutate: () => setActionError(null),
+    onError: (error) => setActionError(messageOf(error)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
+
+  const rejectRefund = useMutation({
+    mutationFn: ({
+      order,
+      reason,
+    }: {
+      order: StaffOrder;
+      reason: string;
+    }) => rejectRefundApi(token, order.id, reason),
+    onMutate: () => setActionError(null),
+    onError: (error) => setActionError(messageOf(error)),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  });
+
   const orders = queue.data ?? [];
   const pendingId = advance.isPending ? advance.variables?.order.id : null;
+  const refundBusyId = approveRefund.isPending
+    ? approveRefund.variables?.id
+    : rejectRefund.isPending
+      ? rejectRefund.variables?.order.id
+      : null;
 
   return (
     <section aria-label="Hàng đợi pha chế">
@@ -198,6 +225,13 @@ export function BaristaBoard({ token }: { token: string }) {
                       onAdvance={(target, targetColumn) =>
                         advance.mutate({ order: target, column: targetColumn })
                       }
+                      onApproveRefund={(target) =>
+                        approveRefund.mutate(target)
+                      }
+                      onRejectRefund={(target, reason) =>
+                        rejectRefund.mutate({ order: target, reason })
+                      }
+                      refundBusy={refundBusyId === order.id}
                     />
                   ))}
                 </div>

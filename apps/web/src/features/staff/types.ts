@@ -1,5 +1,5 @@
 import type { ProductSize } from '../catalog/types';
-import type { OrderItem, OrderStatus } from '../orders/types';
+import type { OrderItem, OrderStatus, RefundRequest } from '../orders/types';
 
 export interface RecipeIngredient {
   id: string;
@@ -33,6 +33,8 @@ export interface StaffOrder {
   createdAt: string;
   /** Thời điểm đơn vào trạng thái hiện tại. */
   updatedAt: string;
+  /** Yêu cầu hoàn tiền (nếu có). */
+  refundRequest?: RefundRequest | null;
 }
 
 export interface StaffColumn {
