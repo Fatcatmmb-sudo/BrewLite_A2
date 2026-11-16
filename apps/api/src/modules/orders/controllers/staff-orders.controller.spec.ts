@@ -72,6 +72,28 @@ describe('StaffOrdersController', () => {
     expect(result).toEqual({ data: { id: 'o-1', status: 'READY' } });
   });
 
+  it('approveRefund - barista duyệt hoàn tiền', async () => {
+    const mockRefund = { id: 'rf-1', status: 'APPROVED' };
+    service.approveRefund = vi.fn().mockResolvedValue(mockRefund);
+
+    const result = await controller.approveRefund('o-1', barista);
+
+    expect(service.approveRefund).toHaveBeenCalledWith('o-1', 'b-1');
+    expect(result).toEqual({ data: mockRefund });
+  });
+
+  it('rejectRefund - barista từ chối yêu cầu hoàn tiền', async () => {
+    const mockRefund = { id: 'rf-1', status: 'REJECTED' };
+    service.rejectRefund = vi.fn().mockResolvedValue(mockRefund);
+
+    const result = await controller.rejectRefund('o-1', barista, {
+      rejectReason: 'Không đủ điều kiện',
+    });
+
+    expect(service.rejectRefund).toHaveBeenCalledWith('o-1', 'b-1', 'Không đủ điều kiện');
+    expect(result).toEqual({ data: mockRefund });
+  });
+
   describe('DTO validation', () => {
     const errorsFor = (cls: any, value: object) =>
       validate(plainToInstance(cls, value));

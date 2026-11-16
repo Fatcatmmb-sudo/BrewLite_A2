@@ -37,6 +37,7 @@ import type {
   StaffOrderDto,
   StaffOrdersQueryDto,
 } from '../dto/staff-orders.dto.js';
+import type { RefundRequestResponseDto } from '../dto/refund-request.dto.js';
 import { toOrderItemResponse } from '../mappers/order-item.mapper.js';
 import { OrdersRepository } from '../repositories/orders.repository.js';
 import {
@@ -358,6 +359,20 @@ export class OrdersService {
       createdAt: order.createdAt.toISOString(),
       paymentSummary,
       timeline,
+      refundRequest: order.refundRequest
+        ? {
+            id: order.refundRequest.id,
+            orderId: order.refundRequest.orderId,
+            userId: order.refundRequest.userId,
+            reason: order.refundRequest.reason,
+            status: order.refundRequest.status,
+            processedByUserId: order.refundRequest.processedByUserId,
+            processedAt: order.refundRequest.processedAt?.toISOString() ?? null,
+            rejectReason: order.refundRequest.rejectReason,
+            createdAt: order.refundRequest.createdAt.toISOString(),
+            updatedAt: order.refundRequest.updatedAt.toISOString(),
+          }
+        : null,
     };
   }
   // =====================================================================
@@ -403,6 +418,19 @@ export class OrdersService {
 
       assertTransition(order.status, toStatus);
 
+      // Nếu đang có yêu cầu hoàn tiền PENDING, không thể chuyển sang PREPARING/READY/COMPLETED mà chưa xử lý yêu cầu hoàn tiền
+      const pendingRefund = await tx.refundRequest.findFirst({
+        where: { orderId, status: 'PENDING' },
+      });
+      if (pendingRefund) {
+        throw new ConflictException({
+          error: {
+            code: 'PENDING_REFUND_REQUEST',
+            message: 'Đơn hàng đang có yêu cầu hoàn tiền chờ duyệt.',
+          },
+        });
+      }
+
       await this.repository.updateStatusWithHistory(
         order.id,
         order.status,
@@ -415,6 +443,313 @@ export class OrdersService {
       const updated = await this.repository.findStaffOrder(order.id, tx);
       if (!updated) throw new Error('Order disappeared during status update');
       return this.toStaffOrder(updated);
+    });
+  }
+
+  // =====================================================================
+  // 4b. NGHIỆP VỤ HOÀN TIỀN ĐIỂM TÍCH LŨY (UC-14, UC-15 - FR-16)
+  // =====================================================================
+
+  /**
+   * Khách hàng gửi yêu cầu hoàn tiền (UC-14).
+   * Điều kiện: Đơn hàng thuộc sở hữu của khách, trạng thái đơn hiện tại phải là PAID.
+   * Chống trùng: Mỗi đơn hàng chỉ có tối đa 1 yêu cầu hoàn tiền.
+   */
+  async requestRefund(
+    orderId: string,
+    userId: string,
+    reason: string,
+  ): Promise<RefundRequestResponseDto> {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+      });
+
+      if (!order || order.userId !== userId) {
+        throw new NotFoundException({
+          error: {
+            code: 'ORDER_NOT_FOUND',
+            message: 'Đơn hàng không tồn tại hoặc bạn không có quyền truy cập.',
+          },
+        });
+      }
+
+      if (order.status !== OrderStatus.PAID) {
+        throw new ConflictException({
+          error: {
+            code: 'ORDER_INVALID_STATUS_FOR_REFUND',
+            message: 'Chỉ có thể yêu cầu hoàn tiền cho đơn hàng đã thanh toán và chưa pha chế.',
+          },
+        });
+      }
+
+      const existingRequest = await tx.refundRequest.findUnique({
+        where: { orderId },
+      });
+
+      if (existingRequest) {
+        throw new ConflictException({
+          error: {
+            code: 'REFUND_REQUEST_ALREADY_EXISTS',
+            message: 'Đơn hàng này đã có yêu cầu hoàn tiền.',
+          },
+        });
+      }
+
+      const refundReq = await tx.refundRequest.create({
+        data: {
+          orderId,
+          userId,
+          reason,
+          status: 'PENDING',
+        },
+      });
+
+      return {
+        id: refundReq.id,
+        orderId: refundReq.orderId,
+        userId: refundReq.userId,
+        reason: refundReq.reason,
+        status: refundReq.status,
+        processedByUserId: refundReq.processedByUserId,
+        processedAt: refundReq.processedAt?.toISOString() ?? null,
+        rejectReason: refundReq.rejectReason,
+        createdAt: refundReq.createdAt.toISOString(),
+        updatedAt: refundReq.updatedAt.toISOString(),
+      };
+    });
+  }
+
+  /**
+   * Barista duyệt yêu cầu hoàn tiền sang Loyalty Points (UC-15).
+   * Chạy atomic transaction:
+   * 1. Xác thực barista đang hoạt động
+   * 2. Khóa dòng đơn (SELECT FOR UPDATE)
+   * 3. Kiểm tra đơn còn PAID (nếu đã PREPARING hoặc khác -> ném lỗi)
+   * 4. Kiểm tra yêu cầu hoàn tiền đang PENDING (chống double-approval / Idempotency)
+   * 5. Hủy đơn (PAID -> CANCELLED), hoàn kho nguyên liệu
+   * 6. Cộng điểm loyalty = total đơn hàng vào tài khoản user
+   * 7. Tạo LoyaltyTransaction loại REFUND
+   * 8. Cập nhật RefundRequest -> APPROVED
+   */
+  async approveRefund(
+    orderId: string,
+    baristaId: string,
+  ): Promise<RefundRequestResponseDto> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.users.assertActiveBarista(tx, baristaId);
+
+      // 1. Khóa đơn hàng
+      const order = await this.repository.lockById(orderId, tx);
+      if (!order) {
+        throw new NotFoundException({
+          error: {
+            code: 'ORDER_NOT_FOUND',
+            message: 'Đơn hàng không tồn tại.',
+          },
+        });
+      }
+
+      // 2. Kiểm tra trạng thái đơn hàng
+      if (order.status !== OrderStatus.PAID) {
+        throw new ConflictException({
+          error: {
+            code: 'ORDER_NOT_IN_PAID_STATUS',
+            message: 'Đơn hàng không còn ở trạng thái PAID để duyệt hoàn tiền.',
+          },
+        });
+      }
+
+      // 3. Khóa và kiểm tra yêu cầu hoàn tiền
+      const refundReq = await tx.refundRequest.findUnique({
+        where: { orderId },
+      });
+
+      if (!refundReq) {
+        throw new NotFoundException({
+          error: {
+            code: 'REFUND_REQUEST_NOT_FOUND',
+            message: 'Không tìm thấy yêu cầu hoàn tiền cho đơn hàng này.',
+          },
+        });
+      }
+
+      if (refundReq.status !== 'PENDING') {
+        throw new ConflictException({
+          error: {
+            code: 'REFUND_ALREADY_PROCESSED',
+            message: 'Yêu cầu hoàn tiền này đã được xử lý trước đó.',
+          },
+        });
+      }
+
+      // 4. Kiểm tra xem đã từng có LoyaltyTransaction REFUND cho đơn này chưa (Idempotency bảo vệ lớp 2)
+      const existingRefundTx = await tx.loyaltyTransaction.findFirst({
+        where: {
+          orderId,
+          type: 'REFUND',
+        },
+      });
+
+      if (existingRefundTx) {
+        throw new ConflictException({
+          error: {
+            code: 'REFUND_ALREADY_PROCESSED',
+            message: 'Điểm hoàn tiền đã được cộng cho đơn hàng này.',
+          },
+        });
+      }
+
+      const now = new Date();
+
+      // 5. Cập nhật đơn hàng sang CANCELLED và ghi OrderStatusHistory
+      await this.repository.updateStatusWithHistory(
+        order.id,
+        OrderStatus.PAID,
+        OrderStatus.CANCELLED,
+        baristaId,
+        'Barista duyệt hoàn tiền dạng Loyalty Points cho khách hàng',
+        tx,
+      );
+
+      // 6. Hoàn nguyên liệu tồn kho theo snapshot reservation items nếu có
+      const reservations = await tx.inventoryReservation.findMany({
+        where: { orderId: order.id },
+        include: { items: true },
+      });
+
+      for (const res of reservations) {
+        for (const item of res.items) {
+          await tx.ingredient.update({
+            where: { id: item.ingredientId },
+            data: {
+              stockQuantity: { increment: item.quantity },
+              version: { increment: 1 },
+            },
+          });
+        }
+      }
+
+      if (reservations.length > 0) {
+        await tx.inventoryReservation.updateMany({
+          where: { orderId: order.id },
+          data: { status: 'RELEASED' },
+        });
+      }
+
+      // 7. Hoàn tiền dưới dạng Loyalty Points: 1 VND = 1 điểm loyalty
+      const refundPoints = Number(order.total);
+
+      const userUpdate = await tx.user.update({
+        where: { id: order.userId },
+        data: {
+          loyaltyBalance: { increment: refundPoints },
+        },
+      });
+
+      // 8. Tạo bản ghi LoyaltyTransaction REFUND
+      await tx.loyaltyTransaction.create({
+        data: {
+          userId: order.userId,
+          orderId: order.id,
+          type: 'REFUND',
+          points: refundPoints,
+          balanceAfter: userUpdate.loyaltyBalance,
+          reason: `Hoàn tiền đơn hàng ${order.orderNumber} vào điểm tích lũy`,
+        },
+      });
+
+      // 9. Cập nhật trạng thái RefundRequest sang APPROVED
+      const updatedReq = await tx.refundRequest.update({
+        where: { id: refundReq.id },
+        data: {
+          status: 'APPROVED',
+          processedByUserId: baristaId,
+          processedAt: now,
+        },
+      });
+
+      return {
+        id: updatedReq.id,
+        orderId: updatedReq.orderId,
+        userId: updatedReq.userId,
+        reason: updatedReq.reason,
+        status: updatedReq.status,
+        processedByUserId: updatedReq.processedByUserId,
+        processedAt: updatedReq.processedAt?.toISOString() ?? null,
+        rejectReason: updatedReq.rejectReason,
+        createdAt: updatedReq.createdAt.toISOString(),
+        updatedAt: updatedReq.updatedAt.toISOString(),
+      };
+    });
+  }
+
+  /**
+   * Barista từ chối yêu cầu hoàn tiền (UC-15).
+   */
+  async rejectRefund(
+    orderId: string,
+    baristaId: string,
+    rejectReason: string,
+  ): Promise<RefundRequestResponseDto> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.users.assertActiveBarista(tx, baristaId);
+
+      const order = await this.repository.lockById(orderId, tx);
+      if (!order) {
+        throw new NotFoundException({
+          error: {
+            code: 'ORDER_NOT_FOUND',
+            message: 'Đơn hàng không tồn tại.',
+          },
+        });
+      }
+
+      const refundReq = await tx.refundRequest.findUnique({
+        where: { orderId },
+      });
+
+      if (!refundReq) {
+        throw new NotFoundException({
+          error: {
+            code: 'REFUND_REQUEST_NOT_FOUND',
+            message: 'Không tìm thấy yêu cầu hoàn tiền cho đơn hàng này.',
+          },
+        });
+      }
+
+      if (refundReq.status !== 'PENDING') {
+        throw new ConflictException({
+          error: {
+            code: 'REFUND_ALREADY_PROCESSED',
+            message: 'Yêu cầu hoàn tiền này đã được xử lý trước đó.',
+          },
+        });
+      }
+
+      const now = new Date();
+      const updatedReq = await tx.refundRequest.update({
+        where: { id: refundReq.id },
+        data: {
+          status: 'REJECTED',
+          processedByUserId: baristaId,
+          processedAt: now,
+          rejectReason,
+        },
+      });
+
+      return {
+        id: updatedReq.id,
+        orderId: updatedReq.orderId,
+        userId: updatedReq.userId,
+        reason: updatedReq.reason,
+        status: updatedReq.status,
+        processedByUserId: updatedReq.processedByUserId,
+        processedAt: updatedReq.processedAt?.toISOString() ?? null,
+        rejectReason: updatedReq.rejectReason,
+        createdAt: updatedReq.createdAt.toISOString(),
+        updatedAt: updatedReq.updatedAt.toISOString(),
+      };
     });
   }
 

@@ -20,6 +20,7 @@ import {
 
 import { OrdersService } from '../services/orders.service.js';
 import { CreateOrderDto } from '../dto/create-order.dto.js';
+import { CreateRefundRequestDto } from '../dto/refund-request.dto.js';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../auth/guards/roles.guard.js';
 import { Roles } from '../../auth/decorators/roles.decorator.js';
@@ -59,6 +60,17 @@ export class OrdersController {
     @CurrentUser() user: Principal,
   ) {
     const data = await this.orders.getOrderDetail(orderId, user.id);
+    return { data };
+  }
+
+  @Post(':id/refund-request')
+  @HttpCode(HttpStatus.CREATED)
+  async requestRefund(
+    @Param('id', ParseUUIDPipe) orderId: string,
+    @CurrentUser() user: Principal,
+    @Body() dto: CreateRefundRequestDto,
+  ) {
+    const data = await this.orders.requestRefund(orderId, user.id, dto.reason);
     return { data };
   }
 

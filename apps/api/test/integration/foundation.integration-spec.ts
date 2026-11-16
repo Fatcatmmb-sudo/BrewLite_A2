@@ -148,8 +148,7 @@ describe('Foundation on migrated PostgreSQL', () => {
     expect(barista.role).toBe('BARISTA');
   });
 
-  // Đã bổ sung 2 bảng phiếu nhập kho mới: inventory_receipts và inventory_receipt_items.
-  it('has all 29 domain tables and the default ingredient version', async () => {
+  it('has all 30 domain tables and the default ingredient version', async () => {
     const tables = await prisma.$queryRaw<Array<{ tablename: string }>>`
       SELECT tablename
       FROM pg_tables
@@ -172,6 +171,7 @@ describe('Foundation on migrated PostgreSQL', () => {
       'coupons',
       'coupon_redemptions',
       'loyalty_transactions',
+      'refund_requests',
       'ingredients',
       'inventory_receipts',
       'inventory_receipt_items',
