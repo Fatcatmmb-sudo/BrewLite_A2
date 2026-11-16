@@ -34,7 +34,7 @@ export interface StaffOrder {
   /** Thời điểm đơn vào trạng thái hiện tại. */
   updatedAt: string;
   /** Yêu cầu hoàn tiền (nếu có). */
-  refundRequest?: RefundRequest | null;
+  refundRequest?: Pick<RefundRequest, 'status' | 'reason'> | null;
 }
 
 export interface StaffColumn {

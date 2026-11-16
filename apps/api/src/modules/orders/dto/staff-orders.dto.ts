@@ -6,7 +6,10 @@ import {
   type BaristaTargetStatus,
   type StaffQueueStatus,
 } from '../state/order-state-machine.js';
-import type { OrderStatus } from '../../../generated/prisma/client.js';
+import type {
+  OrderStatus,
+  RefundRequestStatus,
+} from '../../../generated/prisma/client.js';
 import type { OrderItemResponseDto } from './order-item-response.dto.js';
 
 export class StaffOrdersQueryDto {
@@ -38,4 +41,5 @@ export interface StaffOrderDto {
   currency: 'VND';
   createdAt: string;
   updatedAt: string;
+  refundRequest: { status: RefundRequestStatus; reason: string } | null;
 }

@@ -177,6 +177,17 @@ describe('Checkout E2E: coupon, thanh toán lỗi và thử lại', () => {
       .send({ reason: 'Đổi ý trước khi pha chế' })
       .expect(201);
 
+    const queue = await request(app.getHttpServer())
+      .get('/api/v1/staff/orders?status=PAID&limit=200')
+      .set('Authorization', `Bearer ${baristaToken}`)
+      .expect(200);
+    expect(queue.body.data).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: orderId,
+        refundRequest: { status: 'PENDING', reason: 'Đổi ý trước khi pha chế' },
+      }),
+    ]));
+
     const approvePath = `/api/v1/staff/orders/${orderId}/refund/approve`;
     await auth(request(app.getHttpServer()).patch(approvePath)).expect(403);
     const { loyaltyBalance } = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
