@@ -2,13 +2,9 @@ import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { DEMO_ACCOUNTS } from './demo-accounts.js';
 
-/** Fixed credentials for the local coursework demo. Passwords are hashed in DB. */
-export const DEMO_ACCOUNTS = [
-  { username: 'customer01', password: 'Customer@123', role: 'CUSTOMER' },
-  { username: 'barista01', password: 'Barista@123', role: 'BARISTA' },
-  { username: 'operator01', password: 'Operator@123', role: 'PAYMENT_OPERATOR' },
-] as const;
+export { DEMO_ACCOUNTS } from './demo-accounts.js';
 
 export async function seedDemoUsers(prisma: PrismaClient) {
   for (const { username, password, role } of DEMO_ACCOUNTS) {

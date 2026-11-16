@@ -5,6 +5,7 @@ import {
   PrismaClient,
   UserRole,
 } from '../src/generated/prisma/client.js';
+import { DEMO_ACCOUNTS } from './demo-accounts.js';
 
 const demoAccounts = [
   {
@@ -26,10 +27,9 @@ const demoAccounts = [
 
 class DemoSeedError extends Error {}
 
-async function main() {
+function getPrivateAccounts() {
   if (demoAccounts.every(({ secret }) => process.env[secret] === undefined)) {
-    console.log('Production demo provisioning is disabled.');
-    return;
+    return [];
   }
 
   const accounts = demoAccounts.map(({ username, role, secret }) => {
@@ -51,6 +51,21 @@ async function main() {
     throw new DemoSeedError(
       'Each production demo account requires a different password.',
     );
+  }
+  return accounts;
+}
+
+async function main() {
+  const courseworkAccounts =
+    process.env.SEED_COURSEWORK_DEMO_ACCOUNTS === 'true'
+      ? DEMO_ACCOUNTS.filter(
+          ({ role }) => role === UserRole.CUSTOMER || role === UserRole.BARISTA,
+        )
+      : [];
+  const accounts = [...getPrivateAccounts(), ...courseworkAccounts];
+  if (accounts.length === 0) {
+    console.log('Production demo provisioning is disabled.');
+    return;
   }
 
   const connectionString = process.env.DATABASE_URL;
