@@ -21,6 +21,7 @@ import {
   StaffOrdersQueryDto,
   UpdateOrderStatusDto,
 } from '../dto/staff-orders.dto.js';
+import { RejectRefundRequestDto } from '../dto/refund-request.dto.js';
 import {
   OrdersExceptionFilter,
   OrdersResponseInterceptor,
@@ -61,6 +62,29 @@ export class StaffOrdersController {
       user.id,
       dto.status,
     );
+    return { data };
+  }
+
+  /** Barista duyệt hoàn tiền cho đơn PAID sang Loyalty Points (UC-15). */
+  @Patch(':id/refund/approve')
+  @HttpCode(HttpStatus.OK)
+  async approveRefund(
+    @Param('id', ParseUUIDPipe) orderId: string,
+    @CurrentUser() user: Principal,
+  ) {
+    const data = await this.orders.approveRefund(orderId, user.id);
+    return { data };
+  }
+
+  /** Barista từ chối yêu cầu hoàn tiền (UC-15). */
+  @Patch(':id/refund/reject')
+  @HttpCode(HttpStatus.OK)
+  async rejectRefund(
+    @Param('id', ParseUUIDPipe) orderId: string,
+    @CurrentUser() user: Principal,
+    @Body() dto: RejectRefundRequestDto,
+  ) {
+    const data = await this.orders.rejectRefund(orderId, user.id, dto.rejectReason);
     return { data };
   }
 }

@@ -148,6 +148,7 @@ describe('OrdersRepository (Unit Test - TDD)', () => {
             createdAt: true,
           },
         },
+        refundRequest: true,
       },
     });
 

@@ -94,6 +94,13 @@ enum LoyaltyTransactionType {
   REDEEM
   ADJUSTMENT
   REVERSAL
+  REFUND
+}
+
+enum RefundRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model User {
@@ -113,6 +120,8 @@ model User {
   couponRedemptions           CouponRedemption[]
   loyaltyTransactions         LoyaltyTransaction[]
   changedOrderStatusHistories OrderStatusHistory[] @relation("OrderStatusChangedBy")
+  refundRequests              RefundRequest[]      @relation("RefundRequestCustomer")
+  processedRefundRequests     RefundRequest[]      @relation("RefundRequestProcessor")
 
   @@map("users")
 }
@@ -256,6 +265,7 @@ model Order {
   inventoryReservations InventoryReservation[]
   couponRedemption      CouponRedemption?
   loyaltyTransactions   LoyaltyTransaction[]
+  refundRequest         RefundRequest?
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt])
@@ -502,3 +512,25 @@ model LoyaltyTransaction {
   @@index([userId, createdAt(sort: Desc)])
   @@map("loyalty_transactions")
 }
+
+model RefundRequest {
+  id                String              @id @default(uuid()) @db.Uuid
+  orderId           String              @unique @map("order_id") @db.Uuid
+  userId            String              @map("user_id") @db.Uuid
+  reason            String              @db.VarChar(255)
+  status            RefundRequestStatus @default(PENDING)
+  processedByUserId String?             @map("processed_by_user_id") @db.Uuid
+  processedAt       DateTime?           @map("processed_at") @db.Timestamptz(6)
+  rejectReason      String?             @map("reject_reason") @db.VarChar(255)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  order       Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  user        User  @relation("RefundRequestCustomer", fields: [userId], references: [id], onDelete: Restrict)
+  processedBy User? @relation("RefundRequestProcessor", fields: [processedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("refund_requests")
+}
+

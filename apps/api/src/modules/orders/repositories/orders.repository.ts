@@ -136,6 +136,7 @@ export class OrdersRepository {
             createdAt: true,
           },
         },
+        refundRequest: true,
       },
     });
   }
