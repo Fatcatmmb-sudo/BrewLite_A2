@@ -175,10 +175,6 @@ export default function OrderDetailPage() {
               order={order}
               onRetryPayment={isExpired || order.status !== "PENDING" ? undefined : () => void handleRetryPayment()}
               isPaying={isPaying}
-              onRequestRefund={canRequestRefund ? () => {
-                setShowRefundModal(true);
-                refundMutation.reset();
-              } : undefined}
             />
 
             {["PENDING", "PAYMENT_FAILED"].includes(order.status) && (
