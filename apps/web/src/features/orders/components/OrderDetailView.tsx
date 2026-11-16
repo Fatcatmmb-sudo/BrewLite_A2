@@ -9,10 +9,12 @@ export function OrderDetailView({
   order,
   onRetryPayment,
   isPaying = false,
+  onRequestRefund,
 }: {
   order: OrderDetail;
   onRetryPayment?: () => void;
   isPaying?: boolean;
+  onRequestRefund?: () => void;
 }) {
   return (
     <section className="space-y-5">
@@ -64,6 +66,50 @@ export function OrderDetailView({
             >
               {isPaying ? 'Đang khởi tạo thanh toán...' : 'Thanh toán lại →'}
             </button>
+          )}
+
+          {order.status === 'PAID' && !order.refundRequest && onRequestRefund && (
+            <div className="pt-3">
+              <button
+                type="button"
+                onClick={onRequestRefund}
+                className="w-full rounded-full border border-[#C99C54] bg-[#FBF5EA] px-5 py-3 text-sm font-bold text-[#856334] shadow-sm transition hover:bg-[#F5EAD5] active:bg-[#EBDABF]"
+              >
+                💰 Yêu cầu hoàn tiền
+              </button>
+            </div>
+          )}
+
+          {order.status === 'PAID' && order.refundRequest?.status === 'PENDING' && (
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900">
+              <span className="text-base">⏳</span>
+              <div>
+                <p className="font-bold">Đang chờ Barista duyệt hoàn tiền</p>
+                <p className="mt-0.5 text-[11px] text-amber-700">Lý do: &ldquo;{order.refundRequest.reason}&rdquo;</p>
+              </div>
+            </div>
+          )}
+
+          {order.status === 'PAID' && order.refundRequest?.status === 'APPROVED' && (
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-green-200 bg-green-50 p-3.5 text-xs text-green-900">
+              <span className="text-base">✅</span>
+              <div>
+                <p className="font-bold">Đã hoàn tiền vào điểm tích lũy</p>
+                <p className="mt-0.5 text-[11px] text-green-700">Cộng {order.total.toLocaleString('vi-VN')} điểm thành công.</p>
+              </div>
+            </div>
+          )}
+
+          {order.status === 'PAID' && order.refundRequest?.status === 'REJECTED' && (
+            <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-900">
+              <span className="text-base">❌</span>
+              <div>
+                <p className="font-bold">Yêu cầu hoàn tiền bị từ chối</p>
+                {order.refundRequest.rejectReason && (
+                  <p className="mt-0.5 text-[11px] text-rose-700">Lý do: &ldquo;{order.refundRequest.rejectReason}&rdquo;</p>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>

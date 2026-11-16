@@ -78,3 +78,27 @@ export function updateStaffOrderStatusApi(
     },
   );
 }
+
+export function approveRefundApi(token: string, orderId: string) {
+  return request<StaffOrder>(
+    `/staff/orders/${encodeURIComponent(orderId)}/refund/approve`,
+    token,
+    { method: "PATCH" },
+  );
+}
+
+export function rejectRefundApi(
+  token: string,
+  orderId: string,
+  rejectReason: string,
+) {
+  return request<StaffOrder>(
+    `/staff/orders/${encodeURIComponent(orderId)}/refund/reject`,
+    token,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rejectReason }),
+    },
+  );
+}

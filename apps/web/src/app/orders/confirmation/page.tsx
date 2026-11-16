@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getOrderDetailApi, OrdersApiError } from '@/features/orders/api';
@@ -17,6 +17,7 @@ export default function OrderConfirmationPage() {
 }
 
 function OrderConfirmationContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const { status, token } = useAuthSession();
@@ -47,7 +48,12 @@ function OrderConfirmationContent() {
               <p className="mt-3 text-xs font-bold uppercase tracking-[0.18em] text-[#B85D36]">Đặt hàng thành công</p>
               <h1 className="mt-1 font-serif text-3xl font-black text-[#163D2C]">Cảm ơn bạn đã chọn BrewLite</h1>
             </div>
-            <OrderDetailView order={order} />
+            <OrderDetailView
+              order={order}
+              onRequestRefund={order.status === 'PAID' && !order.refundRequest ? () => {
+                router.push(`/orders/${order.id}`);
+              } : undefined}
+            />
             <div className="mt-6 grid grid-cols-2 gap-3">
               <Link href="/menu" className="rounded-full border border-[#D8CCBA] bg-white px-4 py-3 text-center text-sm font-bold text-[#163D2C]">Tiếp tục chọn món</Link>
               <Link href="/orders" className="rounded-full bg-[#163D2C] px-4 py-3 text-center text-sm font-bold text-white">Đơn hàng của tôi</Link>
