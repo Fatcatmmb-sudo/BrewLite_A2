@@ -39,7 +39,10 @@ import type {
 } from '../dto/staff-orders.dto.js';
 import type { RefundRequestResponseDto } from '../dto/refund-request.dto.js';
 import { toOrderItemResponse } from '../mappers/order-item.mapper.js';
-import { OrdersRepository } from '../repositories/orders.repository.js';
+import {
+  OrdersRepository,
+  type StaffOrderRow,
+} from '../repositories/orders.repository.js';
 import {
   BARISTA_TRANSITION_REASONS,
   STAFF_QUEUE_STATUSES,
@@ -753,11 +756,7 @@ export class OrdersService {
     });
   }
 
-  private toStaffOrder(
-    order: Prisma.OrderGetPayload<{
-      include: { items: { include: { orderItemToppings: true } } };
-    }>,
-  ): StaffOrderDto {
+  private toStaffOrder(order: StaffOrderRow): StaffOrderDto {
     return {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -767,6 +766,7 @@ export class OrdersService {
       currency: 'VND',
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
+      refundRequest: order.refundRequest,
     };
   }
 

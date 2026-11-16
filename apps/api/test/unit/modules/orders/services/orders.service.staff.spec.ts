@@ -17,6 +17,7 @@ function orderRow(status: string) {
     total: 45000n,
     createdAt: new Date('2026-11-04T01:00:00Z'),
     updatedAt: new Date('2026-11-04T01:05:00Z'),
+    refundRequest: null,
     items: [
       {
         id: 'i-1',
@@ -70,7 +71,10 @@ describe('OrdersService - Barista (EXT-UC10)', () => {
 
   describe('getStaffQueue', () => {
     it('mặc định lấy PAID, PREPARING, READY và không lộ dữ liệu tài khoản khách', async () => {
-      repository.findStaffQueue.mockResolvedValue([orderRow('PAID')]);
+      const refundRequest = { status: 'PENDING', reason: 'Đổi ý trước khi pha chế' };
+      repository.findStaffQueue.mockResolvedValue([
+        { ...orderRow('PAID'), refundRequest },
+      ]);
 
       const result = await service.getStaffQueue({}, BARISTA_ID);
 
@@ -92,6 +96,7 @@ describe('OrdersService - Barista (EXT-UC10)', () => {
         lineTotal: 45000,
       });
       expect(result.data[0]).not.toHaveProperty('userId');
+      expect(result.data[0].refundRequest).toEqual(refundRequest);
     });
 
     it('lọc theo một trạng thái và giới hạn số đơn', async () => {

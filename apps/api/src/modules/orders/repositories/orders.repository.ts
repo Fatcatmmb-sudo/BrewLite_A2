@@ -10,6 +10,15 @@ import {
 import type { OrderHistoryQueryDto } from '../dto/order-history-query.dto.js';
 import { assertTransition } from '../state/order-state-machine.js';
 
+const staffOrderInclude = {
+  items: { include: { orderItemToppings: true } },
+  refundRequest: { select: { status: true, reason: true } },
+} satisfies Prisma.OrderInclude;
+
+export type StaffOrderRow = Prisma.OrderGetPayload<{
+  include: typeof staffOrderInclude;
+}>;
+
 @Injectable()
 export class OrdersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -94,14 +103,14 @@ export class OrdersRepository {
       where: { status: { in: statuses } },
       orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
       take: limit,
-      include: { items: { include: { orderItemToppings: true } } },
+      include: staffOrderInclude,
     });
   }
 
   async findStaffOrder(id: string, tx: Prisma.TransactionClient) {
     return tx.order.findUnique({
       where: { id },
-      include: { items: { include: { orderItemToppings: true } } },
+      include: staffOrderInclude,
     });
   }
 
