@@ -12,6 +12,7 @@ import {
     cancelOrderApi,
     getOrderDetailApi,
     OrdersApiError,
+    requestRefundApi,
 } from "@/features/orders/api";
 import { OrderDetailView } from "@/features/orders/components/OrderDetailView";
 import { PaymentApiError } from "@/features/payments/api";
@@ -19,7 +20,7 @@ import { cartStore } from "@/stores/cart-store";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -37,10 +38,22 @@ export default function OrderDetailPage() {
   const [isPaying, setIsPaying] = useState(false);
   const [now, setNow] = useState(Date.now);
 
+  // --- Trạng thái UI hoàn tiền ---
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const refundReasonRef = useRef<HTMLTextAreaElement>(null);
+
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Tự động focus ô nhập lý do khi mở modal
+  useEffect(() => {
+    if (showRefundModal) {
+      setTimeout(() => refundReasonRef.current?.focus(), 50);
+    }
+  }, [showRefundModal]);
 
   const order = status === "authenticated" ? query.data : undefined;
 
@@ -82,6 +95,18 @@ export default function OrderDetailPage() {
     },
   });
 
+  // Gửi yêu cầu hoàn tiền (Customer)
+  const refundMutation = useMutation({
+    mutationFn: () => requestRefundApi(token!, params.id, refundReason.trim()),
+    onSuccess: async () => {
+      setShowRefundModal(false);
+      setRefundReason("");
+      await client.invalidateQueries({
+        queryKey: ["order-detail", token, params.id],
+      });
+    },
+  });
+
   const handleRetryPayment = async () => {
     if (!token || !order || isPaying || isExpired) return;
     setIsPaying(true);
@@ -113,6 +138,8 @@ export default function OrderDetailPage() {
             [403, 404].includes(query.error.status)
           ? "Không tìm thấy đơn hàng hoặc bạn không có quyền xem đơn này."
           : query.error?.message;
+
+  const canRequestRefund = order?.status === "PAID" && !order.refundRequest;
 
   return (
     <main className="min-h-screen bg-[#FBF8F3] px-4 py-10 sm:px-6">
@@ -148,6 +175,10 @@ export default function OrderDetailPage() {
               order={order}
               onRetryPayment={isExpired || order.status !== "PENDING" ? undefined : () => void handleRetryPayment()}
               isPaying={isPaying}
+              onRequestRefund={canRequestRefund ? () => {
+                setShowRefundModal(true);
+                refundMutation.reset();
+              } : undefined}
             />
 
             {["PENDING", "PAYMENT_FAILED"].includes(order.status) && (
@@ -271,9 +302,183 @@ export default function OrderDetailPage() {
                 {cancel.error.message}
               </p>
             )}
+
+            {/* ===== KHU VỰC HOÀN TIỀN (CUSTOMER) ===== */}
+            {order.status === "PAID" && (
+              <section className="mt-5 rounded-2xl border border-[#E8DFC8] bg-white p-5 shadow-sm sm:p-6">
+                <h2 className="font-serif text-base font-bold text-[#163D2C]">
+                  Hoàn tiền bằng điểm tích lũy
+                </h2>
+                <p className="mt-1 text-xs text-[#756A63]">
+                  Nếu có sự cố với đơn hàng, bạn có thể yêu cầu hoàn tiền dưới dạng điểm tích lũy. Barista sẽ xem xét và phê duyệt tại quầy.
+                </p>
+
+                {canRequestRefund && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRefundModal(true);
+                      refundMutation.reset();
+                    }}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#C99C54] bg-[#FBF5EA] px-5 py-2.5 text-sm font-bold text-[#856334] transition hover:bg-[#F5EAD5]"
+                  >
+                    <span>💰</span>
+                    Yêu cầu hoàn tiền
+                  </button>
+                )}
+
+                {order.refundRequest?.status === "PENDING" && (
+                  <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <span className="mt-0.5 text-lg">⏳</span>
+                    <div>
+                      <p className="text-sm font-bold text-amber-900">
+                        Đang chờ Barista duyệt hoàn tiền
+                      </p>
+                      <p className="mt-1 text-xs text-amber-700">
+                        Lý do bạn gửi:{" "}
+                        <span className="italic">
+                          &ldquo;{order.refundRequest.reason}&rdquo;
+                        </span>
+                      </p>
+                      <p className="mt-1 text-xs text-amber-600">
+                        Yêu cầu gửi lúc{" "}
+                        {new Intl.DateTimeFormat("vi-VN", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        }).format(new Date(order.refundRequest.createdAt))}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {order.refundRequest?.status === "APPROVED" && (
+                  <div className="mt-4 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
+                    <span className="mt-0.5 text-lg">✅</span>
+                    <div>
+                      <p className="text-sm font-bold text-green-900">
+                        Hoàn tiền đã được duyệt
+                      </p>
+                      <p className="mt-1 text-xs text-green-700">
+                        Điểm tích lũy tương đương{" "}
+                        <strong>
+                          {order.total.toLocaleString("vi-VN")} điểm
+                        </strong>{" "}
+                        đã được cộng vào tài khoản của bạn.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {order.refundRequest?.status === "REJECTED" && (
+                  <div className="mt-4 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <span className="mt-0.5 text-lg">❌</span>
+                    <div>
+                      <p className="text-sm font-bold text-rose-900">
+                        Yêu cầu hoàn tiền bị từ chối
+                      </p>
+                      {order.refundRequest.rejectReason && (
+                        <p className="mt-1 text-xs text-rose-700">
+                          Lý do từ chối:{" "}
+                          <span className="italic">
+                            &ldquo;{order.refundRequest.rejectReason}&rdquo;
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         )}
       </div>
+
+      {/* ===== MODAL GỬI YÊU CẦU HOÀN TIỀN ===== */}
+      {showRefundModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="refund-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !refundMutation.isPending) {
+              setShowRefundModal(false);
+              setRefundReason("");
+              refundMutation.reset();
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2
+              id="refund-modal-title"
+              className="font-serif text-xl font-bold text-[#163D2C]"
+            >
+              Yêu cầu hoàn tiền
+            </h2>
+            <p className="mt-1 text-xs text-[#756A63]">
+              Mô tả lý do bạn muốn hoàn tiền. Barista sẽ xem xét và phê duyệt tại quầy.
+            </p>
+
+            <label
+              htmlFor="refund-reason"
+              className="mt-4 block text-xs font-bold uppercase tracking-wider text-[#756A63]"
+            >
+              Lý do hoàn tiền <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              id="refund-reason"
+              ref={refundReasonRef}
+              rows={4}
+              maxLength={500}
+              placeholder="Ví dụ: Đơn hàng bị lỗi, sản phẩm không đúng yêu cầu..."
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              disabled={refundMutation.isPending}
+              className="mt-2 w-full resize-none rounded-xl border border-[#DDE2D7] p-3 text-sm text-[#1A1612] outline-none focus:border-[#163D2C] focus:ring-1 focus:ring-[#163D2C] disabled:opacity-60"
+            />
+            <p className="mt-1 text-right text-[11px] text-[#9A9A9A]">
+              {refundReason.length}/500
+            </p>
+
+            {refundMutation.isError && (
+              <div
+                role="alert"
+                className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"
+              >
+                {refundMutation.error instanceof Error
+                  ? refundMutation.error.message
+                  : "Có lỗi xảy ra. Vui lòng thử lại."}
+              </div>
+            )}
+
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                disabled={refundMutation.isPending || refundReason.trim().length < 10}
+                onClick={() => refundMutation.mutate()}
+                className="flex-1 rounded-full bg-[#163D2C] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1f4f38] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {refundMutation.isPending ? "Đang gửi…" : "Gửi yêu cầu"}
+              </button>
+              <button
+                type="button"
+                disabled={refundMutation.isPending}
+                onClick={() => {
+                  setShowRefundModal(false);
+                  setRefundReason("");
+                  refundMutation.reset();
+                }}
+                className="rounded-full border border-[#DDE2D7] px-5 py-3 text-sm font-semibold text-[#163D2C] transition hover:bg-[#F5F4EF] disabled:opacity-50"
+              >
+                Hủy bỏ
+              </button>
+            </div>
+            <p className="mt-3 text-center text-[11px] text-[#9A9A9A]">
+              Tối thiểu 10 ký tự. Mỗi đơn chỉ được gửi một yêu cầu.
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

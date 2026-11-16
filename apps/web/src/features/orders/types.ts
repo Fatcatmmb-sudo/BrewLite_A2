@@ -44,11 +44,27 @@ export interface OrderSummary {
   reservationExpiresAt?: string | null;
 }
 
+export type RefundRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface RefundRequest {
+  id: string;
+  orderId: string;
+  userId: string;
+  reason: string;
+  status: RefundRequestStatus;
+  processedByUserId: string | null;
+  processedAt: string | null;
+  rejectReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OrderDetail extends OrderSummary {
   items: OrderItem[];
   subtotal: number;
   discountAmount: number;
   reservationExpiresAt?: string | null;
+  refundRequest?: RefundRequest | null;
 }
 
 export interface OrderListResponse {

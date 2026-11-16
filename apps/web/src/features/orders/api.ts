@@ -70,3 +70,11 @@ export function getOrderDetailApi(token: string, orderId: string, signal?: Abort
 export function cancelOrderApi(token: string, orderId: string) {
   return request<OrderDetail>(`/orders/${encodeURIComponent(orderId)}/cancel`, token, { method: 'POST' });
 }
+
+export function requestRefundApi(token: string, orderId: string, reason: string) {
+  return request<{ message: string }>(`/orders/${encodeURIComponent(orderId)}/refund-request`, token, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+}
