@@ -8,9 +8,9 @@ Các route backend dưới đây có prefix `/api/v1`. Đọc [test plan](testin
 
 | FR | Use Case và sơ đồ | Code hoặc API | Kiểm chứng |
 |---|---|---|---|
-| FR-01 | UC-03, [Use Case tổng thể](diagrams/use-case-overview.svg) | `GET /products`, Web `/menu` | [Catalog API](../apps/api/test/unit/catalog.service.spec.ts), TC-FR-01 |
+| FR-01 | UC-03, [Use Case tổng thể](diagrams/use-case-overview.svg) | `GET /products`, Web `/menu` | [Catalog API](../apps/api/test/unit/modules/catalog/catalog.service.spec.ts), TC-FR-01 |
 | FR-02 | UC-04, [Class domain](diagrams/class-domain.svg) | `GET /products/:id`, chi tiết món | [Product detail](../apps/web/tests/unit/product-detail-modal.test.mjs), TC-FR-02 |
-| FR-03 | UC-04, [Class domain](diagrams/class-domain.svg) | [CreateOrderDto](../apps/api/src/modules/orders/dto/create-order.dto.ts), server tính giá | [OrdersService](../apps/api/src/modules/orders/services/orders.service.spec.ts), TC-FR-03 |
+| FR-03 | UC-04, [Class domain](diagrams/class-domain.svg) | [CreateOrderDto](../apps/api/src/modules/orders/dto/create-order.dto.ts), server tính giá | [OrdersService](../apps/api/test/unit/modules/orders/services/orders.service.spec.ts), TC-FR-03 |
 | FR-04 | UC-05, [Use Case tổng thể](diagrams/use-case-overview.svg) | [Cart store](../apps/web/src/stores/cart-store.ts) | [Cart store tests](../apps/web/tests/unit/cart-store.test.mjs), TC-FR-04 |
 | FR-05 | UC-01/02, [Sequence checkout](diagrams/sequence-checkout.svg) | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, JWT và role/ownership | [Auth E2E](../apps/api/test/e2e/auth.e2e-spec.ts), TC-FR-05 |
 | FR-06 | [UC-06](requirements/uc-06-tao-don.md), [Sequence tạo đơn](diagrams/sequence-create-order.svg) | `POST /orders`, [OrdersService](../apps/api/src/modules/orders/services/orders.service.ts) | [Orders HTTP](../apps/api/test/integration/orders.integration-spec.ts) kiểm tra trường giá/chủ đơn do client gửi, tính lại coupon và 20 yêu cầu tranh 5 ly. [Orders/inventory integration](../apps/api/test/integration/orders-inventory.integration-spec.ts), TC-FR-06 |
@@ -23,7 +23,7 @@ Các route backend dưới đây có prefix `/api/v1`. Đọc [test plan](testin
 | FR-13 | UC-02, refresh token theo kế hoạch | Auth dùng access JWT | TC-FR-13 |
 | FR-14 | UC-09, realtime theo kế hoạch | Web đọc trạng thái qua GET | TC-FR-14 |
 | FR-15 | Giới hạn thu tiền thật trong phạm vi đề | Kiểm chứng cấu hình VNPay Sandbox và mock test | TC-FR-15 |
-| FR-16 | UC-14/15, [Use Case thanh toán](diagrams/use-case-uc08.svg) | [Thiết kế hoàn tiền trước pha chế](requirements/staff-operations.md) | [Unit hoàn tiền](../apps/api/src/modules/orders/services/orders-refund.service.spec.ts) và [Checkout API E2E](../apps/api/test/e2e/checkout.e2e-spec.ts) kiểm tra quyền và hai lượt duyệt đồng thời chỉ hoàn điểm/kho một lần |
+| FR-16 | UC-14/15, [Use Case thanh toán](diagrams/use-case-uc08.svg) | [Thiết kế hoàn tiền trước pha chế](requirements/staff-operations.md) | [Unit hoàn tiền](../apps/api/test/unit/modules/orders/services/orders-refund.service.spec.ts) và [Checkout API E2E](../apps/api/test/e2e/checkout.e2e-spec.ts) kiểm tra quyền và hai lượt duyệt đồng thời chỉ hoàn điểm/kho một lần |
 | FR-17 | UC-16/17, [Use Case tổng thể](diagrams/use-case-overview.svg) | [Thiết kế nhập kho và biến động](requirements/staff-operations.md) | [Staff inventory HTTP integration](../apps/api/test/integration/staff-inventory.integration-spec.ts) kiểm tra phân quyền, lịch sử, hoàn tác và nhập kho đồng thời |
 
 Task 2.1 dùng [Activity checkout](diagrams/activity-checkout.svg) cho FR-01 đến FR-08, gồm các nhánh chưa đăng nhập, hết hàng và thanh toán thất bại. Task 2.2 gồm [Sequence tạo đơn](diagrams/sequence-create-order.svg), [Sequence thanh toán](diagrams/sequence-payment.svg) và [Sequence checkout](diagrams/sequence-checkout.svg). [Class domain](diagrams/class-domain.svg) và [ERD](../database/BrewLite.svg) thể hiện các quan hệ dữ liệu.

@@ -15,7 +15,7 @@ TC là kế hoạch kiểm chứng. [Ma trận truy vết](../traceability-matri
 
 | Bộ test | Thư mục | Lệnh từ thư mục gốc |
 |---|---|---|
-| API unit | `apps/api/test/unit` và các file `*.spec.ts` trong `apps/api/src` | `npm --prefix apps/api test` |
+| API unit | `apps/api/test/unit` | `npm --prefix apps/api test` |
 | API integration | `apps/api/test/integration` | `npm --prefix apps/api run test:integration` |
 | API E2E | `apps/api/test/e2e` | `npm --prefix apps/api run test:e2e` |
 | Web unit/component | `apps/web/tests/unit` | `npm --prefix apps/web test` |
